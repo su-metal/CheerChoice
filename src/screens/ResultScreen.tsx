@@ -132,8 +132,10 @@ export default function ResultScreen({ navigation, route }: Props) {
           <TouchableOpacity
             style={[styles.choiceButton, styles.skipButton]}
             onPress={() => {
-              Alert.alert('Amazing!', 'You chose to skip! 👑\n(Skipped screen coming next)');
-              // TODO: Navigate to Skipped screen
+              navigation.navigate('Skipped', {
+                calories: result.estimatedCalories,
+                foodName: result.foodName,
+              });
             }}
           >
             <Text style={styles.choiceButtonIcon}>🌟</Text>

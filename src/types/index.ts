@@ -47,3 +47,11 @@ export interface Exercise {
   icon: string;
   defaultReps: number;
 }
+
+// Skipped Stats (Calorie Savings)
+export interface SkippedStats {
+  today: number;
+  thisWeek: number;
+  thisMonth: number;
+  lastUpdated: string; // ISO date string
+}

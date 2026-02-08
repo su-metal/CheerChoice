@@ -24,10 +24,15 @@ yarn-error.log*
 Thumbs.db
 
 # Environment
+.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Generated native folders (managed workflow)
+/android
+/ios
 
 # Claude
 .claude/

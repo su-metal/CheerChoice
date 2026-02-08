@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
@@ -33,12 +34,11 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
   function handleExerciseSelect(exercise: ExerciseDefinition) {
     const recommendedReps = calculateRecommendedReps(calories, exercise);
 
-    navigation.navigate('Exercise', {
-      exerciseType: exercise.id,
-      targetReps: recommendedReps,
-      calories: calories,
-      foodName: foodName,
-    });
+    // Temporarily disabled for build test
+    Alert.alert(
+      `${exercise.nameEn}!`,
+      `Let's do ${recommendedReps} ${exercise.nameEn.toLowerCase()}! 💪\n\n(Exercise screen temporarily disabled for build testing)`
+    );
   }
 
   // 「Maybe Later」ボタンの処理

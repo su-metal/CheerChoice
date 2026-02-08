@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { HomeScreen, CameraScreen, ResultScreen, SkippedScreen } from '../screens';
+import { HomeScreen, CameraScreen, ResultScreen, SkippedScreen, ExerciseSelectScreen, ExerciseScreen } from '../screens';
 import { Colors } from '../constants';
 
 // Define screen param types
@@ -10,9 +10,9 @@ export type RootStackParamList = {
   Camera: undefined;
   Result: { photoUri: string };
   Skipped: { calories: number; foodName: string };
+  ExerciseSelect: { calories: number; foodName: string };
+  Exercise: { exerciseType: string; targetReps: number; calories: number; foodName: string };
   // More screens will be added later:
-  // ExerciseSelect: { calories: number };
-  // Exercise: { exerciseType: string; targetReps: number };
   // Log: undefined;
   // Settings: undefined;
 };
@@ -66,6 +66,22 @@ export default function AppNavigator() {
           component={SkippedScreen}
           options={{
             title: 'Amazing!',
+            headerBackTitle: 'Back',
+          }}
+        />
+        <Stack.Screen
+          name="ExerciseSelect"
+          component={ExerciseSelectScreen}
+          options={{
+            title: 'Choose Your Exercise',
+            headerBackTitle: 'Back',
+          }}
+        />
+        <Stack.Screen
+          name="Exercise"
+          component={ExerciseScreen}
+          options={{
+            title: 'Let\'s Move!',
             headerBackTitle: 'Back',
           }}
         />

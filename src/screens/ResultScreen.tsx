@@ -146,11 +146,10 @@ export default function ResultScreen({ navigation, route }: Props) {
           <TouchableOpacity
             style={[styles.choiceButton, styles.eatButton]}
             onPress={() => {
-              Alert.alert(
-                'Great choice!',
-                "Enjoy your meal! 🍽️\n(Exercise selection coming next)"
-              );
-              // TODO: Navigate to ExerciseSelect screen
+              navigation.navigate('ExerciseSelect', {
+                calories: result.estimatedCalories,
+                foodName: result.foodName,
+              });
             }}
           >
             <Text style={styles.choiceButtonIcon}>🍽️</Text>

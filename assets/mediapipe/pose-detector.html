@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exercise Counter</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            background: #000;
+        }
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .input_video {
+            display: none;
+        }
+        .output_canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <video class="input_video" autoplay playsinline></video>
+        <canvas class="output_canvas"></canvas>
+    </div>
+
+    <script>
+        // React Native通信用グローバル変数
+        let exerciseType = 'squat';
+        let targetReps = 20;
+
+        // カウント変数
+        let squatCount = 0;
+        let situpCount = 0;
+        let pushupCount = 0;
+
+        // 状態フラグ
+        let isSquatting = false;
+        let isSittingUp = false;
+        let isPushingUp = false;
+
+        // キャリブレーション
+        let isCalibrating = false;
+        let calibrationFrames = 0;
+        const CALIBRATION_FRAMES_NEEDED = 30;
+        let baselineHipY = null;
+        let baselineShoulderY = null;
+        let baselineElbowAngle = null;
+
+        // Canvas setup
+        const videoElement = document.getElementsByClassName('input_video')[0];
+        const canvasElement = document.getElementsByClassName('output_canvas')[0];
+        const canvasCtx = canvasElement.getContext('2d');
+
+        // React Nativeからのメッセージ受信
+        window.addEventListener('message', (event) => {
+            try {
+                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                if (data.type === 'init') {
+                    exerciseType = data.exerciseType;
+                    targetReps = data.targetReps;
+                    resetCount();
+                    startCalibration();
+                }
+            } catch (e) {
+                console.error('Message parsing error:', e);
+            }
+        });
+
+        // React Nativeへメッセージ送信
+        function sendMessage(data) {
+            if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify(data));
+            }
+        }
+
+        // カウント送信
+        function sendCountUpdate() {
+            const count = getCurrentCount();
+            sendMessage({
+                type: 'count',
+                count: count,
+                targetReps: targetReps
+            });
+        }
+
+        // 現在のカウント取得
+        function getCurrentCount() {
+            if (exerciseType === 'squat') return squatCount;
+            if (exerciseType === 'situp') return situpCount;
+            if (exerciseType === 'pushup') return pushupCount;
+            return 0;
+        }
+
+        // カウントリセット
+        function resetCount() {
+            squatCount = 0;
+            situpCount = 0;
+            pushupCount = 0;
+            isSquatting = false;
+            isSittingUp = false;
+            isPushingUp = false;
+        }
+
+        // キャリブレーション開始
+        function startCalibration() {
+            isCalibrating = true;
+            calibrationFrames = 0;
+            baselineHipY = null;
+            baselineShoulderY = null;
+            baselineElbowAngle = null;
+        }
+
+        // 角度計算
+        function calculateAngle(a, b, c) {
+            const radians = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
+            let angle = Math.abs(radians * 180.0 / Math.PI);
+            if (angle > 180.0) {
+                angle = 360 - angle;
+            }
+            return angle;
+        }
+
+        // スクワット判定
+        function detectSquat(landmarks) {
+            if (!landmarks || landmarks.length < 33) return;
+
+            const leftHip = landmarks[23];
+            const leftKnee = landmarks[25];
+            const leftAnkle = landmarks[27];
+            const rightHip = landmarks[24];
+            const rightKnee = landmarks[26];
+            const rightAnkle = landmarks[28];
+
+            const leftKneeAngle = calculateAngle(leftHip, leftKnee, leftAnkle);
+            const rightKneeAngle = calculateAngle(rightHip, rightKnee, rightAnkle);
+            const avgKneeAngle = (leftKneeAngle + rightKneeAngle) / 2;
+
+            const hipY = (leftHip.y + rightHip.y) / 2;
+
+            // キャリブレーション
+            if (isCalibrating) {
+                if (calibrationFrames < CALIBRATION_FRAMES_NEEDED) {
+                    if (!baselineHipY) baselineHipY = hipY;
+                    else baselineHipY = (baselineHipY + hipY) / 2;
+                    calibrationFrames++;
+                } else {
+                    isCalibrating = false;
+                }
+                return;
+            }
+
+            if (!baselineHipY) return;
+
+            const hipDrop = hipY - baselineHipY;
+
+            if (avgKneeAngle < 90 && hipDrop > 0.05 && !isSquatting) {
+                isSquatting = true;
+            } else if (avgKneeAngle > 160 && hipDrop < 0.02 && isSquatting) {
+                isSquatting = false;
+                squatCount++;
+                sendCountUpdate();
+            }
+        }
+
+        // 腹筋判定
+        function detectSitup(landmarks) {
+            if (!landmarks || landmarks.length < 33) return;
+
+            const leftShoulder = landmarks[11];
+            const leftHip = landmarks[23];
+            const leftKnee = landmarks[25];
+            const rightShoulder = landmarks[12];
+            const rightHip = landmarks[24];
+
+            const leftTorsoAngle = calculateAngle(leftShoulder, leftHip, leftKnee);
+            const avgShoulderY = (leftShoulder.y + rightShoulder.y) / 2;
+            const avgHipY = (leftHip.y + rightHip.y) / 2;
+
+            // キャリブレーション
+            if (isCalibrating) {
+                if (calibrationFrames < CALIBRATION_FRAMES_NEEDED) {
+                    if (!baselineShoulderY) baselineShoulderY = avgShoulderY;
+                    else baselineShoulderY = (baselineShoulderY + avgShoulderY) / 2;
+                    calibrationFrames++;
+                } else {
+                    isCalibrating = false;
+                }
+                return;
+            }
+
+            if (!baselineShoulderY) return;
+
+            const shoulderRise = baselineShoulderY - avgShoulderY;
+
+            if (leftTorsoAngle < 60 && shoulderRise > 0.05 && !isSittingUp) {
+                isSittingUp = true;
+            } else if (leftTorsoAngle > 120 && shoulderRise < 0.02 && isSittingUp) {
+                isSittingUp = false;
+                situpCount++;
+                sendCountUpdate();
+            }
+        }
+
+        // 腕立て判定
+        function detectPushup(landmarks) {
+            if (!landmarks || landmarks.length < 33) return;
+
+            const leftShoulder = landmarks[11];
+            const leftElbow = landmarks[13];
+            const leftWrist = landmarks[15];
+            const rightShoulder = landmarks[12];
+            const rightElbow = landmarks[14];
+            const rightWrist = landmarks[16];
+
+            const leftElbowAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
+            const rightElbowAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
+            const avgElbowAngle = (leftElbowAngle + rightElbowAngle) / 2;
+
+            const avgShoulderY = (leftShoulder.y + rightShoulder.y) / 2;
+
+            // キャリブレーション
+            if (isCalibrating) {
+                if (calibrationFrames < CALIBRATION_FRAMES_NEEDED) {
+                    if (!baselineElbowAngle) baselineElbowAngle = avgElbowAngle;
+                    else baselineElbowAngle = (baselineElbowAngle + avgElbowAngle) / 2;
+                    if (!baselineShoulderY) baselineShoulderY = avgShoulderY;
+                    else baselineShoulderY = (baselineShoulderY + avgShoulderY) / 2;
+                    calibrationFrames++;
+                } else {
+                    isCalibrating = false;
+                }
+                return;
+            }
+
+            if (!baselineElbowAngle || !baselineShoulderY) return;
+
+            const shoulderDrop = avgShoulderY - baselineShoulderY;
+
+            if (avgElbowAngle < 90 && shoulderDrop > 0.05 && !isPushingUp) {
+                isPushingUp = true;
+            } else if (avgElbowAngle > 160 && shoulderDrop < 0.02 && isPushingUp) {
+                isPushingUp = false;
+                pushupCount++;
+                sendCountUpdate();
+            }
+        }
+
+        // MediaPipe Pose結果処理
+        function onResults(results) {
+            if (!canvasElement || !canvasCtx) return;
+
+            // Canvas設定
+            canvasElement.width = videoElement.videoWidth;
+            canvasElement.height = videoElement.videoHeight;
+
+            // カメラ映像描画
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+            // 骨格描画
+            if (results.poseLandmarks) {
+                drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS,
+                    {color: '#00FF00', lineWidth: 4});
+                drawLandmarks(canvasCtx, results.poseLandmarks,
+                    {color: '#FF0000', lineWidth: 2, radius: 6});
+
+                // 運動判定
+                if (exerciseType === 'squat') {
+                    detectSquat(results.poseLandmarks);
+                } else if (exerciseType === 'situp') {
+                    detectSitup(results.poseLandmarks);
+                } else if (exerciseType === 'pushup') {
+                    detectPushup(results.poseLandmarks);
+                }
+            }
+
+            canvasCtx.restore();
+        }
+
+        // MediaPipe Pose初期化
+        const pose = new Pose({locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+        }});
+
+        pose.setOptions({
+            modelComplexity: 1,
+            smoothLandmarks: true,
+            enableSegmentation: false,
+            smoothSegmentation: false,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        pose.onResults(onResults);
+
+        // カメラ初期化
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await pose.send({image: videoElement});
+            },
+            width: 640,
+            height: 480
+        });
+
+        camera.start();
+
+        // 準備完了通知
+        setTimeout(() => {
+            sendMessage({ type: 'ready' });
+        }, 1000);
+    </script>
+</body>
+</html>

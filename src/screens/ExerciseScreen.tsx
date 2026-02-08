@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,10 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
+  Animated,
 } from 'react-native';
-import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { Asset } from 'expo-asset';
 import { Colors, Typography, Spacing, BorderRadius } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getRandomCompletionMessage, getRandomPartialMessage } from '../utils/exerciseMessages';
@@ -32,8 +31,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
 
   const [count, setCount] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
-  const [isReady, setIsReady] = useState(false);
-  const webViewRef = useRef<WebView>(null);
+  const [scaleAnim] = useState(new Animated.Value(1));
 
   const exercise = EXERCISES[exerciseType];
 
@@ -44,39 +42,25 @@ export default function ExerciseScreen({ navigation, route }: Props) {
     }
   }, [count, targetReps, isComplete]);
 
-  // WebViewからのメッセージ受信
-  const handleMessage = (event: WebViewMessageEvent) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
+  // タップでカウント
+  const handleTap = () => {
+    if (count < targetReps) {
+      setCount(count + 1);
 
-      if (data.type === 'count') {
-        setCount(data.count);
-      } else if (data.type === 'ready') {
-        setIsReady(true);
-        // 準備完了後、初期化メッセージ送信
-        setTimeout(() => {
-          sendInitMessage();
-        }, 500);
-      } else if (data.type === 'error') {
-        Alert.alert('Error', data.message);
-      }
-    } catch (error) {
-      console.error('Failed to parse message:', error);
+      // アニメーション効果
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.2,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
-  };
-
-  // 初期化メッセージ送信
-  const sendInitMessage = () => {
-    webViewRef.current?.postMessage(JSON.stringify({
-      type: 'init',
-      exerciseType: exerciseType,
-      targetReps: targetReps
-    }));
-  };
-
-  // WebView読み込み完了時
-  const handleLoadEnd = () => {
-    console.log('WebView loaded');
   };
 
   // 完了処理
@@ -84,7 +68,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
     const message = getRandomCompletionMessage();
     Alert.alert(
       '🎉 Amazing!',
-      `${message}\n\nYou completed ${count} ${exercise.nameEn.toLowerCase()}!`,
+      `${message}\n\nYou completed ${count} ${exercise.nameEn.toLowerCase()}!\n\nYou balanced your ${foodName}! 💜`,
       [
         {
           text: 'Done',
@@ -114,72 +98,52 @@ export default function ExerciseScreen({ navigation, route }: Props) {
     );
   };
 
-  // HTMLファイルのURI取得
-  const getHtmlUri = () => {
-    try {
-      const asset = Asset.fromModule(require('../../assets/mediapipe/pose-detector.html'));
-      return { uri: asset.uri };
-    } catch (error) {
-      console.error('Failed to load HTML asset:', error);
-      return { html: '<html><body><h1>Error loading pose detector</h1></body></html>' };
-    }
-  };
-
   const progressPercentage = Math.min(Math.round((count / targetReps) * 100), 100);
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* WebView（フルスクリーン） */}
-      <WebView
-        ref={webViewRef}
-        source={getHtmlUri()}
-        onMessage={handleMessage}
-        onLoadEnd={handleLoadEnd}
-        style={styles.webview}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        mediaPlaybackRequiresUserAction={false}
-        allowsInlineMediaPlayback={true}
-        allowsProtectedMedia={true}
-      />
-
-      {/* オーバーレイUI */}
-      <View style={styles.overlay}>
-        {/* 上部：目標回数 */}
-        <View style={styles.topBar}>
-          <Text style={styles.exerciseName}>{exercise.icon} {exercise.nameEn}</Text>
-          <Text style={styles.targetText}>Target: {targetReps}</Text>
-        </View>
-
-        {/* 中央：カウント表示 */}
-        <View style={styles.centerContainer}>
-          <Text style={styles.countText}>{count}</Text>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
-          </View>
-          <Text style={styles.progressText}>{progressPercentage}%</Text>
-        </View>
-
-        {/* 下部：ボタン */}
-        <View style={styles.bottomBar}>
-          {isComplete ? (
-            <TouchableOpacity style={styles.finishButton} onPress={handleFinish}>
-              <Text style={styles.finishButtonText}>Finish! 🎉</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.stopButton} onPress={handleStop}>
-              <Text style={styles.stopButtonText}>Stop</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+      {/* 上部：エクササイズ情報 */}
+      <View style={styles.topBar}>
+        <Text style={styles.exerciseName}>{exercise.icon} {exercise.nameEn}</Text>
+        <Text style={styles.targetText}>Target: {targetReps} reps</Text>
       </View>
 
-      {/* ローディング表示 */}
-      {!isReady && (
-        <View style={styles.loadingOverlay}>
-          <Text style={styles.loadingText}>Starting camera...</Text>
+      {/* 中央：カウント表示とタップエリア */}
+      <View style={styles.centerContainer}>
+        <Animated.View style={[styles.countContainer, { transform: [{ scale: scaleAnim }] }]}>
+          <Text style={styles.countText}>{count}</Text>
+        </Animated.View>
+
+        {/* 進捗バー */}
+        <View style={styles.progressBar}>
+          <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
         </View>
-      )}
+        <Text style={styles.progressText}>{progressPercentage}%</Text>
+
+        {!isComplete && (
+          <TouchableOpacity
+            style={styles.tapButton}
+            onPress={handleTap}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.tapButtonText}>TAP TO COUNT</Text>
+            <Text style={styles.tapButtonSubtext}>Tap each time you complete a rep</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* 下部：ボタン */}
+      <View style={styles.bottomBar}>
+        {isComplete ? (
+          <TouchableOpacity style={styles.finishButton} onPress={handleFinish}>
+            <Text style={styles.finishButtonText}>Finish! 🎉</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.stopButton} onPress={handleStop}>
+            <Text style={styles.stopButtonText}>Stop</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -189,26 +153,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  webview: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    pointerEvents: 'box-none',
-  },
   topBar: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: Colors.accent,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.lg,
     alignItems: 'center',
+    borderBottomLeftRadius: BorderRadius.xl,
+    borderBottomRightRadius: BorderRadius.xl,
   },
   exerciseName: {
-    ...Typography.h4,
+    ...Typography.h3,
     color: Colors.surface,
     marginBottom: Spacing.xs,
   },
@@ -221,19 +175,20 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+  },
+  countContainer: {
+    marginBottom: Spacing.xl,
   },
   countText: {
     fontSize: 120,
     fontWeight: '700',
-    color: Colors.surface,
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 10,
+    color: Colors.accent,
   },
   progressBar: {
-    width: '70%',
-    height: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    width: '80%',
+    height: 12,
+    backgroundColor: Colors.textLight + '30',
     borderRadius: BorderRadius.sm,
     marginTop: Spacing.lg,
     overflow: 'hidden',
@@ -244,18 +199,38 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sm,
   },
   progressText: {
-    ...Typography.h5,
-    color: Colors.surface,
+    ...Typography.h4,
+    color: Colors.text,
     marginTop: Spacing.md,
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 5,
+  },
+  tapButton: {
+    backgroundColor: Colors.accent,
+    paddingVertical: Spacing.xl * 2,
+    paddingHorizontal: Spacing.xl * 3,
+    borderRadius: BorderRadius.xl,
+    marginTop: Spacing.xl * 2,
+    shadowColor: Colors.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+    minWidth: '80%',
+    alignItems: 'center',
+  },
+  tapButtonText: {
+    ...Typography.h4,
+    color: Colors.surface,
+    marginBottom: Spacing.xs,
+  },
+  tapButtonSubtext: {
+    ...Typography.bodySmall,
+    color: Colors.surface,
+    opacity: 0.8,
   },
   bottomBar: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.xl,
     alignItems: 'center',
-    pointerEvents: 'auto',
   },
   finishButton: {
     backgroundColor: Colors.secondary,
@@ -267,35 +242,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 5,
+    minWidth: '80%',
+    alignItems: 'center',
   },
   finishButtonText: {
     ...Typography.h5,
     color: Colors.surface,
   },
   stopButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: Colors.textLight,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.xl * 2,
     borderRadius: BorderRadius.xl,
-    borderWidth: 2,
-    borderColor: Colors.surface,
+    minWidth: '80%',
+    alignItems: 'center',
   },
   stopButtonText: {
     ...Typography.button,
-    color: Colors.surface,
-  },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    ...Typography.h5,
     color: Colors.surface,
   },
 });

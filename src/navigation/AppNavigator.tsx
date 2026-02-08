@@ -1,8 +1,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { HomeScreen, CameraScreen, ResultScreen, SkippedScreen, ExerciseSelectScreen } from '../screens';
-// ExerciseScreen temporarily disabled for build test
+import { HomeScreen, CameraScreen, ResultScreen, SkippedScreen, ExerciseSelectScreen, ExerciseScreen } from '../screens';
 import { Colors } from '../constants';
 
 // Define screen param types
@@ -78,7 +77,6 @@ export default function AppNavigator() {
             headerBackTitle: 'Back',
           }}
         />
-        {/* Temporarily disabled for build test
         <Stack.Screen
           name="Exercise"
           component={ExerciseScreen}
@@ -87,7 +85,6 @@ export default function AppNavigator() {
             headerBackTitle: 'Back',
           }}
         />
-        */}
       </Stack.Navigator>
     </NavigationContainer>
   );

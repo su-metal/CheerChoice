@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Typography, Spacing, BorderRadius } from '../constants';
@@ -7,6 +7,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { t } from '../i18n';
 import { getRecentMealRecords, getTodayRecordSummary, TodayRecordSummary } from '../services/recordService';
 import { MealRecord } from '../types';
+import { getWeeklyRecoveryStatus, runRecoveryMaintenance } from '../services/recoveryService';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -22,6 +23,7 @@ export default function HomeScreen({ navigation }: Props) {
     lastUpdated: new Date().toISOString(),
   });
   const [recentRecords, setRecentRecords] = useState<MealRecord[]>([]);
+  const [weeklyRecoveryRemaining, setWeeklyRecoveryRemaining] = useState(0);
 
   const getRelativeTime = (timestamp: string) => {
     const minutes = Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000);
@@ -45,11 +47,14 @@ export default function HomeScreen({ navigation }: Props) {
 
       async function loadSummary() {
         try {
+          await runRecoveryMaintenance();
           const todaySummary = await getTodayRecordSummary();
           const latestRecords = await getRecentMealRecords(3);
+          const recovery = await getWeeklyRecoveryStatus();
           if (isMounted) {
             setSummary(todaySummary);
             setRecentRecords(latestRecords);
+            setWeeklyRecoveryRemaining(recovery.remainingCount);
           }
         } catch (error) {
           console.error('Error loading home summary:', error);
@@ -66,7 +71,11 @@ export default function HomeScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>CheerChoice</Text>
@@ -112,6 +121,14 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         </TouchableOpacity>
 
+        <View style={styles.recoveryCard}>
+          <Text style={styles.recoveryTitle}>{t('recovery.title')}</Text>
+          <Text style={styles.recoveryValue}>
+            {t('recovery.remaining', { count: weeklyRecoveryRemaining })}
+          </Text>
+          <Text style={styles.recoveryHint}>{t('recovery.resetHint')}</Text>
+        </View>
+
         {/* Recent Activity Placeholder */}
         <View style={styles.recentSection}>
           <View style={styles.recentHeader}>
@@ -146,7 +163,7 @@ export default function HomeScreen({ navigation }: Props) {
             </View>
           )}
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -156,9 +173,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  content: {
     padding: Spacing.lg,
+    paddingBottom: Spacing.xl,
   },
   header: {
     alignItems: 'center',
@@ -246,8 +266,26 @@ const styles = StyleSheet.create({
     width: 1,
     backgroundColor: Colors.divider,
   },
-  recentSection: {
-    flex: 1,
+  recentSection: {},
+  recoveryCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  recoveryTitle: {
+    ...Typography.bodySmall,
+    color: Colors.textLight,
+    marginBottom: Spacing.xs,
+  },
+  recoveryValue: {
+    ...Typography.h5,
+    color: Colors.text,
+    marginBottom: 2,
+  },
+  recoveryHint: {
+    ...Typography.caption,
+    color: Colors.textLight,
   },
   recentTitle: {
     ...Typography.h5,

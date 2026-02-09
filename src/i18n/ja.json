@@ -151,11 +151,17 @@
     "skippedLabel": "食べない: %{count}回 (%{percent}%)",
     "ateLabel": "食べた: %{count}回 (%{percent}%)",
     "exerciseBreakdown": "運動アクティビティ",
+    "calendarLegend": "色が濃いほど節約カロリーが多い",
     "squatSessions": "スクワット: %{count} セッション",
     "situpSessions": "腹筋: %{count} セッション",
     "pushupSessions": "腕立て: %{count} セッション",
     "totalReps": "合計回数: %{count}",
     "totalBurned": "消費: %{count} kcal"
+  },
+  "recovery": {
+    "title": "今週のリカバリー",
+    "remaining": "あと %{count} 回で今週達成",
+    "resetHint": "毎週月曜にリスタートします"
   },
   "messages": {
     "skipped": {

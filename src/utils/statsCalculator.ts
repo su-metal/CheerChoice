@@ -34,19 +34,37 @@ function startOfDay(date: Date): Date {
   return next;
 }
 
+function formatDateKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 function getDateKey(date: Date): string {
-  return startOfDay(date).toISOString().slice(0, 10);
+  return formatDateKey(startOfDay(date));
 }
 
 function getRangeDates(period: StatsPeriod): Date[] {
-  const size = period === 'week' ? 7 : 30;
   const today = startOfDay(new Date());
   const dates: Date[] = [];
 
-  for (let i = size - 1; i >= 0; i -= 1) {
-    const date = new Date(today);
-    date.setDate(today.getDate() - i);
-    dates.push(date);
+  if (period === 'week') {
+    for (let i = 6; i >= 0; i -= 1) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      dates.push(date);
+    }
+    return dates;
+  }
+
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  for (
+    let date = new Date(monthStart);
+    date.getTime() <= today.getTime();
+    date.setDate(date.getDate() + 1)
+  ) {
+    dates.push(new Date(date));
   }
 
   return dates;
@@ -56,7 +74,7 @@ function getDayLabel(date: Date, period: StatsPeriod): string {
   if (period === 'week') {
     return date.toLocaleDateString(undefined, { weekday: 'short' });
   }
-  return date.toLocaleDateString(undefined, { day: 'numeric' });
+  return String(date.getDate());
 }
 
 function isInRange(isoTimestamp: string, start: Date, end: Date): boolean {
@@ -90,7 +108,7 @@ export function calculateStats(
     dailyMap.set(getDateKey(date), 0);
   });
   skippedMeals.forEach((meal) => {
-    const dateKey = meal.timestamp.slice(0, 10);
+    const dateKey = getDateKey(new Date(meal.timestamp));
     if (!dailyMap.has(dateKey)) {
       return;
     }

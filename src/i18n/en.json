@@ -151,11 +151,17 @@
     "skippedLabel": "Skipped: %{count} (%{percent}%)",
     "ateLabel": "Ate: %{count} (%{percent}%)",
     "exerciseBreakdown": "Exercise Activity",
+    "calendarLegend": "Darker color means more saved calories",
     "squatSessions": "Squats: %{count} sessions",
     "situpSessions": "Sit-ups: %{count} sessions",
     "pushupSessions": "Push-ups: %{count} sessions",
     "totalReps": "Total reps: %{count}",
     "totalBurned": "Burned: %{count} kcal"
+  },
+  "recovery": {
+    "title": "This Week's Recovery",
+    "remaining": "%{count} reps left to recover this week",
+    "resetHint": "Resets every Monday"
   },
   "messages": {
     "skipped": {

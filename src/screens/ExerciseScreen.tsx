@@ -20,6 +20,11 @@ import { getPoseDetectorHtml } from '../utils/poseDetectorHtml';
 import { updateTodayExerciseSummary } from '../services/storageService';
 import { t } from '../i18n';
 import { saveExerciseRecord } from '../services/recordService';
+import {
+  addObligationProgress,
+  applyRecoveryFromExercise,
+  saveExerciseSessionEvent,
+} from '../services/recoveryService';
 // expo-speech: 再ビルド後に有効化
 // import * as Speech from 'expo-speech';
 
@@ -43,7 +48,7 @@ type WebViewMessage = {
 type InputMode = 'motion' | 'tap';
 
 export default function ExerciseScreen({ navigation, route }: Props) {
-  const { exerciseType, targetReps, foodName, mealRecordId } = route.params;
+  const { exerciseType, targetReps, foodName, mealRecordId, obligationId } = route.params;
 
   const [count, setCount] = useState(0);
   const [inputMode, setInputMode] = useState<InputMode>('motion');
@@ -55,19 +60,37 @@ export default function ExerciseScreen({ navigation, route }: Props) {
   const [webViewKey, setWebViewKey] = useState(0);
   const webViewRef = useRef<WebView>(null);
   const hasSavedSessionRef = useRef(false);
+  const hasLoggedStartRef = useRef(false);
+  const previousModeRef = useRef<InputMode>('motion');
 
   const exercise = EXERCISES[exerciseType];
   const exerciseName = t(`exercise.types.${exerciseType}.name`);
 
   const persistExerciseSession = useCallback(async () => {
-    if (hasSavedSessionRef.current || count <= 0) {
+    if (hasSavedSessionRef.current) {
       return;
     }
 
     hasSavedSessionRef.current = true;
 
     try {
+      if (obligationId) {
+        await saveExerciseSessionEvent(obligationId, 'end', count);
+      }
+
+      if (count <= 0) {
+        return;
+      }
+
       const caloriesBurned = Math.round(count * exercise.caloriesPerRep);
+      const applyProgress = async () => {
+        let remaining = count;
+        if (obligationId) {
+          remaining = await addObligationProgress(obligationId, count);
+        }
+        await applyRecoveryFromExercise(remaining);
+      };
+
       await Promise.all([
         updateTodayExerciseSummary(),
         saveExerciseRecord({
@@ -78,12 +101,40 @@ export default function ExerciseScreen({ navigation, route }: Props) {
           targetCount: targetReps,
           caloriesBurned,
         }),
+        applyProgress(),
       ]);
     } catch (error) {
       console.error('Error saving exercise summary:', error);
       hasSavedSessionRef.current = false;
     }
-  }, [count, exercise.caloriesPerRep, exerciseType, mealRecordId, targetReps]);
+  }, [count, exercise.caloriesPerRep, exerciseType, mealRecordId, obligationId, targetReps]);
+
+  useEffect(() => {
+    if (!obligationId || hasLoggedStartRef.current) {
+      return;
+    }
+
+    hasLoggedStartRef.current = true;
+    saveExerciseSessionEvent(obligationId, 'start', count).catch((error) => {
+      console.error('Error saving exercise session start event:', error);
+    });
+  }, [count, obligationId]);
+
+  useEffect(() => {
+    if (!obligationId) {
+      return;
+    }
+
+    if (previousModeRef.current === inputMode) {
+      return;
+    }
+
+    const eventType = inputMode === 'tap' ? 'pause' : 'resume';
+    previousModeRef.current = inputMode;
+    saveExerciseSessionEvent(obligationId, eventType, count).catch((error) => {
+      console.error(`Error saving exercise session ${eventType} event:`, error);
+    });
+  }, [count, inputMode, obligationId]);
 
   // 目標達成判定
   useEffect(() => {

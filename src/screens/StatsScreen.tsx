@@ -32,26 +32,113 @@ const defaultStats: StatsData = {
   },
 };
 
+function parseDateKey(dateKey: string): Date {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
 function BarChart({ data }: { data: StatsData['dailyCalories'] }) {
   const maxValue = Math.max(1, ...data.map((item) => item.calories));
 
   return (
     <View>
       <View style={styles.barRow}>
-        {data.map((item) => (
-          <View key={item.dateKey} style={styles.barItem}>
-            <View style={styles.barTrack}>
-              <View
-                style={[
-                  styles.barFill,
-                  { height: `${Math.max(8, (item.calories / maxValue) * 100)}%` },
-                ]}
-              />
+        {data.map((item) => {
+          const barHeight = item.calories <= 0 ? 0 : Math.max(8, (item.calories / maxValue) * 90);
+
+          return (
+            <View key={item.dateKey} style={styles.barItem}>
+              <View style={styles.barTrack}>
+                <View style={[styles.barFill, { height: barHeight }]} />
+              </View>
+              <Text style={styles.barLabel}>{item.label}</Text>
             </View>
-            <Text style={styles.barLabel}>{item.label}</Text>
-          </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function MonthCalendar({ data }: { data: StatsData['dailyCalories'] }) {
+  const maxValue = Math.max(1, ...data.map((item) => item.calories));
+  const calorieMap = useMemo(() => {
+    const map = new Map<string, number>();
+    data.forEach((item) => {
+      map.set(item.dateKey, item.calories);
+    });
+    return map;
+  }, [data]);
+
+  if (data.length === 0) {
+    return null;
+  }
+
+  const firstDate = parseDateKey(data[0].dateKey);
+  const lastDate = parseDateKey(data[data.length - 1].dateKey);
+  const leadingBlankCount = firstDate.getDay();
+  const daysInScope = lastDate.getDate();
+  const cells: Array<{ key: string; day?: number; calories?: number }> = [];
+
+  for (let i = 0; i < leadingBlankCount; i += 1) {
+    cells.push({ key: `blank-${i}` });
+  }
+
+  for (let day = 1; day <= daysInScope; day += 1) {
+    const date = new Date(lastDate.getFullYear(), lastDate.getMonth(), day);
+    const dateKey = [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, '0'),
+      String(date.getDate()).padStart(2, '0'),
+    ].join('-');
+    cells.push({
+      key: dateKey,
+      day,
+      calories: calorieMap.get(dateKey) ?? 0,
+    });
+  }
+
+  const weekdayLabels = [];
+  for (let i = 0; i < 7; i += 1) {
+    const base = new Date(2026, 0, 4 + i);
+    weekdayLabels.push(base.toLocaleDateString(undefined, { weekday: 'narrow' }));
+  }
+
+  return (
+    <View>
+      <View style={styles.calendarWeekHeader}>
+        {weekdayLabels.map((label, index) => (
+          <Text key={`${label}-${index}`} style={styles.calendarWeekHeaderText}>
+            {label}
+          </Text>
         ))}
       </View>
+      <View style={styles.calendarGrid}>
+        {cells.map((cell) => {
+          if (cell.day == null) {
+            return <View key={cell.key} style={styles.calendarCell} />;
+          }
+
+          const intensity = (cell.calories ?? 0) / maxValue;
+          const isActive = (cell.calories ?? 0) > 0;
+
+          return (
+            <View key={cell.key} style={styles.calendarCell}>
+              <View
+                style={[
+                  styles.calendarDot,
+                  isActive
+                    ? { backgroundColor: `rgba(107, 203, 119, ${0.25 + intensity * 0.75})` }
+                    : styles.calendarDotEmpty,
+                ]}
+              >
+                <Text style={styles.calendarDayText}>{cell.day}</Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+      <Text style={styles.calendarLegend}>● {t('stats.calendarLegend')}</Text>
     </View>
   );
 }
@@ -203,7 +290,11 @@ export default function StatsScreen() {
               <Text style={styles.cardSubtitle}>
                 {stats.totalSavedCalories} {t('common.kcal')}
               </Text>
-              <BarChart data={stats.dailyCalories} />
+              {period === 'week' ? (
+                <BarChart data={stats.dailyCalories} />
+              ) : (
+                <MonthCalendar data={stats.dailyCalories} />
+              )}
             </View>
 
             <View style={styles.card}>
@@ -377,6 +468,46 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sm,
   },
   barLabel: {
+    ...Typography.caption,
+    color: Colors.textLight,
+    marginTop: Spacing.xs,
+  },
+  calendarWeekHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xs,
+  },
+  calendarWeekHeaderText: {
+    ...Typography.caption,
+    color: Colors.textLight,
+    width: `${100 / 7}%`,
+    textAlign: 'center',
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  calendarCell: {
+    width: `${100 / 7}%`,
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  calendarDot: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  calendarDotEmpty: {
+    backgroundColor: '#EEF4EF',
+  },
+  calendarDayText: {
+    ...Typography.caption,
+    color: Colors.text,
+    fontWeight: '600',
+  },
+  calendarLegend: {
     ...Typography.caption,
     color: Colors.textLight,
     marginTop: Spacing.xs,

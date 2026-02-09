@@ -15,6 +15,7 @@ import { EXERCISE_LIST, ExerciseDefinition } from '../constants/Exercises';
 import { calculateRecommendedReps, isTooManyReps, calculateSets } from '../utils/exerciseCalculator';
 import { getRandomAteMessage } from '../utils/messages';
 import { t } from '../i18n';
+import { updateExerciseObligationTarget } from '../services/recoveryService';
 
 type ExerciseSelectScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -28,11 +29,17 @@ type Props = {
 };
 
 export default function ExerciseSelectScreen({ navigation, route }: Props) {
-  const { calories, foodName, mealRecordId } = route.params;
+  const { calories, foodName, mealRecordId, obligationId } = route.params;
 
   // 運動を選択したときの処理
-  function handleExerciseSelect(exercise: ExerciseDefinition) {
+  async function handleExerciseSelect(exercise: ExerciseDefinition) {
     const recommendedReps = calculateRecommendedReps(calories, exercise);
+    if (obligationId) {
+      await updateExerciseObligationTarget(obligationId, {
+        exerciseType: exercise.id,
+        targetCount: recommendedReps,
+      });
+    }
 
     navigation.navigate('Exercise', {
       exerciseType: exercise.id,
@@ -40,6 +47,7 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
       calories: calories,
       foodName: foodName,
       mealRecordId,
+      obligationId,
     });
   }
 

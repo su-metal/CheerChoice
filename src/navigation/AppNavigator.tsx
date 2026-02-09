@@ -28,13 +28,19 @@ export type RootStackParamList = {
     };
   };
   Skipped: { calories: number; foodName: string; mealRecordId?: string };
-  ExerciseSelect: { calories: number; foodName: string; mealRecordId?: string };
+  ExerciseSelect: {
+    calories: number;
+    foodName: string;
+    mealRecordId?: string;
+    obligationId?: string;
+  };
   Exercise: {
     exerciseType: ExerciseRecord['exerciseType'];
     targetReps: number;
     calories: number;
     foodName: string;
     mealRecordId?: string;
+    obligationId?: string;
   };
   Log: undefined;
   ManualEntry: undefined;

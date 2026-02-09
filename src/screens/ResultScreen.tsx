@@ -19,6 +19,9 @@ import { estimateCalories } from '../services/calorieEstimator';
 import { t } from '../i18n';
 import { incrementAIUsage } from '../services/usageService';
 import { saveMealRecord } from '../services/recordService';
+import { EXERCISES } from '../constants/Exercises';
+import { calculateRecommendedReps } from '../utils/exerciseCalculator';
+import { createExerciseObligation } from '../services/recoveryService';
 
 type ResultScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Result'>;
 type ResultScreenRouteProp = RouteProp<RootStackParamList, 'Result'>;
@@ -136,10 +139,19 @@ export default function ResultScreen({ navigation, route }: Props) {
         return;
       }
 
+      const defaultExercise = EXERCISES.squat;
+      const defaultTargetReps = calculateRecommendedReps(result.estimatedCalories, defaultExercise);
+      const obligation = await createExerciseObligation({
+        mealRecordId: mealRecord.id,
+        exerciseType: defaultExercise.id,
+        targetCount: defaultTargetReps,
+      });
+
       navigation.navigate('ExerciseSelect', {
         calories: result.estimatedCalories,
         foodName: result.foodName,
         mealRecordId: mealRecord.id,
+        obligationId: obligation.id,
       });
     } catch (saveError) {
       console.error('Error saving meal record:', saveError);

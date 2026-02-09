@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image, Alert } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors, Typography, Spacing, BorderRadius } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { t } from '../i18n';
 
 type CameraScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Camera'>;
 
@@ -22,7 +23,7 @@ export default function CameraScreen({ navigation }: Props) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading camera...</Text>
+          <Text style={styles.loadingText}>{t('camera.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -34,12 +35,12 @@ export default function CameraScreen({ navigation }: Props) {
       <SafeAreaView style={styles.container}>
         <View style={styles.permissionContainer}>
           <Text style={styles.permissionIcon}>📸</Text>
-          <Text style={styles.permissionTitle}>Camera Permission Required</Text>
+          <Text style={styles.permissionTitle}>{t('camera.permissionRequired')}</Text>
           <Text style={styles.permissionText}>
-            We need access to your camera to take photos of your food.
+            {t('camera.permissionText')}
           </Text>
           <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-            <Text style={styles.permissionButtonText}>Grant Permission</Text>
+            <Text style={styles.permissionButtonText}>{t('camera.grantPermission')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -57,7 +58,7 @@ export default function CameraScreen({ navigation }: Props) {
               style={[styles.previewButton, styles.retakeButton]}
               onPress={() => setPhoto(null)}
             >
-              <Text style={styles.previewButtonText}>Retake</Text>
+              <Text style={styles.previewButtonText}>{t('camera.retake')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.previewButton, styles.usePhotoButton]}
@@ -65,7 +66,7 @@ export default function CameraScreen({ navigation }: Props) {
                 navigation.navigate('Result', { photoUri: photo });
               }}
             >
-              <Text style={styles.previewButtonText}>Use Photo</Text>
+              <Text style={styles.previewButtonText}>{t('camera.usePhoto')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -91,7 +92,7 @@ export default function CameraScreen({ navigation }: Props) {
         }
       } catch (error) {
         console.error('Error taking picture:', error);
-        Alert.alert('Error', 'Failed to take picture. Please try again.');
+        Alert.alert(t('common.oops'), t('camera.errorTakePhoto'));
       }
     }
   }
@@ -103,13 +104,13 @@ export default function CameraScreen({ navigation }: Props) {
         {/* Header with flip button */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.flipButton} onPress={toggleCameraFacing}>
-            <Text style={styles.flipButtonText}>🔄 Flip</Text>
+            <Text style={styles.flipButtonText}>🔄 {t('camera.flip')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Bottom controls */}
         <View style={styles.controls}>
-          <Text style={styles.guideText}>Center your food in the frame</Text>
+          <Text style={styles.guideText}>{t('camera.guideText')}</Text>
           <TouchableOpacity style={styles.shutterButton} onPress={takePicture}>
             <View style={styles.shutterInner} />
           </TouchableOpacity>

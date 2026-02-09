@@ -14,6 +14,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { EXERCISE_LIST, ExerciseDefinition } from '../constants/Exercises';
 import { calculateRecommendedReps, isTooManyReps, calculateSets } from '../utils/exerciseCalculator';
 import { getRandomAteMessage } from '../utils/messages';
+import { t } from '../i18n';
 
 type ExerciseSelectScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -53,7 +54,7 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>{getRandomAteMessage()}</Text>
           <Text style={styles.headerSubtitle}>
-            Balance your {foodName} ({calories} kcal) with movement! 💜
+            {t('exerciseSelect.subtitle', { foodName, calories })} 💜
           </Text>
         </View>
 
@@ -76,15 +77,15 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
                 </View>
 
                 <View style={styles.exerciseInfo}>
-                  <Text style={styles.exerciseName}>{exercise.nameEn}</Text>
-                  <Text style={styles.exerciseDescription}>{exercise.description}</Text>
+                  <Text style={styles.exerciseName}>{t(`exercise.types.${exercise.id}.name`)}</Text>
+                  <Text style={styles.exerciseDescription}>{t(`exercise.types.${exercise.id}.description`)}</Text>
                 </View>
 
                 <View style={styles.exerciseReps}>
                   <Text style={styles.repsValue}>{recommendedReps}</Text>
-                  <Text style={styles.repsLabel}>reps</Text>
+                  <Text style={styles.repsLabel}>{t('exerciseSelect.reps')}</Text>
                   {tooMany && (
-                    <Text style={styles.setsHint}>({sets} sets of 20)</Text>
+                    <Text style={styles.setsHint}>{t('exerciseSelect.setsHint', { sets })}</Text>
                   )}
                 </View>
               </TouchableOpacity>
@@ -94,12 +95,12 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
 
         {/* Maybe Laterボタン */}
         <TouchableOpacity style={styles.maybeLaterButton} onPress={handleMaybeLater}>
-          <Text style={styles.maybeLaterText}>Maybe Later</Text>
+          <Text style={styles.maybeLaterText}>{t('exerciseSelect.maybeLater')}</Text>
         </TouchableOpacity>
 
         {/* 励ましメッセージ */}
         <Text style={styles.footerText}>
-          No pressure! Every choice you make is a step forward 🌟
+          {t('exerciseSelect.footer')} 🌟
         </Text>
       </ScrollView>
     </SafeAreaView>

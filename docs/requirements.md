@@ -892,33 +892,41 @@ interface Statistics {
 
 ## 9. 開発フェーズ
 
-### Phase 1: MVP（最小実用版）- 6-8週間
-- ✅ 環境セットアップ
-- ✅ 基本UI・ナビゲーション
-- ✅ Supabase認証（Google OAuth）
-- ✅ 撮影機能
-- ✅ カロリー推定（OpenAI gpt-4o-mini）
-- ✅ 選択機能（食べる/食べない）
-- ✅ 簡易ログ機能
-- ✅ 3種類の運動（スクワット、腹筋、腕立て）骨格判定
+### Phase 0-6: MVP（完了）
+- ✅ Phase 0: 環境セットアップ（Node.js, Git, VSCode, Expo CLI）
+- ✅ Phase 1: 基本UI・ナビゲーション（HomeScreen, CameraScreen）
+- ✅ Phase 2: スキップ（Supabaseは延期 → AsyncStorageで代替）
+- ✅ Phase 3: カメラ＆OpenAI統合（撮影、カロリー推定、ResultScreen）
+- ✅ Phase 4: 「食べない」選択フロー（SkippedScreen、節制カロリー記録）
+- ✅ Phase 5: 「食べる」選択フロー（ExerciseSelectScreen、運動提案）
+- ✅ Phase 6: 骨格判定＆運動カウント（MediaPipe Pose、WebView統合）
 
-### Phase 2: 運動機能拡張 - 3-4週間
-- フォーム判定精度向上
-- 音声フィードバック
-- 運動提案アルゴリズム改善
-- バッジ・マイルストーン機能
+### Phase 7: ログ・履歴機能（次のステップ）
+- 食事記録・運動記録の個別保存（AsyncStorage）
+- LogScreen: 履歴一覧画面
+- HomeScreen: Recent Activity に直近3件表示
+- 詳細: `.steering/20260209-phase7-log-history/`
 
-### Phase 3: データ分析・可視化 - 2-3週間
-- グラフ機能充実（Recharts）
-- 統計データ詳細表示
-- 目標設定機能
-- SNSシェア機能
+### Phase 8: 統計・可視化
+- StatsScreen: グラフ・チャート画面
+- 週間カロリー節制の棒グラフ
+- 食べた vs 食べなかった比率
+- 運動種目別の実施回数
+- 詳細: `.steering/20260209-phase8-statistics/`
 
-### Phase 4: UX改善・最適化 - 2-3週間
-- アニメーション強化
-- パフォーマンス最適化
-- ユーザーテストフィードバック反映
-- 多言語対応（日本語）
+### Phase 9: 設定・UX改善
+- SettingsScreen: 設定画面
+- 日別カロリー目標設定
+- 音声フィードバックON/OFF
+- データエクスポート / クリア
+- 詳細: `.steering/20260209-phase9-settings-ux/`
+
+### Phase 10: 仕上げ・品質改善
+- OnboardingScreen: 初回起動ガイド
+- エラーハンドリング統一
+- アプリアイコン・スプラッシュスクリーン
+- 全画面バグ修正
+- 詳細: `.steering/20260209-phase10-polish/`
 
 ---
 
@@ -964,12 +972,35 @@ interface Statistics {
 - Apple Health / Google Fit連携
 - ウェアラブル連携（Apple Watch、Fitbit）
 
-### 11.2 収益化オプション
-- **フリーミアムモデル**:
-  - 無料: 1日10回撮影、基本統計
-  - プレミアム（$4.99/月）: 無制限、高度統計、広告なし
-- **広告**: バナー広告（無料版のみ）
-- **企業向けB2B**: 福利厚生プログラム（$10/社員/月）
+### 11.2 収益化モデル（フリートライアル + サブスクリプション）
+
+**設計原則**: 無料ユーザーのAPIコストで赤字にならない構造
+
+#### 無料プラン
+- AI写真分析: **15回（lifetime上限）** → 1ユーザーあたり最大$0.045の取得コスト
+- 手動入力: 無制限（ManualEntryScreen）
+- 基本統計（数値のみ、グラフなし）
+- 広告あり
+
+#### プレミアムプラン ($4.99/月)
+- AI写真分析: 20回/日
+- 全統計（グラフ・チャート付き）
+- 広告なし
+
+#### コスト分析
+- OpenAI gpt-4o-mini: ~$0.003/画像
+- 無料ユーザー: 最大$0.045/人（一回限り）→ 月額ランニングコスト$0
+- プレミアムユーザー: 最大$1.80/月/人 → 純収益$3.19/人/月
+- 損益分岐点: プレミアム転換率 ~2%（業界平均2-5%と整合）
+
+#### 技術実装（Phase 7-9 で段階的に実装）
+- `UsageData` (aiPhotosUsed) でAI使用回数を追跡（Phase 7）
+- `isPremium` フラグで機能ゲート（Phase 8-9）
+- AI制限到達後は ManualEntryScreen で手動入力（Phase 7）
+- StatsScreen のグラフ類はプレミアム限定（Phase 8）
+- 実際の課金処理（IAP）は将来実装
+
+詳細: `.steering/20260209-monetization-model/requirements.md`
 
 ---
 

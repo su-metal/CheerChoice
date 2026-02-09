@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen, CameraScreen, ResultScreen, SkippedScreen, ExerciseSelectScreen, ExerciseScreen } from '../screens';
 import { Colors } from '../constants';
+import { t } from '../i18n';
 
 // Define screen param types
 export type RootStackParamList = {
@@ -49,40 +50,40 @@ export default function AppNavigator() {
           name="Camera"
           component={CameraScreen}
           options={{
-            title: 'Take a Photo',
-            headerBackTitle: 'Back',
+            title: t('navigation.camera'),
+            headerBackTitle: t('common.back'),
           }}
         />
         <Stack.Screen
           name="Result"
           component={ResultScreen}
           options={{
-            title: 'Calorie Analysis',
-            headerBackTitle: 'Back',
+            title: t('navigation.result'),
+            headerBackTitle: t('common.back'),
           }}
         />
         <Stack.Screen
           name="Skipped"
           component={SkippedScreen}
           options={{
-            title: 'Amazing!',
-            headerBackTitle: 'Back',
+            title: t('navigation.skipped'),
+            headerBackTitle: t('common.back'),
           }}
         />
         <Stack.Screen
           name="ExerciseSelect"
           component={ExerciseSelectScreen}
           options={{
-            title: 'Choose Your Exercise',
-            headerBackTitle: 'Back',
+            title: t('navigation.exerciseSelect'),
+            headerBackTitle: t('common.back'),
           }}
         />
         <Stack.Screen
           name="Exercise"
           component={ExerciseScreen}
           options={{
-            title: 'Let\'s Move!',
-            headerBackTitle: 'Back',
+            title: t('navigation.exercise'),
+            headerBackTitle: t('common.back'),
           }}
         />
       </Stack.Navigator>

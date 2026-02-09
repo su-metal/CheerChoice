@@ -1,0 +1,130 @@
+{
+  "common": {
+    "back": "戻る",
+    "kcal": "kcal",
+    "today": "今日",
+    "thisWeek": "今週",
+    "thisMonth": "今月",
+    "done": "完了",
+    "stop": "やめる",
+    "tryAgain": "もう一度",
+    "oops": "エラーが発生しました",
+    "unknownError": "不明なエラーが発生しました"
+  },
+  "navigation": {
+    "camera": "写真を撮る",
+    "result": "カロリー分析",
+    "skipped": "すごい！",
+    "exerciseSelect": "運動を選ぼう",
+    "exercise": "体を動かそう！"
+  },
+  "home": {
+    "subtitle": "あなたのポジティブ健康パートナー",
+    "mainButton": "写真を撮る",
+    "mainButtonSubtext": "食べ物を撮影して始めよう",
+    "todaySummary": "今日のまとめ",
+    "skipped": "スキップ",
+    "saved": "節約",
+    "exercises": "運動",
+    "recentActivity": "最近のアクティビティ",
+    "noActivity": "まだ記録がありません",
+    "noActivitySubtext": "最初の写真を撮って始めよう！"
+  },
+  "camera": {
+    "loading": "カメラを読み込み中...",
+    "permissionRequired": "カメラ権限が必要です",
+    "permissionText": "食べ物の写真を撮るためにカメラへのアクセスが必要です。",
+    "grantPermission": "権限を許可",
+    "retake": "撮り直す",
+    "usePhoto": "この写真を使う",
+    "flip": "切替",
+    "guideText": "食べ物をフレームの中央に合わせてください",
+    "errorTakePhoto": "写真の撮影に失敗しました。もう一度お試しください。"
+  },
+  "result": {
+    "loadingTitle": "食べ物を分析中...",
+    "loadingSubtext": "AIでカロリーを推定しています",
+    "range": "範囲: %{min} - %{max} kcal",
+    "portionSize": "量",
+    "confidence": "確信度",
+    "lowConfidenceWarning": "確信度が低めです。推定値の調整を検討してください。",
+    "choiceTitle": "どうする？",
+    "skipIt": "食べない",
+    "skipSubtext": "%{calories} kcal 節約",
+    "eatIt": "食べる",
+    "eatSubtext": "運動でバランスを取ろう",
+    "takeAnotherPhoto": "もう一度撮影する"
+  },
+  "skipped": {
+    "savingProgress": "記録を保存中...",
+    "currentLabel": "節約したカロリー",
+    "foodNameProgress": "%{foodName} を食べなかったよ",
+    "progressTitle": "あなたの進捗",
+    "backHome": "ホームに戻る"
+  },
+  "exerciseSelect": {
+    "subtitle": "%{foodName}（%{calories} kcal）を運動でバランスしよう！",
+    "reps": "回",
+    "setsHint": "（20回 x %{sets}セット）",
+    "maybeLater": "あとでやる",
+    "footer": "無理しなくて大丈夫。どの選択も前進です"
+  },
+  "exercise": {
+    "alertCompleteTitle": "すごい！",
+    "alertCompleteBody": "%{message}\n\n%{exerciseName} を %{count} 回達成！\n\n%{foodName} の分をしっかり動けたね！",
+    "alertPartialTitle": "ナイスチャレンジ！",
+    "alertNoTry": "大丈夫。いつでもまた挑戦できるよ",
+    "keepGoing": "続ける",
+    "cameraCouldNotStart": "カメラを開始できませんでした",
+    "webviewFailed": "WebViewの読み込みに失敗しました",
+    "cameraNotAvailable": "カメラを利用できません",
+    "errorHint": "この機能はDevelopment Buildが必要です。\nExpo GoではWebViewカメラが使えない場合があります。",
+    "loadingModel": "AIモデルを読み込み中...",
+    "targetLabel": "目標: %{targetReps} 回",
+    "finish": "完了！",
+    "types": {
+      "squat": {
+        "name": "スクワット",
+        "description": "下半身を鍛える"
+      },
+      "situp": {
+        "name": "腹筋",
+        "description": "体幹を鍛える"
+      },
+      "pushup": {
+        "name": "腕立て伏せ",
+        "description": "上半身を鍛える"
+      }
+    }
+  },
+  "messages": {
+    "skipped": {
+      "1": "やったね！",
+      "2": "最高！",
+      "3": "セルフケアは最強！",
+      "4": "いい選択！",
+      "5": "この調子でいこう！"
+    },
+    "ate": {
+      "1": "食事を楽しんで！",
+      "2": "食べ物はエネルギー！",
+      "3": "バランスが大事！",
+      "4": "あなたにはその価値がある！",
+      "5": "おいしく元気に！"
+    },
+    "exerciseCompletion": {
+      "1": "よくやった！",
+      "2": "全開モード！",
+      "3": "本当にすごい！",
+      "4": "伝説級の達成！",
+      "5": "完璧なパフォーマンス！"
+    },
+    "exercisePartial": {
+      "1": "1回1回が大切！",
+      "2": "完璧より継続！",
+      "3": "取り組んだことがすごい！",
+      "4": "ナイス努力！",
+      "5": "挑戦した自分を褒めよう！"
+    }
+  }
+}

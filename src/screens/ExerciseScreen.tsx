@@ -18,6 +18,7 @@ import { getRandomCompletionMessage, getRandomPartialMessage } from '../utils/ex
 import { EXERCISES } from '../constants/Exercises';
 import { getPoseDetectorHtml } from '../utils/poseDetectorHtml';
 import { updateTodayExerciseSummary } from '../services/storageService';
+import { t } from '../i18n';
 // expo-speech: 再ビルド後に有効化
 // import * as Speech from 'expo-speech';
 
@@ -51,6 +52,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
   const hasSavedSessionRef = useRef(false);
 
   const exercise = EXERCISES[exerciseType];
+  const exerciseName = t(`exercise.types.${exerciseType}.name`);
 
   const persistExerciseSession = useCallback(async () => {
     if (hasSavedSessionRef.current || count <= 0) {
@@ -110,7 +112,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
         case 'error':
           setIsLoading(false);
           setHasError(true);
-          setErrorMessage(data.message || 'Camera could not be started');
+          setErrorMessage(data.message || t('exercise.cameraCouldNotStart'));
           break;
       }
     } catch {
@@ -122,11 +124,16 @@ export default function ExerciseScreen({ navigation, route }: Props) {
   const handleFinish = () => {
     const message = getRandomCompletionMessage();
     Alert.alert(
-      '🎉 Amazing!',
-      `${message}\n\nYou completed ${count} ${exercise.nameEn.toLowerCase()}!\n\nYou balanced your ${foodName}! 💜`,
+      `🎉 ${t('exercise.alertCompleteTitle')}`,
+      t('exercise.alertCompleteBody', {
+        message,
+        count,
+        exerciseName,
+        foodName,
+      }),
       [
         {
-          text: 'Done',
+          text: t('common.done'),
           onPress: async () => {
             await persistExerciseSession();
             navigation.navigate('Home');
@@ -138,17 +145,17 @@ export default function ExerciseScreen({ navigation, route }: Props) {
 
   // 途中終了処理
   const handleStop = () => {
-    const message = count > 0 ? getRandomPartialMessage() : 'No worries! You can try again anytime 💜';
+    const message = count > 0 ? getRandomPartialMessage() : `${t('exercise.alertNoTry')} 💜`;
     Alert.alert(
-      'Good Effort!',
+      t('exercise.alertPartialTitle'),
       message,
       [
         {
-          text: 'Keep Going',
+          text: t('exercise.keepGoing'),
           style: 'cancel',
         },
         {
-          text: 'Stop',
+          text: t('common.stop'),
           onPress: async () => {
             await persistExerciseSession();
             navigation.navigate('Home');
@@ -182,7 +189,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
           onMessage={handleMessage}
           onError={() => {
             setHasError(true);
-            setErrorMessage('WebView failed to load');
+            setErrorMessage(t('exercise.webviewFailed'));
           }}
         />
       )}
@@ -191,11 +198,10 @@ export default function ExerciseScreen({ navigation, route }: Props) {
       {hasError && (
         <View style={styles.errorContainer}>
           <Text style={styles.errorIcon}>📷</Text>
-          <Text style={styles.errorTitle}>Camera Not Available</Text>
+          <Text style={styles.errorTitle}>{t('exercise.cameraNotAvailable')}</Text>
           <Text style={styles.errorText}>{errorMessage}</Text>
           <Text style={styles.errorHint}>
-            This feature requires a Development Build.{'\n'}
-            Expo Go may not support WebView camera access.
+            {t('exercise.errorHint')}
           </Text>
         </View>
       )}
@@ -204,15 +210,15 @@ export default function ExerciseScreen({ navigation, route }: Props) {
       {isLoading && !hasError && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={Colors.surface} />
-          <Text style={styles.loadingText}>Loading AI Model...</Text>
+          <Text style={styles.loadingText}>{t('exercise.loadingModel')}</Text>
         </View>
       )}
 
       {/* Top bar overlay */}
       <SafeAreaView style={styles.topBarSafe}>
         <View style={styles.topBar}>
-          <Text style={styles.exerciseName}>{exercise.icon} {exercise.nameEn}</Text>
-          <Text style={styles.targetText}>Target: {targetReps} reps</Text>
+          <Text style={styles.exerciseName}>{exercise.icon} {exerciseName}</Text>
+          <Text style={styles.targetText}>{t('exercise.targetLabel', { targetReps })}</Text>
         </View>
       </SafeAreaView>
 
@@ -234,11 +240,11 @@ export default function ExerciseScreen({ navigation, route }: Props) {
         <View style={styles.bottomBar}>
           {isComplete ? (
             <TouchableOpacity style={styles.finishButton} onPress={handleFinish}>
-              <Text style={styles.finishButtonText}>Finish! 🎉</Text>
+              <Text style={styles.finishButtonText}>{t('exercise.finish')} 🎉</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.stopButton} onPress={handleStop}>
-              <Text style={styles.stopButtonText}>Stop</Text>
+              <Text style={styles.stopButtonText}>{t('common.stop')}</Text>
             </TouchableOpacity>
           )}
         </View>

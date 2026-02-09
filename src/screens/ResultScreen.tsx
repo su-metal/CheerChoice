@@ -16,6 +16,7 @@ import { Colors, Typography, Spacing, BorderRadius } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { CalorieEstimationResult } from '../types';
 import { estimateCalories } from '../services/calorieEstimator';
+import { t } from '../i18n';
 
 type ResultScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Result'>;
 type ResultScreenRouteProp = RouteProp<RootStackParamList, 'Result'>;
@@ -44,7 +45,7 @@ export default function ResultScreen({ navigation, route }: Props) {
       setResult(estimation);
     } catch (err) {
       console.error('Error analyzing photo:', err);
-      setError(err instanceof Error ? err.message : 'Failed to analyze photo');
+      setError(err instanceof Error ? err.message : t('common.unknownError'));
     } finally {
       setLoading(false);
     }
@@ -56,8 +57,8 @@ export default function ResultScreen({ navigation, route }: Props) {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Analyzing your food...</Text>
-          <Text style={styles.loadingSubtext}>Using AI to estimate calories ✨</Text>
+          <Text style={styles.loadingText}>{t('result.loadingTitle')}</Text>
+          <Text style={styles.loadingSubtext}>{t('result.loadingSubtext')} ✨</Text>
         </View>
       </SafeAreaView>
     );
@@ -69,16 +70,16 @@ export default function ResultScreen({ navigation, route }: Props) {
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorIcon}>😕</Text>
-          <Text style={styles.errorTitle}>Oops! Something went wrong</Text>
-          <Text style={styles.errorText}>{error || 'Unknown error occurred'}</Text>
+          <Text style={styles.errorTitle}>{t('common.oops')}</Text>
+          <Text style={styles.errorText}>{error || t('common.unknownError')}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={analyzePhoto}>
-            <Text style={styles.retryButtonText}>Try Again</Text>
+            <Text style={styles.retryButtonText}>{t('common.tryAgain')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.navigate('Camera')}
           >
-            <Text style={styles.backButtonText}>Take Another Photo</Text>
+            <Text style={styles.backButtonText}>{t('result.takeAnotherPhoto')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -98,20 +99,20 @@ export default function ResultScreen({ navigation, route }: Props) {
 
           <View style={styles.calorieSection}>
             <Text style={styles.calorieValue}>{result.estimatedCalories}</Text>
-            <Text style={styles.calorieUnit}>kcal</Text>
+            <Text style={styles.calorieUnit}>{t('common.kcal')}</Text>
           </View>
 
           <Text style={styles.calorieRange}>
-            Range: {result.calorieRange.min} - {result.calorieRange.max} kcal
+            {t('result.range', { min: result.calorieRange.min, max: result.calorieRange.max })}
           </Text>
 
           <View style={styles.metaInfo}>
             <View style={styles.metaItem}>
-              <Text style={styles.metaLabel}>Portion Size</Text>
+              <Text style={styles.metaLabel}>{t('result.portionSize')}</Text>
               <Text style={styles.metaValue}>{result.portionSize}</Text>
             </View>
             <View style={styles.metaItem}>
-              <Text style={styles.metaLabel}>Confidence</Text>
+              <Text style={styles.metaLabel}>{t('result.confidence')}</Text>
               <Text style={styles.metaValue}>{result.confidence}%</Text>
             </View>
           </View>
@@ -119,7 +120,7 @@ export default function ResultScreen({ navigation, route }: Props) {
           {result.confidence < 50 && (
             <View style={styles.lowConfidenceWarning}>
               <Text style={styles.warningText}>
-                ⚠️ Low confidence. You may want to adjust the estimate.
+                ⚠️ {t('result.lowConfidenceWarning')}
               </Text>
             </View>
           )}
@@ -127,7 +128,7 @@ export default function ResultScreen({ navigation, route }: Props) {
 
         {/* 選択ボタン */}
         <View style={styles.choiceSection}>
-          <Text style={styles.choiceTitle}>What do you want to do?</Text>
+          <Text style={styles.choiceTitle}>{t('result.choiceTitle')}</Text>
 
           <TouchableOpacity
             style={[styles.choiceButton, styles.skipButton]}
@@ -139,8 +140,8 @@ export default function ResultScreen({ navigation, route }: Props) {
             }}
           >
             <Text style={styles.choiceButtonIcon}>🌟</Text>
-            <Text style={styles.choiceButtonText}>Skip It</Text>
-            <Text style={styles.choiceButtonSubtext}>Save {result.estimatedCalories} kcal</Text>
+            <Text style={styles.choiceButtonText}>{t('result.skipIt')}</Text>
+            <Text style={styles.choiceButtonSubtext}>{t('result.skipSubtext', { calories: result.estimatedCalories })}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -153,8 +154,8 @@ export default function ResultScreen({ navigation, route }: Props) {
             }}
           >
             <Text style={styles.choiceButtonIcon}>🍽️</Text>
-            <Text style={styles.choiceButtonText}>Eat It</Text>
-            <Text style={styles.choiceButtonSubtext}>Balance with exercise</Text>
+            <Text style={styles.choiceButtonText}>{t('result.eatIt')}</Text>
+            <Text style={styles.choiceButtonSubtext}>{t('result.eatSubtext')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -163,7 +164,7 @@ export default function ResultScreen({ navigation, route }: Props) {
           style={styles.retakeButton}
           onPress={() => navigation.navigate('Camera')}
         >
-          <Text style={styles.retakeButtonText}>Take Another Photo</Text>
+          <Text style={styles.retakeButtonText}>{t('result.takeAnotherPhoto')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

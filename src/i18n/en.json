@@ -1,0 +1,130 @@
+{
+  "common": {
+    "back": "Back",
+    "kcal": "kcal",
+    "today": "Today",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "done": "Done",
+    "stop": "Stop",
+    "tryAgain": "Try Again",
+    "oops": "Oops! Something went wrong",
+    "unknownError": "Unknown error occurred"
+  },
+  "navigation": {
+    "camera": "Take a Photo",
+    "result": "Calorie Analysis",
+    "skipped": "Amazing!",
+    "exerciseSelect": "Choose Your Exercise",
+    "exercise": "Let's Move!"
+  },
+  "home": {
+    "subtitle": "Your positive health companion",
+    "mainButton": "Take a Photo",
+    "mainButtonSubtext": "Snap your food to get started",
+    "todaySummary": "Today's Summary",
+    "skipped": "Skipped",
+    "saved": "Saved",
+    "exercises": "Exercises",
+    "recentActivity": "Recent Activity",
+    "noActivity": "No activity yet",
+    "noActivitySubtext": "Take your first photo to get started!"
+  },
+  "camera": {
+    "loading": "Loading camera...",
+    "permissionRequired": "Camera Permission Required",
+    "permissionText": "We need access to your camera to take photos of your food.",
+    "grantPermission": "Grant Permission",
+    "retake": "Retake",
+    "usePhoto": "Use Photo",
+    "flip": "Flip",
+    "guideText": "Center your food in the frame",
+    "errorTakePhoto": "Failed to take picture. Please try again."
+  },
+  "result": {
+    "loadingTitle": "Analyzing your food...",
+    "loadingSubtext": "Using AI to estimate calories",
+    "range": "Range: %{min} - %{max} kcal",
+    "portionSize": "Portion Size",
+    "confidence": "Confidence",
+    "lowConfidenceWarning": "Low confidence. You may want to adjust the estimate.",
+    "choiceTitle": "What do you want to do?",
+    "skipIt": "Skip It",
+    "skipSubtext": "Save %{calories} kcal",
+    "eatIt": "Eat It",
+    "eatSubtext": "Balance with exercise",
+    "takeAnotherPhoto": "Take Another Photo"
+  },
+  "skipped": {
+    "savingProgress": "Saving your progress...",
+    "currentLabel": "You saved",
+    "foodNameProgress": "by skipping %{foodName}",
+    "progressTitle": "Your Progress",
+    "backHome": "Back to Home"
+  },
+  "exerciseSelect": {
+    "subtitle": "Balance your %{foodName} (%{calories} kcal) with movement!",
+    "reps": "reps",
+    "setsHint": "(%{sets} sets of 20)",
+    "maybeLater": "Maybe Later",
+    "footer": "No pressure! Every choice you make is a step forward"
+  },
+  "exercise": {
+    "alertCompleteTitle": "Amazing!",
+    "alertCompleteBody": "%{message}\n\nYou completed %{count} %{exerciseName}!\n\nYou balanced your %{foodName}!",
+    "alertPartialTitle": "Good Effort!",
+    "alertNoTry": "No worries! You can try again anytime",
+    "keepGoing": "Keep Going",
+    "cameraCouldNotStart": "Camera could not be started",
+    "webviewFailed": "WebView failed to load",
+    "cameraNotAvailable": "Camera Not Available",
+    "errorHint": "This feature requires a Development Build.\nExpo Go may not support WebView camera access.",
+    "loadingModel": "Loading AI Model...",
+    "targetLabel": "Target: %{targetReps} reps",
+    "finish": "Finish!",
+    "types": {
+      "squat": {
+        "name": "Squats",
+        "description": "Lower body strength"
+      },
+      "situp": {
+        "name": "Sit-ups",
+        "description": "Core strength"
+      },
+      "pushup": {
+        "name": "Push-ups",
+        "description": "Upper body strength"
+      }
+    }
+  },
+  "messages": {
+    "skipped": {
+      "1": "You did it, queen!",
+      "2": "Crushing it!",
+      "3": "Self-care is the best care!",
+      "4": "Smart choice!",
+      "5": "Keep shining!"
+    },
+    "ate": {
+      "1": "Enjoy your meal!",
+      "2": "Food is fuel!",
+      "3": "Balance is key!",
+      "4": "You deserve it!",
+      "5": "Life is delicious!"
+    },
+    "exerciseCompletion": {
+      "1": "You crushed it!",
+      "2": "Beast mode activated!",
+      "3": "Absolutely amazing!",
+      "4": "Legendary performance!",
+      "5": "Pure excellence!"
+    },
+    "exercisePartial": {
+      "1": "Every rep counts!",
+      "2": "Progress over perfection!",
+      "3": "You showed up, that is what matters!",
+      "4": "Amazing effort!",
+      "5": "Proud of you for trying!"
+    }
+  }
+}

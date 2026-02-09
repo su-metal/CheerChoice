@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Typography, Spacing, BorderRadius } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getTodaySummary, TodaySummary } from '../services/storageService';
+import { t } from '../i18n';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -49,7 +50,7 @@ export default function HomeScreen({ navigation }: Props) {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>CheerChoice</Text>
-          <Text style={styles.subtitle}>Your positive health companion 💪</Text>
+          <Text style={styles.subtitle}>{t('home.subtitle')} 💪</Text>
         </View>
 
         {/* Main Action Button */}
@@ -59,38 +60,38 @@ export default function HomeScreen({ navigation }: Props) {
           onPress={() => navigation.navigate('Camera')}
         >
           <Text style={styles.mainButtonIcon}>📸</Text>
-          <Text style={styles.mainButtonText}>Take a Photo</Text>
-          <Text style={styles.mainButtonSubtext}>Snap your food to get started</Text>
+          <Text style={styles.mainButtonText}>{t('home.mainButton')}</Text>
+          <Text style={styles.mainButtonSubtext}>{t('home.mainButtonSubtext')}</Text>
         </TouchableOpacity>
 
         {/* Today's Summary */}
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Today's Summary</Text>
+          <Text style={styles.summaryTitle}>{t('home.todaySummary')}</Text>
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryValue}>{summary.skippedCount}</Text>
-              <Text style={styles.summaryLabel}>Skipped</Text>
+              <Text style={styles.summaryLabel}>{t('home.skipped')}</Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{summary.savedCalories} kcal</Text>
-              <Text style={styles.summaryLabel}>Saved</Text>
+              <Text style={styles.summaryValue}>{summary.savedCalories} {t('common.kcal')}</Text>
+              <Text style={styles.summaryLabel}>{t('home.saved')}</Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
               <Text style={styles.summaryValue}>{summary.exerciseCount}</Text>
-              <Text style={styles.summaryLabel}>Exercises</Text>
+              <Text style={styles.summaryLabel}>{t('home.exercises')}</Text>
             </View>
           </View>
         </View>
 
         {/* Recent Activity Placeholder */}
         <View style={styles.recentSection}>
-          <Text style={styles.recentTitle}>Recent Activity</Text>
+          <Text style={styles.recentTitle}>{t('home.recentActivity')}</Text>
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateIcon}>🌟</Text>
-            <Text style={styles.emptyStateText}>No activity yet</Text>
-            <Text style={styles.emptyStateSubtext}>Take your first photo to get started!</Text>
+            <Text style={styles.emptyStateText}>{t('home.noActivity')}</Text>
+            <Text style={styles.emptyStateSubtext}>{t('home.noActivitySubtext')}</Text>
           </View>
         </View>
       </View>

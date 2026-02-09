@@ -28,9 +28,13 @@
 - **expo-image-manipulator** - 画像リサイズ（512px、コスト削減）
 - **expo-file-system/legacy** - Base64変換（重要: legacyパスを使用）
 
+### 多言語対応
+- **expo-localization** - デバイス言語検出
+- **i18n-js** - 翻訳キー管理（英語/日本語）
+- 詳細: `.steering/20260209-i18n-localization/`
+
 ### 今後実装予定
-- **MediaPipe Pose** - 骨格判定（WebView統合）
-- **Supabase** - 認証＆データベース
+- **Supabase** - 認証＆データベース（Phase 7-10後に移行予定）
 
 ---
 
@@ -279,9 +283,55 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 
 ---
 
+## 課金モデル設計
+
+### フリートライアル + サブスクリプション方式
+- **無料**: AI撮影15回（lifetime上限）+ 手動入力は無制限 + 基本統計 + 広告あり
+- **プレミアム ($4.99/月)**: AI撮影20回/日 + 全統計 + 広告なし
+- **原則**: API コストはトライアル消化後、課金ユーザーのみに発生
+- 詳細: `.steering/20260209-monetization-model/requirements.md`
+
+### アーキテクチャへの影響
+- `UsageData` (aiPhotosUsed) でAI使用回数を追跡
+- `isPremium` フラグで機能ゲート（実際の課金処理は後で実装）
+- AI制限到達後は `ManualEntryScreen` で手動入力
+- StatsScreen のグラフ類はプレミアム限定
+
+---
+
 ## 次の実装予定
 
-### Phase 7-10: ログ、統計、最適化、デプロイ（次のステップ）
+### Phase 7: ログ・履歴機能（最優先）
+- **i18n セットアップ**: `expo-localization` + `i18n-js`、英語/日本語対応（Step 0）
+- **recordService.ts**: 食事記録・運動記録の個別保存（AsyncStorage）
+- **LogScreen.tsx**: 履歴一覧画面（FlatList、日付降順）
+- **ManualEntryScreen.tsx**: 手動カロリー入力画面（AI制限到達時の代替）
+- **AI使用量カウンター**: 撮影前にlimit check
+- **HomeScreen 改善**: 「Recent Activity」に直近3件表示
+- 詳細: `.steering/20260209-phase7-log-history/`, `.steering/20260209-i18n-localization/`
+
+### Phase 8: 統計・可視化
+- **StatsScreen.tsx**: 統計画面（グラフ・チャート）
+- 週間カロリー節制の棒グラフ（プレミアム限定）
+- 食べた vs 食べなかった比率（プレミアム限定）
+- 運動種目別の実施回数（プレミアム限定）
+- 無料ユーザーには「Upgrade」プロモーション表示
+- 詳細: `.steering/20260209-phase8-statistics/`
+
+### Phase 9: 設定・UX改善
+- **SettingsScreen.tsx**: 設定画面
+- 日別カロリー目標設定
+- 音声フィードバックON/OFF
+- プレミアムステータス表示 + アップグレードボタン
+- データエクスポート（JSON）/ クリア
+- 詳細: `.steering/20260209-phase9-settings-ux/`
+
+### Phase 10: 仕上げ・品質改善
+- **OnboardingScreen.tsx**: 初回起動時の3ページガイド（「15回無料AI体験」を訴求）
+- エラーハンドリング統一
+- アプリアイコン・スプラッシュスクリーン
+- 全画面バグ修正
+- 詳細: `.steering/20260209-phase10-polish/`
 
 ---
 
@@ -341,4 +391,4 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 ---
 
 ## 最終更新日
-2026-02-09 - Phase 6完了（MediaPipe Pose連携、運動リアルタイムカウント）
+2026-02-09 - Phase 7-10 要件定義完了、課金モデル設計完了、i18n（英語/日本語）設計完了

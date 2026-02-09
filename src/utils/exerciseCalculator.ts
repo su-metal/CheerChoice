@@ -3,12 +3,21 @@ import { ExerciseDefinition } from '../constants/Exercises';
 /**
  * 回数提案の基本方針
  * - 摂取カロリーを完全に相殺するのではなく、継続しやすい割合で提案する
- * - 低カロリー食品でも過剰な回数にならないよう下限/上限を設ける
+ * - 種目ごとに係数を調整し、体感負荷を揃える
+ * - ハイカロリーでも回数が過剰にならないよう絶対上限を設ける
  */
-const BALANCE_RATIO = 0.25;
 const MIN_RECOMMENDED_REPS = 8;
-const MAX_REPS_MULTIPLIER = 5;
 const TOO_MANY_REPS_THRESHOLD = 60;
+const BALANCE_RATIO_BY_EXERCISE: Record<string, number> = {
+  squat: 0.18,
+  situp: 0.16,
+  pushup: 0.17,
+};
+const MAX_RECOMMENDED_REPS_BY_EXERCISE: Record<string, number> = {
+  squat: 40,
+  situp: 45,
+  pushup: 35,
+};
 
 /**
  * カロリーに基づいて推奨運動回数を計算
@@ -25,9 +34,10 @@ export function calculateRecommendedReps(
     return exercise.defaultReps;
   }
 
-  const adjustedCalories = calories * BALANCE_RATIO;
+  const balanceRatio = BALANCE_RATIO_BY_EXERCISE[exercise.id] ?? 0.17;
+  const adjustedCalories = calories * balanceRatio;
   const rawReps = Math.ceil(adjustedCalories / exercise.caloriesPerRep);
-  const maxForExercise = exercise.defaultReps * MAX_REPS_MULTIPLIER;
+  const maxForExercise = MAX_RECOMMENDED_REPS_BY_EXERCISE[exercise.id] ?? exercise.defaultReps * 3;
 
   return Math.min(
     Math.max(rawReps, MIN_RECOMMENDED_REPS),

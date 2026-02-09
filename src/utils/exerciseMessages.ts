@@ -1,50 +1,30 @@
-/**
- * 運動完了・途中終了時のメッセージ
- */
+import { t } from '../i18n';
 
-export const completionMessages = [
-  "You crushed it! 💪",
-  "Beast mode activated! 🔥",
-  "Look at you go, queen! 👑",
-  "That's how it's done! ⭐",
-  "Incredible work! 🎉",
-  "You're unstoppable! 🚀",
-  "Absolutely amazing! 💜",
-  "Fitness goals achieved! ✨",
-  "Killing it! 💥",
-  "You're a superstar! 🌟",
-  "Legendary performance! 🏆",
-  "Pure excellence! 💎",
+const completionMessageKeys = [
+  'messages.exerciseCompletion.1',
+  'messages.exerciseCompletion.2',
+  'messages.exerciseCompletion.3',
+  'messages.exerciseCompletion.4',
+  'messages.exerciseCompletion.5',
 ];
 
-export const partialMessages = [
-  "Every rep counts! 💕",
-  "Progress over perfection! 🌟",
-  "You showed up, that's what matters! 💪",
-  "Listen to your body, you did great! 🌸",
-  "Amazing effort! 💜",
-  "You're doing awesome! ⭐",
-  "That took courage! 🦋",
-  "Self-care is the best care! 💝",
-  "Proud of you for trying! 🌈",
-  "Keep shining! ✨",
+const partialMessageKeys = [
+  'messages.exercisePartial.1',
+  'messages.exercisePartial.2',
+  'messages.exercisePartial.3',
+  'messages.exercisePartial.4',
+  'messages.exercisePartial.5',
 ];
+
+function pickRandomMessage(keys: string[]): string {
+  const randomIndex = Math.floor(Math.random() * keys.length);
+  return t(keys[randomIndex]);
+}
 
 export function getRandomCompletionMessage(): string {
-  return completionMessages[Math.floor(Math.random() * completionMessages.length)];
+  return pickRandomMessage(completionMessageKeys);
 }
 
 export function getRandomPartialMessage(): string {
-  return partialMessages[Math.floor(Math.random() * partialMessages.length)];
-}
-
-export function getRandomAteMessage(): string {
-  const ateMessages = [
-    "Let's balance it out!",
-    "Time to move!",
-    "Enjoyed your meal?",
-    "Now for the fun part!",
-    "Ready to burn some calories?",
-  ];
-  return ateMessages[Math.floor(Math.random() * ateMessages.length)];
+  return pickRandomMessage(partialMessageKeys);
 }

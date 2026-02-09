@@ -7,7 +7,11 @@
  * 運動検出ロジックは THE TOLL (app.js) から移植。
  */
 
-export function getPoseDetectorHtml(exerciseType: string, targetReps: number): string {
+export function getPoseDetectorHtml(
+  exerciseType: string,
+  targetReps: number,
+  voiceFeedbackEnabled: boolean = true
+): string {
   // exerciseType を THE TOLL 形式に変換 (squat → SQUAT)
   const exType = exerciseType.toUpperCase();
 
@@ -112,6 +116,7 @@ export function getPoseDetectorHtml(exerciseType: string, targetReps: number): s
     // ============================================
     const EXERCISE_TYPE = '${exType}';
     const TARGET_REPS = ${targetReps};
+    const VOICE_ENABLED = ${voiceFeedbackEnabled ? 'true' : 'false'};
 
     // ============================================
     // State
@@ -177,6 +182,7 @@ export function getPoseDetectorHtml(exerciseType: string, targetReps: number): s
 
     function speakCount(num) {
       try {
+        if (!VOICE_ENABLED) return;
         if (!window.speechSynthesis) return;
         speechSynthesis.cancel();
         var utter = new SpeechSynthesisUtterance(String(num));
@@ -407,8 +413,56 @@ export function getPoseDetectorHtml(exerciseType: string, targetReps: number): s
     // ============================================
     // Initialize MediaPipe
     // ============================================
+    function sleep(ms) {
+      return new Promise(function(resolve) { setTimeout(resolve, ms); });
+    }
+
+    async function tryGetUserMediaWithRetry(constraints, retries) {
+      var lastError = null;
+      for (var i = 0; i < retries; i++) {
+        try {
+          return await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (err) {
+          lastError = err;
+          // NotReadableError often recovers by short delay/retry.
+          if (err && err.name === 'NotReadableError' && i < retries - 1) {
+            await sleep(350);
+            continue;
+          }
+          throw err;
+        }
+      }
+      throw lastError || new Error('Could not access camera');
+    }
+
+    async function getCameraStreamWithFallback() {
+      const attempts = [
+        { video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false },
+        { video: { facingMode: { ideal: 'user' } }, audio: false },
+        { video: true, audio: false }
+      ];
+
+      let lastError = null;
+      for (var i = 0; i < attempts.length; i++) {
+        try {
+          return await tryGetUserMediaWithRetry(attempts[i], 3);
+        } catch (err) {
+          lastError = err;
+        }
+      }
+      throw lastError || new Error('Could not access camera');
+    }
+
     async function initMediaPipe() {
       try {
+        // Release stale stream if exists.
+        try {
+          if (videoEl.srcObject && videoEl.srcObject.getTracks) {
+            videoEl.srcObject.getTracks().forEach(function(track) { track.stop(); });
+            videoEl.srcObject = null;
+          }
+        } catch (e) {}
+
         // Check getUserMedia availability
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           // Try legacy API as polyfill
@@ -426,18 +480,26 @@ export function getPoseDetectorHtml(exerciseType: string, targetReps: number): s
         }
 
         // First get camera stream to confirm it works
-        var stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: 640, height: 480 },
-          audio: false
-        });
+        var stream = await getCameraStreamWithFallback();
         videoEl.srcObject = stream;
-        await videoEl.play();
+
+        // Some WebViews reject play() promise without user gesture.
+        // Do not treat this as fatal if frames can still be read.
+        try { await videoEl.play(); } catch (e) {}
 
         // Wait for video dimensions
-        await new Promise(function(resolve) {
+        await new Promise(function(resolve, reject) {
+          var timeoutId = setTimeout(function() {
+            reject(new Error('Video metadata timeout'));
+          }, 4000);
+
           function check() {
-            if (videoEl.videoWidth) resolve();
-            else requestAnimationFrame(check);
+            if (videoEl.videoWidth && videoEl.videoHeight) {
+              clearTimeout(timeoutId);
+              resolve();
+            } else {
+              requestAnimationFrame(check);
+            }
           }
           check();
         });
@@ -478,13 +540,22 @@ export function getPoseDetectorHtml(exerciseType: string, targetReps: number): s
         processFrame();
 
       } catch (err) {
-        loadingEl.innerHTML = '<div style="color:#FF6B6B;font-size:16px;">Camera Error</div><div style="color:#aaa;font-size:14px;margin-top:8px;">' + (err.message || 'Could not access camera') + '</div>';
-        sendToRN({ type: 'error', message: err.message || 'Camera initialization failed' });
+        var baseMessage = (err && err.name ? err.name + ': ' : '') + ((err && err.message) || 'Could not access camera');
+        var message = baseMessage;
+        if (err && err.name === 'NotReadableError') {
+          message = baseMessage + ' (Front camera may be in use by another app/session. Please retry.)';
+        }
+        loadingEl.innerHTML = '<div style="color:#FF6B6B;font-size:16px;">Camera Error</div><div style="color:#aaa;font-size:14px;margin-top:8px;">' + message + '</div>';
+        sendToRN({ type: 'error', message: message });
       }
     }
 
-    // Start
-    initMediaPipe();
+    // Start (single automatic retry for flaky device camera init)
+    initMediaPipe().catch(function() {
+      setTimeout(function() {
+        initMediaPipe();
+      }, 500);
+    });
   })();
   </script>
 </body>

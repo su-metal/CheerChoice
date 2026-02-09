@@ -2,6 +2,7 @@
   "expo": {
     "name": "CheerChoice",
     "slug": "CheerChoice",
+    "scheme": "cheerchoice",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -32,7 +33,8 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-asset"
+      "expo-asset",
+      "expo-localization"
     ],
     "extra": {
       "eas": {

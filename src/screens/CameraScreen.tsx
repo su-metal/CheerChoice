@@ -1,9 +1,13 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image, Alert } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors, Typography, Spacing, BorderRadius } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { t } from '../i18n';
+import { canUseAI, getRemainingAIUses } from '../services/usageService';
+import { IS_PREMIUM } from '../config/appConfig';
 
 type CameraScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Camera'>;
 
@@ -15,14 +19,32 @@ export default function CameraScreen({ navigation }: Props) {
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
   const [photo, setPhoto] = useState<string | null>(null);
+  const [remaining, setRemaining] = useState(0);
   const cameraRef = useRef<CameraView>(null);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      let active = true;
+      async function loadRemaining() {
+        const count = await getRemainingAIUses(IS_PREMIUM);
+        if (active) {
+          setRemaining(count);
+        }
+      }
+      loadRemaining();
+
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
 
   // カメラ権限がまだリクエストされていない
   if (!permission) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading camera...</Text>
+          <Text style={styles.loadingText}>{t('camera.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -34,12 +56,12 @@ export default function CameraScreen({ navigation }: Props) {
       <SafeAreaView style={styles.container}>
         <View style={styles.permissionContainer}>
           <Text style={styles.permissionIcon}>📸</Text>
-          <Text style={styles.permissionTitle}>Camera Permission Required</Text>
+          <Text style={styles.permissionTitle}>{t('camera.permissionRequired')}</Text>
           <Text style={styles.permissionText}>
-            We need access to your camera to take photos of your food.
+            {t('camera.permissionText')}
           </Text>
           <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-            <Text style={styles.permissionButtonText}>Grant Permission</Text>
+            <Text style={styles.permissionButtonText}>{t('camera.grantPermission')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -57,15 +79,21 @@ export default function CameraScreen({ navigation }: Props) {
               style={[styles.previewButton, styles.retakeButton]}
               onPress={() => setPhoto(null)}
             >
-              <Text style={styles.previewButtonText}>Retake</Text>
+              <Text style={styles.previewButtonText}>{t('camera.retake')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.previewButton, styles.usePhotoButton]}
-              onPress={() => {
-                navigation.navigate('Result', { photoUri: photo });
+              onPress={async () => {
+                const allowed = await canUseAI(IS_PREMIUM);
+                if (!allowed) {
+                  Alert.alert(t('camera.limitTitle'), t('camera.limitMessage'));
+                  navigation.navigate('ManualEntry');
+                  return;
+                }
+                navigation.navigate('Result', { photoUri: photo ?? undefined });
               }}
             >
-              <Text style={styles.previewButtonText}>Use Photo</Text>
+              <Text style={styles.previewButtonText}>{t('camera.usePhoto')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -91,7 +119,7 @@ export default function CameraScreen({ navigation }: Props) {
         }
       } catch (error) {
         console.error('Error taking picture:', error);
-        Alert.alert('Error', 'Failed to take picture. Please try again.');
+        Alert.alert(t('common.oops'), t('camera.errorTakePhoto'));
       }
     }
   }
@@ -103,13 +131,21 @@ export default function CameraScreen({ navigation }: Props) {
         {/* Header with flip button */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.flipButton} onPress={toggleCameraFacing}>
-            <Text style={styles.flipButtonText}>🔄 Flip</Text>
+            <Text style={styles.flipButtonText}>🔄 {t('camera.flip')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Bottom controls */}
         <View style={styles.controls}>
-          <Text style={styles.guideText}>Center your food in the frame</Text>
+          <View style={styles.badgeRow}>
+            <View style={styles.remainingBadge}>
+              <Text style={styles.remainingText}>{t('camera.remaining', { count: remaining })}</Text>
+            </View>
+            <TouchableOpacity onPress={() => navigation.navigate('ManualEntry')}>
+              <Text style={styles.manualLink}>{t('camera.manualEntry')}</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.guideText}>{t('camera.guideText')}</Text>
           <TouchableOpacity style={styles.shutterButton} onPress={takePicture}>
             <View style={styles.shutterInner} />
           </TouchableOpacity>
@@ -192,6 +228,28 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  badgeRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  remainingBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+  },
+  remainingText: {
+    ...Typography.caption,
+    color: Colors.surface,
+  },
+  manualLink: {
+    ...Typography.caption,
+    color: Colors.surface,
+    textDecorationLine: 'underline',
   },
   guideText: {
     ...Typography.bodySmall,

@@ -4,8 +4,8 @@
 
 ## 📋 ドキュメント情報
 - **作成日**: 2026-02-08
-- **最終更新**: 2026-02-08
-- **バージョン**: 2.0
+- **最終更新**: 2026-02-09
+- **バージョン**: 2.1
 - **ステータス**: 要件定義完了
 - **次フェーズ**: 実装開始
 
@@ -527,6 +527,29 @@ function getRealisticReps(calculatedReps: number, exercise: Exercise) {
 - "食べる喜びを、運動の楽しさでバランス！"
 - "You chose to eat, and that's perfectly fine! Let's celebrate with some fun movement 💃"
 
+#### 5.5.4 食べる選択後の運動義務・リカバリー仕様 🆕
+
+**設計原則**:
+- 「食べる」は完了ではなく、運動ムーブ（Exercise Obligation）の発生として扱う
+- 未達の可視化は行うが、ユーザー体験上は「負債」ではなく「今週のリカバリー」と表現する
+
+**基本ルール**:
+1. 「食べる」選択時に、目標回数/目標運動量を持つ運動ムーブを自動作成する
+2. 運動は分割実施を許可する（例: 10回 + 15回）
+3. 運動セッションは `start / pause / resume / end` を時系列ログとして保存する
+4. 日次締め時刻（ローカル時刻 23:59）でムーブの達成/未達を確定する
+5. セッション0件で未達の場合は「未達100%」として今週リカバリーに計上する
+6. 一部達成で未達の場合は「残量分」を今週リカバリーに計上する
+
+**週次リセット**:
+- 今週リカバリー残高は毎週月曜 00:00（ローカル時刻）に 0 へリセットする
+- リセット時も履歴は削除せず、分析用に保持する
+- 未達は翌週へ持ち越さない（離脱防止を優先）
+
+**UI/文言方針**:
+- 「負債」ではなく「今週のリカバリー」を正式文言として使用する
+- 例: 「今週のリカバリー: あと15回で達成」「今週もリスタートしました」
+
 ---
 
 ### 5.6 運動カウント機能（骨格判定）
@@ -668,8 +691,17 @@ import { WebView } from 'react-native-webview';
 - **カメラプレビュー**: 全画面（骨格オーバーレイ）
 - **カウント表示**: 大きく（フォントサイズ 72px）、中央上部
 - **目標達成率**: プログレスバー（例: 15/90回、17%）
+- **中断/再開ボタン**: 下部に配置し、`pause/resume` を明示操作可能にする
+- **中断状態表示**: 「中断中」バッジを表示し、カウント更新を停止する
+- **再開導線**: アプリ再起動後でも前回スナップショットから再開できる
 - **終了ボタン**: 右上、いつでも終了可能
 - **音声フィードバック**: カウント音（オプション）
+
+#### 5.6.5 ホームからの継続導線（新規）
+- ホームに「今日のムーブ」カードを表示する
+- 当日 open ムーブの残回数を「あとX回でOK」で可視化する
+- ムーブが1件の場合は「今日のムーブを続ける」で直接再開する
+- ムーブが複数件の場合は選択モーダルを開き、消化するメニューを選べるようにする
 
 ---
 
@@ -835,7 +867,43 @@ interface ExerciseRecord {
 }
 ```
 
-### 7.4 統計データ（計算フィールド）
+### 7.4 運動義務・セッション記録（新規）
+```typescript
+interface ExerciseObligation {
+  id: string;
+  userId: string;
+  mealRecordId: string;
+  createdAt: Date;
+  dueAt: Date; // 当日 23:59 (local)
+  exerciseType: 'squat' | 'situp' | 'pushup';
+  targetCount: number;
+  completedCount: number;
+  status: 'open' | 'completed' | 'unmet'; // UI上は「今日のムーブ」として表示
+  finalizedAt?: Date;
+}
+
+interface ExerciseSessionEvent {
+  id: string;
+  obligationId: string;
+  timestamp: Date;
+  eventType: 'start' | 'pause' | 'resume' | 'end';
+  countSnapshot: number;
+}
+
+interface RecoveryLedgerEntry {
+  id: string;
+  userId: string;
+  obligationId: string;
+  weekStartDate: Date; // Monday 00:00 (local)
+  generatedAt: Date;
+  initialUnmetCount: number;
+  recoveredCount: number;
+  remainingCount: number;
+  status: 'open' | 'closed' | 'reset';
+}
+```
+
+### 7.5 統計データ（計算フィールド）
 ```typescript
 interface Statistics {
   userId: string;
@@ -850,6 +918,8 @@ interface Statistics {
   ateCount: number;
   exerciseCount: number;
   averageDailySkipped: number;
+  weeklyRecoveryGeneratedCount: number; // 週内で発生した未達回数
+  weeklyRecoveryResolvedCount: number;  // 週内で解消した回数
 }
 ```
 
@@ -892,33 +962,42 @@ interface Statistics {
 
 ## 9. 開発フェーズ
 
-### Phase 1: MVP（最小実用版）- 6-8週間
-- ✅ 環境セットアップ
-- ✅ 基本UI・ナビゲーション
-- ✅ Supabase認証（Google OAuth）
-- ✅ 撮影機能
-- ✅ カロリー推定（OpenAI gpt-4o-mini）
-- ✅ 選択機能（食べる/食べない）
-- ✅ 簡易ログ機能
-- ✅ 3種類の運動（スクワット、腹筋、腕立て）骨格判定
+### Phase 0-6: MVP（完了）
+- ✅ Phase 0: 環境セットアップ（Node.js, Git, VSCode, Expo CLI）
+- ✅ Phase 1: 基本UI・ナビゲーション（HomeScreen, CameraScreen）
+- ✅ Phase 2: スキップ（Supabaseは延期 → AsyncStorageで代替）
+- ✅ Phase 3: カメラ＆OpenAI統合（撮影、カロリー推定、ResultScreen）
+- ✅ Phase 4: 「食べない」選択フロー（SkippedScreen、節制カロリー記録）
+- ✅ Phase 5: 「食べる」選択フロー（ExerciseSelectScreen、運動提案）
+- ✅ Phase 6: 骨格判定＆運動カウント（MediaPipe Pose、WebView統合）
 
-### Phase 2: 運動機能拡張 - 3-4週間
-- フォーム判定精度向上
-- 音声フィードバック
-- 運動提案アルゴリズム改善
-- バッジ・マイルストーン機能
+### Phase 7: ログ・履歴機能（次のステップ）
+- 食事記録・運動記録の個別保存（AsyncStorage）
+- LogScreen: 履歴一覧画面
+- HomeScreen: Recent Activity に直近3件表示
+- 詳細: `.steering/20260209-phase7-log-history/`
 
-### Phase 3: データ分析・可視化 - 2-3週間
-- グラフ機能充実（Recharts）
-- 統計データ詳細表示
-- 目標設定機能
-- SNSシェア機能
+### Phase 8: 統計・可視化
+- StatsScreen: グラフ・チャート画面
+- 週間カロリー節制の棒グラフ
+- 食べた vs 食べなかった比率
+- 運動種目別の実施回数
+- 詳細: `.steering/20260209-phase8-statistics/`
 
-### Phase 4: UX改善・最適化 - 2-3週間
-- アニメーション強化
-- パフォーマンス最適化
-- ユーザーテストフィードバック反映
-- 多言語対応（日本語）
+### Phase 9: 設定・UX改善
+- SettingsScreen: 設定画面
+- 日別カロリー目標設定
+- 音声フィードバックON/OFF
+- データエクスポート / クリア
+- 今週リカバリー表示（週次リセット文言を含む）
+- 詳細: `.steering/20260209-phase9-settings-ux/`
+
+### Phase 10: 仕上げ・品質改善
+- OnboardingScreen: 初回起動ガイド
+- エラーハンドリング統一
+- アプリアイコン・スプラッシュスクリーン
+- 全画面バグ修正
+- 詳細: `.steering/20260209-phase10-polish/`
 
 ---
 
@@ -964,12 +1043,35 @@ interface Statistics {
 - Apple Health / Google Fit連携
 - ウェアラブル連携（Apple Watch、Fitbit）
 
-### 11.2 収益化オプション
-- **フリーミアムモデル**:
-  - 無料: 1日10回撮影、基本統計
-  - プレミアム（$4.99/月）: 無制限、高度統計、広告なし
-- **広告**: バナー広告（無料版のみ）
-- **企業向けB2B**: 福利厚生プログラム（$10/社員/月）
+### 11.2 収益化モデル（フリートライアル + サブスクリプション）
+
+**設計原則**: 無料ユーザーのAPIコストで赤字にならない構造
+
+#### 無料プラン
+- AI写真分析: **15回（lifetime上限）** → 1ユーザーあたり最大$0.045の取得コスト
+- 手動入力: 無制限（ManualEntryScreen）
+- 基本統計（数値のみ、グラフなし）
+- 広告あり
+
+#### プレミアムプラン ($4.99/月)
+- AI写真分析: 20回/日
+- 全統計（グラフ・チャート付き）
+- 広告なし
+
+#### コスト分析
+- OpenAI gpt-4o-mini: ~$0.003/画像
+- 無料ユーザー: 最大$0.045/人（一回限り）→ 月額ランニングコスト$0
+- プレミアムユーザー: 最大$1.80/月/人 → 純収益$3.19/人/月
+- 損益分岐点: プレミアム転換率 ~2%（業界平均2-5%と整合）
+
+#### 技術実装（Phase 7-9 で段階的に実装）
+- `UsageData` (aiPhotosUsed) でAI使用回数を追跡（Phase 7）
+- `isPremium` フラグで機能ゲート（Phase 8-9）
+- AI制限到達後は ManualEntryScreen で手動入力（Phase 7）
+- StatsScreen のグラフ類はプレミアム限定（Phase 8）
+- 実際の課金処理（IAP）は将来実装
+
+詳細: `.steering/20260209-monetization-model/requirements.md`
 
 ---
 

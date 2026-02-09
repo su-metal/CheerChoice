@@ -17,26 +17,64 @@ export interface CalorieEstimationResult {
 // Meal Record
 export interface MealRecord {
   id: string;
-  userId: string;
-  timestamp: Date;
+  timestamp: string; // ISO string
   photoUri: string;
   estimatedCalories: number;
   foodName: string;
   confidence: number;
   choice: 'ate' | 'skipped';
-  exerciseId?: string;
 }
 
 // Exercise Record
 export interface ExerciseRecord {
   id: string;
-  userId: string;
-  mealRecordId: string;
-  timestamp: Date;
+  mealRecordId?: string;
+  timestamp: string; // ISO string
   exerciseType: 'squat' | 'situp' | 'pushup';
   count: number;
-  duration: number; // seconds
+  targetCount: number;
   caloriesBurned: number;
+}
+
+export interface ExerciseObligation {
+  id: string;
+  mealRecordId: string;
+  createdAt: string; // ISO string
+  dueAt: string; // ISO string (local end-of-day converted to UTC)
+  dueLocalDate: string; // YYYY-MM-DD (local)
+  weekStartLocal: string; // YYYY-MM-DD (Monday local)
+  timezone: string; // IANA timezone
+  exerciseType: 'squat' | 'situp' | 'pushup';
+  targetCount: number;
+  completedCount: number;
+  status: 'open' | 'completed' | 'unmet';
+  finalizedAt?: string; // ISO string
+}
+
+export interface ExerciseSessionEvent {
+  id: string;
+  obligationId: string;
+  timestamp: string; // ISO string
+  eventType: 'start' | 'pause' | 'resume' | 'end';
+  countSnapshot: number;
+}
+
+export interface RecoveryLedgerEntry {
+  id: string;
+  obligationId: string;
+  weekStartLocal: string; // YYYY-MM-DD (Monday local)
+  generatedAt: string; // ISO string
+  initialUnmetCount: number;
+  recoveredCount: number;
+  remainingCount: number;
+  status: 'open' | 'closed' | 'reset';
+  resetAt?: string; // ISO string
+}
+
+export interface UsageData {
+  aiPhotosUsed: number;
+  aiPhotosToday: number;
+  lastResetDate: string; // YYYY-MM-DD
 }
 
 // Exercise Definition

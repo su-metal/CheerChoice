@@ -8,7 +8,7 @@ export { default as ResultScreen } from './ResultScreen';
 export { default as SkippedScreen } from './SkippedScreen';
 export { default as ExerciseSelectScreen } from './ExerciseSelectScreen';
 export { default as ExerciseScreen } from './ExerciseScreen';
-
-// More screens will be added later:
-// export { default as LogScreen } from './LogScreen';
-// export { default as SettingsScreen } from './SettingsScreen';
+export { default as LogScreen } from './LogScreen';
+export { default as ManualEntryScreen } from './ManualEntryScreen';
+export { default as StatsScreen } from './StatsScreen';
+export { default as SettingsScreen } from './SettingsScreen';

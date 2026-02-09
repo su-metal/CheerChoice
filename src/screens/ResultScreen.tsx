@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  TextInput,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
@@ -16,6 +17,12 @@ import { Colors, Typography, Spacing, BorderRadius } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { CalorieEstimationResult } from '../types';
 import { estimateCalories } from '../services/calorieEstimator';
+import { t } from '../i18n';
+import { incrementAIUsage } from '../services/usageService';
+import { saveMealRecord } from '../services/recordService';
+import { EXERCISES } from '../constants/Exercises';
+import { calculateRecommendedReps } from '../utils/exerciseCalculator';
+import { createExerciseObligation } from '../services/recoveryService';
 
 type ResultScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Result'>;
 type ResultScreenRouteProp = RouteProp<RootStackParamList, 'Result'>;
@@ -26,25 +33,55 @@ type Props = {
 };
 
 export default function ResultScreen({ navigation, route }: Props) {
-  const { photoUri } = route.params;
+  const { photoUri, manualInput } = route.params;
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<CalorieEstimationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedFoodName, setEditedFoodName] = useState('');
+  const [editedCalories, setEditedCalories] = useState('');
+  const isManualEntry = Boolean(manualInput);
 
   // コンポーネントマウント時にカロリー推定を実行
   useEffect(() => {
+    if (manualInput) {
+      setResult({
+        foodName: manualInput.foodName,
+        estimatedCalories: manualInput.estimatedCalories,
+        calorieRange: {
+          min: manualInput.estimatedCalories,
+          max: manualInput.estimatedCalories,
+        },
+        confidence: 0,
+        portionSize: t('result.manualLabel'),
+      });
+      setEditedFoodName(manualInput.foodName);
+      setEditedCalories(String(manualInput.estimatedCalories));
+      setLoading(false);
+      return;
+    }
+
     analyzePhoto();
-  }, []);
+  }, [manualInput]);
 
   async function analyzePhoto() {
+    if (!photoUri) {
+      setError(t('common.unknownError'));
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
       const estimation = await estimateCalories(photoUri);
       setResult(estimation);
+      setEditedFoodName(estimation.foodName);
+      setEditedCalories(String(estimation.estimatedCalories));
+      await incrementAIUsage();
     } catch (err) {
       console.error('Error analyzing photo:', err);
-      setError(err instanceof Error ? err.message : 'Failed to analyze photo');
+      setError(err instanceof Error ? err.message : t('common.unknownError'));
     } finally {
       setLoading(false);
     }
@@ -56,8 +93,8 @@ export default function ResultScreen({ navigation, route }: Props) {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Analyzing your food...</Text>
-          <Text style={styles.loadingSubtext}>Using AI to estimate calories ✨</Text>
+          <Text style={styles.loadingText}>{t('result.loadingTitle')}</Text>
+          <Text style={styles.loadingSubtext}>{t('result.loadingSubtext')} ✨</Text>
         </View>
       </SafeAreaView>
     );
@@ -69,16 +106,16 @@ export default function ResultScreen({ navigation, route }: Props) {
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorIcon}>😕</Text>
-          <Text style={styles.errorTitle}>Oops! Something went wrong</Text>
-          <Text style={styles.errorText}>{error || 'Unknown error occurred'}</Text>
+          <Text style={styles.errorTitle}>{t('common.oops')}</Text>
+          <Text style={styles.errorText}>{error || t('common.unknownError')}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={analyzePhoto}>
-            <Text style={styles.retryButtonText}>Try Again</Text>
+            <Text style={styles.retryButtonText}>{t('common.tryAgain')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.navigate('Camera')}
           >
-            <Text style={styles.backButtonText}>Take Another Photo</Text>
+            <Text style={styles.backButtonText}>{t('result.takeAnotherPhoto')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -86,40 +123,164 @@ export default function ResultScreen({ navigation, route }: Props) {
   }
 
   // 結果表示
+  function startEdit() {
+    if (!result) {
+      return;
+    }
+    setEditedFoodName(result.foodName);
+    setEditedCalories(String(result.estimatedCalories));
+    setIsEditing(true);
+  }
+
+  function saveEdit() {
+    if (!result) {
+      return;
+    }
+
+    const name = editedFoodName.trim();
+    const calories = Number(editedCalories);
+    if (!name || !Number.isFinite(calories) || calories <= 0) {
+      Alert.alert(t('common.oops'), t('result.invalidEdit'));
+      return;
+    }
+
+    const normalizedCalories = Math.round(calories);
+    setResult({
+      ...result,
+      foodName: name,
+      estimatedCalories: normalizedCalories,
+      calorieRange: {
+        min: normalizedCalories,
+        max: normalizedCalories,
+      },
+      confidence: 0,
+      portionSize: t('result.manualLabel'),
+    });
+    setIsEditing(false);
+  }
+
+  async function handleChoice(choice: 'ate' | 'skipped') {
+    if (!result) {
+      return;
+    }
+
+    try {
+      const mealRecord = await saveMealRecord({
+        timestamp: new Date().toISOString(),
+        photoUri: photoUri ?? '',
+        estimatedCalories: result.estimatedCalories,
+        foodName: result.foodName,
+        confidence: result.confidence,
+        choice,
+      });
+
+      if (choice === 'skipped') {
+        navigation.navigate('Skipped', {
+          calories: result.estimatedCalories,
+          foodName: result.foodName,
+          mealRecordId: mealRecord.id,
+        });
+        return;
+      }
+
+      const defaultExercise = EXERCISES.squat;
+      const defaultTargetReps = calculateRecommendedReps(result.estimatedCalories, defaultExercise);
+      const obligation = await createExerciseObligation({
+        mealRecordId: mealRecord.id,
+        exerciseType: defaultExercise.id,
+        targetCount: defaultTargetReps,
+      });
+
+      navigation.navigate('ExerciseSelect', {
+        calories: result.estimatedCalories,
+        foodName: result.foodName,
+        mealRecordId: mealRecord.id,
+        obligationId: obligation.id,
+      });
+    } catch (saveError) {
+      console.error('Error saving meal record:', saveError);
+      Alert.alert(t('common.oops'), t('result.saveError'));
+    }
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         {/* 写真プレビュー */}
-        <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+        {photoUri ? (
+          <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+        ) : (
+          <View style={styles.manualPlaceholder}>
+            <Text style={styles.manualPlaceholderText}>🍽️ {t('result.manualLabel')}</Text>
+          </View>
+        )}
 
         {/* カロリー情報カード */}
         <View style={styles.resultCard}>
-          <Text style={styles.foodName}>{result.foodName}</Text>
+          {isEditing ? (
+            <>
+              <Text style={styles.inputLabel}>{t('result.foodNameLabel')}</Text>
+              <TextInput
+                value={editedFoodName}
+                onChangeText={setEditedFoodName}
+                style={styles.editInput}
+                placeholder={t('result.foodNameLabel')}
+                placeholderTextColor={Colors.textExtraLight}
+              />
+              <Text style={styles.inputLabel}>{t('result.caloriesLabel')}</Text>
+              <TextInput
+                value={editedCalories}
+                onChangeText={setEditedCalories}
+                style={styles.editInput}
+                keyboardType="number-pad"
+                placeholder="300"
+                placeholderTextColor={Colors.textExtraLight}
+              />
+              <View style={styles.editActions}>
+                <TouchableOpacity style={styles.editCancelButton} onPress={() => setIsEditing(false)}>
+                  <Text style={styles.editCancelText}>{t('common.cancel')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.editSaveButton} onPress={saveEdit}>
+                  <Text style={styles.editSaveText}>{t('result.saveEdit')}</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={styles.foodName}>{result.foodName}</Text>
 
-          <View style={styles.calorieSection}>
-            <Text style={styles.calorieValue}>{result.estimatedCalories}</Text>
-            <Text style={styles.calorieUnit}>kcal</Text>
-          </View>
+              <View style={styles.calorieSection}>
+                <Text style={styles.calorieValue}>{result.estimatedCalories}</Text>
+                <Text style={styles.calorieUnit}>{t('common.kcal')}</Text>
+              </View>
 
-          <Text style={styles.calorieRange}>
-            Range: {result.calorieRange.min} - {result.calorieRange.max} kcal
-          </Text>
+              <Text style={styles.calorieRange}>
+                {t('result.range', { min: result.calorieRange.min, max: result.calorieRange.max })}
+              </Text>
 
-          <View style={styles.metaInfo}>
-            <View style={styles.metaItem}>
-              <Text style={styles.metaLabel}>Portion Size</Text>
-              <Text style={styles.metaValue}>{result.portionSize}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Text style={styles.metaLabel}>Confidence</Text>
-              <Text style={styles.metaValue}>{result.confidence}%</Text>
-            </View>
-          </View>
+              <View style={styles.metaInfo}>
+                <View style={styles.metaItem}>
+                  <Text style={styles.metaLabel}>{t('result.portionSize')}</Text>
+                  <Text style={styles.metaValue}>{result.portionSize}</Text>
+                </View>
+                <View style={styles.metaItem}>
+                  <Text style={styles.metaLabel}>{t('result.confidence')}</Text>
+                  <Text style={styles.metaValue}>
+                    {isManualEntry ? t('result.manualLabel') : `${result.confidence}%`}
+                  </Text>
+                </View>
+              </View>
 
-          {result.confidence < 50 && (
+              <TouchableOpacity style={styles.editButton} onPress={startEdit}>
+                <Text style={styles.editButtonText}>{t('result.editEstimate')}</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {!isManualEntry && !isEditing && result.confidence < 50 && (
             <View style={styles.lowConfidenceWarning}>
               <Text style={styles.warningText}>
-                ⚠️ Low confidence. You may want to adjust the estimate.
+                ⚠️ {t('result.lowConfidenceWarning')}
               </Text>
             </View>
           )}
@@ -127,34 +288,24 @@ export default function ResultScreen({ navigation, route }: Props) {
 
         {/* 選択ボタン */}
         <View style={styles.choiceSection}>
-          <Text style={styles.choiceTitle}>What do you want to do?</Text>
+          <Text style={styles.choiceTitle}>{t('result.choiceTitle')}</Text>
 
           <TouchableOpacity
             style={[styles.choiceButton, styles.skipButton]}
-            onPress={() => {
-              navigation.navigate('Skipped', {
-                calories: result.estimatedCalories,
-                foodName: result.foodName,
-              });
-            }}
+            onPress={() => handleChoice('skipped')}
           >
             <Text style={styles.choiceButtonIcon}>🌟</Text>
-            <Text style={styles.choiceButtonText}>Skip It</Text>
-            <Text style={styles.choiceButtonSubtext}>Save {result.estimatedCalories} kcal</Text>
+            <Text style={styles.choiceButtonText}>{t('result.skipIt')}</Text>
+            <Text style={styles.choiceButtonSubtext}>{t('result.skipSubtext', { calories: result.estimatedCalories })}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.choiceButton, styles.eatButton]}
-            onPress={() => {
-              navigation.navigate('ExerciseSelect', {
-                calories: result.estimatedCalories,
-                foodName: result.foodName,
-              });
-            }}
+            onPress={() => handleChoice('ate')}
           >
             <Text style={styles.choiceButtonIcon}>🍽️</Text>
-            <Text style={styles.choiceButtonText}>Eat It</Text>
-            <Text style={styles.choiceButtonSubtext}>Balance with exercise</Text>
+            <Text style={styles.choiceButtonText}>{t('result.eatIt')}</Text>
+            <Text style={styles.choiceButtonSubtext}>{t('result.eatSubtext')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -163,7 +314,9 @@ export default function ResultScreen({ navigation, route }: Props) {
           style={styles.retakeButton}
           onPress={() => navigation.navigate('Camera')}
         >
-          <Text style={styles.retakeButtonText}>Take Another Photo</Text>
+          <Text style={styles.retakeButtonText}>
+            {isManualEntry ? t('result.backToCamera') : t('result.takeAnotherPhoto')}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -222,6 +375,17 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 250,
     resizeMode: 'cover',
+  },
+  manualPlaceholder: {
+    width: '100%',
+    height: 180,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+  },
+  manualPlaceholderText: {
+    ...Typography.h4,
+    color: Colors.textLight,
   },
   resultCard: {
     backgroundColor: Colors.surface,
@@ -292,6 +456,63 @@ const styles = StyleSheet.create({
     ...Typography.bodySmall,
     color: '#856404',
     textAlign: 'center',
+  },
+  editButton: {
+    marginTop: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+  },
+  editButtonText: {
+    ...Typography.bodySmall,
+    color: Colors.accent,
+    fontWeight: '600',
+  },
+  inputLabel: {
+    ...Typography.bodySmall,
+    color: Colors.textLight,
+    marginBottom: Spacing.xs,
+    marginTop: Spacing.xs,
+  },
+  editInput: {
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    ...Typography.body,
+    color: Colors.text,
+    marginBottom: Spacing.sm,
+  },
+  editActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  editCancelButton: {
+    flex: 1,
+    backgroundColor: Colors.textExtraLight,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+  },
+  editCancelText: {
+    ...Typography.bodySmall,
+    color: Colors.surface,
+    fontWeight: '600',
+  },
+  editSaveButton: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+  },
+  editSaveText: {
+    ...Typography.bodySmall,
+    color: Colors.surface,
+    fontWeight: '600',
   },
   choiceSection: {
     padding: Spacing.lg,

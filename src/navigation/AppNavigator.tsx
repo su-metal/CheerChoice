@@ -1,20 +1,52 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { HomeScreen, CameraScreen, ResultScreen, SkippedScreen, ExerciseSelectScreen, ExerciseScreen } from '../screens';
+import {
+  HomeScreen,
+  CameraScreen,
+  ResultScreen,
+  SkippedScreen,
+  ExerciseSelectScreen,
+  ExerciseScreen,
+  LogScreen,
+  ManualEntryScreen,
+  StatsScreen,
+  SettingsScreen,
+} from '../screens';
 import { Colors } from '../constants';
+import { t } from '../i18n';
+import { ExerciseRecord } from '../types';
 
 // Define screen param types
 export type RootStackParamList = {
   Home: undefined;
   Camera: undefined;
-  Result: { photoUri: string };
-  Skipped: { calories: number; foodName: string };
-  ExerciseSelect: { calories: number; foodName: string };
-  Exercise: { exerciseType: string; targetReps: number; calories: number; foodName: string };
-  // More screens will be added later:
-  // Log: undefined;
-  // Settings: undefined;
+  Result: {
+    photoUri?: string;
+    manualInput?: {
+      foodName: string;
+      estimatedCalories: number;
+    };
+  };
+  Skipped: { calories: number; foodName: string; mealRecordId?: string };
+  ExerciseSelect: {
+    calories: number;
+    foodName: string;
+    mealRecordId?: string;
+    obligationId?: string;
+  };
+  Exercise: {
+    exerciseType: ExerciseRecord['exerciseType'];
+    targetReps: number;
+    calories: number;
+    foodName: string;
+    mealRecordId?: string;
+    obligationId?: string;
+  };
+  Log: undefined;
+  ManualEntry: undefined;
+  Stats: undefined;
+  Settings: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -49,40 +81,72 @@ export default function AppNavigator() {
           name="Camera"
           component={CameraScreen}
           options={{
-            title: 'Take a Photo',
-            headerBackTitle: 'Back',
+            title: t('navigation.camera'),
+            headerBackTitle: t('common.back'),
           }}
         />
         <Stack.Screen
           name="Result"
           component={ResultScreen}
           options={{
-            title: 'Calorie Analysis',
-            headerBackTitle: 'Back',
+            title: t('navigation.result'),
+            headerBackTitle: t('common.back'),
           }}
         />
         <Stack.Screen
           name="Skipped"
           component={SkippedScreen}
           options={{
-            title: 'Amazing!',
-            headerBackTitle: 'Back',
+            title: t('navigation.skipped'),
+            headerBackTitle: t('common.back'),
           }}
         />
         <Stack.Screen
           name="ExerciseSelect"
           component={ExerciseSelectScreen}
           options={{
-            title: 'Choose Your Exercise',
-            headerBackTitle: 'Back',
+            title: t('navigation.exerciseSelect'),
+            headerBackTitle: t('common.back'),
           }}
         />
         <Stack.Screen
           name="Exercise"
           component={ExerciseScreen}
           options={{
-            title: 'Let\'s Move!',
-            headerBackTitle: 'Back',
+            title: t('navigation.exercise'),
+            headerBackTitle: t('common.back'),
+          }}
+        />
+        <Stack.Screen
+          name="Log"
+          component={LogScreen}
+          options={{
+            title: t('navigation.log'),
+            headerBackTitle: t('common.back'),
+          }}
+        />
+        <Stack.Screen
+          name="ManualEntry"
+          component={ManualEntryScreen}
+          options={{
+            title: t('navigation.manualEntry'),
+            headerBackTitle: t('common.back'),
+          }}
+        />
+        <Stack.Screen
+          name="Stats"
+          component={StatsScreen}
+          options={{
+            title: t('navigation.stats'),
+            headerBackTitle: t('common.back'),
+          }}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{
+            title: t('navigation.settings'),
+            headerBackTitle: t('common.back'),
           }}
         />
       </Stack.Navigator>

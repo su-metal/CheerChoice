@@ -13,7 +13,12 @@ import { RouteProp } from '@react-navigation/native';
 import { Colors, Typography, Spacing, BorderRadius } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getRandomSkippedMessage } from '../utils/messages';
-import { getSkippedStats, updateSkippedStats, SkippedStats } from '../services/storageService';
+import {
+  updateSkippedStats,
+  updateTodaySkippedSummary,
+  SkippedStats,
+} from '../services/storageService';
+import { t } from '../i18n';
 
 type SkippedScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Skipped'>;
 type SkippedScreenRouteProp = RouteProp<RootStackParamList, 'Skipped'>;
@@ -36,7 +41,10 @@ export default function SkippedScreen({ navigation, route }: Props) {
     // 統計データを更新
     async function updateStats() {
       try {
-        const updatedStats = await updateSkippedStats(calories);
+        const [updatedStats] = await Promise.all([
+          updateSkippedStats(calories),
+          updateTodaySkippedSummary(calories),
+        ]);
         setStats(updatedStats);
       } catch (error) {
         console.error('Error updating stats:', error);
@@ -61,7 +69,7 @@ export default function SkippedScreen({ navigation, route }: Props) {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.secondary} />
-          <Text style={styles.loadingText}>Saving your progress...</Text>
+          <Text style={styles.loadingText}>{t('skipped.savingProgress')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -78,37 +86,37 @@ export default function SkippedScreen({ navigation, route }: Props) {
 
         {/* 今回の節制カロリー */}
         <View style={styles.currentCard}>
-          <Text style={styles.currentLabel}>You saved</Text>
+          <Text style={styles.currentLabel}>{t('skipped.currentLabel')}</Text>
           <View style={styles.calorieRow}>
             <Text style={styles.calorieValue}>{calories}</Text>
-            <Text style={styles.calorieUnit}>kcal</Text>
+            <Text style={styles.calorieUnit}>{t('common.kcal')}</Text>
           </View>
-          <Text style={styles.foodName}>by skipping {foodName}</Text>
+          <Text style={styles.foodName}>{t('skipped.foodNameProgress', { foodName })}</Text>
         </View>
 
         {/* 累計統計 */}
         {stats && (
           <View style={styles.statsCard}>
-            <Text style={styles.statsTitle}>Your Progress</Text>
+            <Text style={styles.statsTitle}>{t('skipped.progressTitle')}</Text>
 
             <View style={styles.statRow}>
               <View style={styles.statItem}>
-                <Text style={styles.statLabel}>Today</Text>
-                <Text style={styles.statValue}>{stats.today.toLocaleString()} kcal</Text>
+                <Text style={styles.statLabel}>{t('common.today')}</Text>
+                <Text style={styles.statValue}>{stats.today.toLocaleString()} {t('common.kcal')}</Text>
               </View>
             </View>
 
             <View style={styles.statRow}>
               <View style={styles.statItem}>
-                <Text style={styles.statLabel}>This Week</Text>
-                <Text style={styles.statValue}>{stats.thisWeek.toLocaleString()} kcal</Text>
+                <Text style={styles.statLabel}>{t('common.thisWeek')}</Text>
+                <Text style={styles.statValue}>{stats.thisWeek.toLocaleString()} {t('common.kcal')}</Text>
               </View>
             </View>
 
             <View style={styles.statRow}>
               <View style={styles.statItem}>
-                <Text style={styles.statLabel}>This Month</Text>
-                <Text style={styles.statValue}>{stats.thisMonth.toLocaleString()} kcal</Text>
+                <Text style={styles.statLabel}>{t('common.thisMonth')}</Text>
+                <Text style={styles.statValue}>{stats.thisMonth.toLocaleString()} {t('common.kcal')}</Text>
               </View>
             </View>
           </View>
@@ -119,7 +127,7 @@ export default function SkippedScreen({ navigation, route }: Props) {
           style={styles.homeButton}
           onPress={() => navigation.navigate('Home')}
         >
-          <Text style={styles.homeButtonText}>Back to Home</Text>
+          <Text style={styles.homeButtonText}>{t('skipped.backHome')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

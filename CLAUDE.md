@@ -28,9 +28,13 @@
 - **expo-image-manipulator** - 画像リサイズ（512px、コスト削減）
 - **expo-file-system/legacy** - Base64変換（重要: legacyパスを使用）
 
+### 多言語対応
+- **expo-localization** - デバイス言語検出
+- **i18n-js** - 翻訳キー管理（英語/日本語）
+- 詳細: `.steering/20260209-i18n-localization/`
+
 ### 今後実装予定
-- **MediaPipe Pose** - 骨格判定（WebView統合）
-- **Supabase** - 認証＆データベース
+- **Supabase** - 認証＆データベース（Phase 7-10後に移行予定）
 
 ---
 
@@ -43,15 +47,27 @@ f:\App_dev\CheerChoice/
 │   │   ├── Colors.ts      # カラーパレット（Coral, Mint, Lavender）
 │   │   ├── Fonts.ts       # Typography（fontFamily無し - RN互換性）
 │   │   └── Spacing.ts     # スペーシング、ボーダー、シャドウ
+│   ├── i18n/              # 多言語対応（en/ja + locale判定）
+│   │   ├── en.json
+│   │   ├── ja.json
+│   │   └── index.ts
 │   ├── screens/           # 画面コンポーネント
 │   │   ├── HomeScreen.tsx
 │   │   ├── CameraScreen.tsx
 │   │   ├── ResultScreen.tsx
+│   │   ├── SkippedScreen.tsx
+│   │   ├── ExerciseSelectScreen.tsx
+│   │   ├── ExerciseScreen.tsx
+│   │   ├── ManualEntryScreen.tsx
+│   │   ├── LogScreen.tsx
 │   │   └── index.ts       # エクスポート
 │   ├── navigation/        # ナビゲーション設定
 │   │   └── AppNavigator.tsx
-│   ├── services/          # 外部API統合
-│   │   └── calorieEstimator.ts  # OpenAI API
+│   ├── services/          # API/永続化サービス
+│   │   ├── calorieEstimator.ts  # OpenAI API
+│   │   ├── storageService.ts
+│   │   ├── recordService.ts
+│   │   └── usageService.ts
 │   ├── utils/             # ユーティリティ関数
 │   │   └── imageProcessor.ts    # 画像処理
 │   └── types/             # TypeScript型定義
@@ -240,7 +256,7 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 
 ---
 
-## 実装済み機能（Phase 0-6完了）
+## 実装済み機能（Phase 0-8 主要完了）
 
 ### ✅ Phase 0: 環境セットアップ
 - Node.js, Git, VSCode, Expo CLI
@@ -275,12 +291,62 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 - ExerciseScreen.tsx
 - リアルタイム回数カウント
 - 進捗表示（回数/達成率）
+- 運動完了後、Home の `Today's Summary`（Exercises）へ即時反映
+
+### ✅ Phase 7: ログ・履歴機能（主要）
+- i18n セットアップ完了（`expo-localization` + `i18n-js`、英語/日本語）
+- `recordService.ts` 追加（Meal/Exercise の保存・取得・削除）
+- `usageService.ts` 追加（AI利用回数・残回数管理）
+- `LogScreen.tsx` 追加（履歴一覧、日付セクション表示）
+- `ManualEntryScreen.tsx` 追加（手動入力フロー）
+- `CameraScreen` に AI残回数表示・手動入力導線
+- `ResultScreen` で MealRecord 保存、`ExerciseScreen` で ExerciseRecord 保存
+- `HomeScreen` の `Recent Activity` に直近3件表示 + `See All`
+
+### ✅ Phase 8: 統計・可視化 + リカバリー導線（主要）
+- `StatsScreen.tsx` 実装（週次バー + 月次カレンダーヒートマップ）
+- 食べた/食べない比率、運動種目別サマリー、週次リカバリー指標を表示
+- `HomeScreen` の Summary カードから `StatsScreen` へ遷移
+- `HomeScreen` に「今日のムーブ」カードを追加（残回数・件数表示）
+- ムーブ複数時は選択モーダルで対象メニューを選んで再開
+- `ExerciseScreen` に中断/再開UIを追加し、`pause/resume` をイベント保存
+- アプリ再起動後のセッション復元（カウントスナップショット復元）を実装
+- `ResultScreen` に解析結果の手動修正（食品名/カロリー）を実装
+
+---
+
+## 課金モデル設計
+
+### フリートライアル + サブスクリプション方式
+- **無料**: AI撮影15回（lifetime上限）+ 手動入力は無制限 + 基本統計 + 広告あり
+- **プレミアム ($4.99/月)**: AI撮影20回/日 + 全統計 + 広告なし
+- **原則**: API コストはトライアル消化後、課金ユーザーのみに発生
+- 詳細: `.steering/20260209-monetization-model/requirements.md`
+
+### アーキテクチャへの影響
+- `UsageData` (aiPhotosUsed) でAI使用回数を追跡
+- `isPremium` フラグで機能ゲート（実際の課金処理は後で実装）
+- AI制限到達後は `ManualEntryScreen` で手動入力
+- StatsScreen のグラフ類はプレミアム限定
 
 ---
 
 ## 次の実装予定
 
-### Phase 7-10: ログ、統計、最適化、デプロイ（次のステップ）
+### Phase 9: 設定・UX改善（次の最優先）
+- **SettingsScreen.tsx**: 設定画面
+- 日別カロリー目標設定
+- 音声フィードバックON/OFF
+- プレミアムステータス表示 + アップグレードボタン
+- データエクスポート（JSON）/ クリア
+- 詳細: `.steering/20260209-phase9-settings-ux/`
+
+### Phase 10: 仕上げ・品質改善
+- **OnboardingScreen.tsx**: 初回起動時の3ページガイド（「15回無料AI体験」を訴求）
+- エラーハンドリング統一
+- アプリアイコン・スプラッシュスクリーン
+- 全画面バグ修正
+- 詳細: `.steering/20260209-phase10-polish/`
 
 ---
 
@@ -322,6 +388,14 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 **解決**: `attrib -R assets /S /D`、`attrib -R src /S /D`、`attrib -R docs /S /D` 実行後に `eas build --clear-cache` で再実行
 **詳細**: `README.md` の `Troubleshooting` と `docs/requirements.md` の「12. 開発環境トラブルシューティング（運用メモ）」を参照
 
+### エラー5: `Cannot find native module 'ExpoLocalization'`
+**原因**: `expo-localization` を追加後、古い Development Build を使っていた（ネイティブモジュール未同梱）
+**解決**: `eas build --platform android --profile development --clear-cache` でDev Buildを再作成し、端末の旧アプリを入れ替える
+
+### エラー6: `No apps connected`（`r` でリロード不可）
+**原因**: Metro起動中だが、端末アプリが未接続（またはポート不一致）
+**解決**: 端末でDev Client/Expo Goからプロジェクトに接続してから `r`。必要なら `--port 8081` で再起動
+
 ---
 
 ## コミット・プルリクエストの方針
@@ -340,4 +414,4 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 ---
 
 ## 最終更新日
-2026-02-09 - Phase 6完了（MediaPipe Pose連携、運動リアルタイムカウント）
+2026-02-09 - Phase 8完了反映（統計画面、今日のムーブ導線、中断/再開、セッション復元、手動修正）

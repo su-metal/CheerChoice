@@ -47,15 +47,27 @@ f:\App_dev\CheerChoice/
 │   │   ├── Colors.ts      # カラーパレット（Coral, Mint, Lavender）
 │   │   ├── Fonts.ts       # Typography（fontFamily無し - RN互換性）
 │   │   └── Spacing.ts     # スペーシング、ボーダー、シャドウ
+│   ├── i18n/              # 多言語対応（en/ja + locale判定）
+│   │   ├── en.json
+│   │   ├── ja.json
+│   │   └── index.ts
 │   ├── screens/           # 画面コンポーネント
 │   │   ├── HomeScreen.tsx
 │   │   ├── CameraScreen.tsx
 │   │   ├── ResultScreen.tsx
+│   │   ├── SkippedScreen.tsx
+│   │   ├── ExerciseSelectScreen.tsx
+│   │   ├── ExerciseScreen.tsx
+│   │   ├── ManualEntryScreen.tsx
+│   │   ├── LogScreen.tsx
 │   │   └── index.ts       # エクスポート
 │   ├── navigation/        # ナビゲーション設定
 │   │   └── AppNavigator.tsx
-│   ├── services/          # 外部API統合
-│   │   └── calorieEstimator.ts  # OpenAI API
+│   ├── services/          # API/永続化サービス
+│   │   ├── calorieEstimator.ts  # OpenAI API
+│   │   ├── storageService.ts
+│   │   ├── recordService.ts
+│   │   └── usageService.ts
 │   ├── utils/             # ユーティリティ関数
 │   │   └── imageProcessor.ts    # 画像処理
 │   └── types/             # TypeScript型定義
@@ -244,7 +256,7 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 
 ---
 
-## 実装済み機能（Phase 0-6完了）
+## 実装済み機能（Phase 0-7 主要完了）
 
 ### ✅ Phase 0: 環境セットアップ
 - Node.js, Git, VSCode, Expo CLI
@@ -281,6 +293,16 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 - 進捗表示（回数/達成率）
 - 運動完了後、Home の `Today's Summary`（Exercises）へ即時反映
 
+### ✅ Phase 7: ログ・履歴機能（主要）
+- i18n セットアップ完了（`expo-localization` + `i18n-js`、英語/日本語）
+- `recordService.ts` 追加（Meal/Exercise の保存・取得・削除）
+- `usageService.ts` 追加（AI利用回数・残回数管理）
+- `LogScreen.tsx` 追加（履歴一覧、日付セクション表示）
+- `ManualEntryScreen.tsx` 追加（手動入力フロー）
+- `CameraScreen` に AI残回数表示・手動入力導線
+- `ResultScreen` で MealRecord 保存、`ExerciseScreen` で ExerciseRecord 保存
+- `HomeScreen` の `Recent Activity` に直近3件表示 + `See All`
+
 ---
 
 ## 課金モデル設計
@@ -301,16 +323,12 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 
 ## 次の実装予定
 
-### Phase 7: ログ・履歴機能（最優先）
-- **i18n セットアップ**: `expo-localization` + `i18n-js`、英語/日本語対応（Step 0）
-- **recordService.ts**: 食事記録・運動記録の個別保存（AsyncStorage）
-- **LogScreen.tsx**: 履歴一覧画面（FlatList、日付降順）
-- **ManualEntryScreen.tsx**: 手動カロリー入力画面（AI制限到達時の代替）
-- **AI使用量カウンター**: 撮影前にlimit check
-- **HomeScreen 改善**: 「Recent Activity」に直近3件表示
-- 詳細: `.steering/20260209-phase7-log-history/`, `.steering/20260209-i18n-localization/`
+### Phase 7: 残タスク（軽微）
+- 履歴画面のUX微調整（削除操作、ラベル、表示整形）
+- 記録上限（500件）挙動の実機検証
+- 画面間導線の最終確認（ManualEntry/Log）
 
-### Phase 8: 統計・可視化
+### Phase 8: 統計・可視化（次の最優先）
 - **StatsScreen.tsx**: 統計画面（グラフ・チャート）
 - 週間カロリー節制の棒グラフ（プレミアム限定）
 - 食べた vs 食べなかった比率（プレミアム限定）
@@ -373,6 +391,14 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 **解決**: `attrib -R assets /S /D`、`attrib -R src /S /D`、`attrib -R docs /S /D` 実行後に `eas build --clear-cache` で再実行
 **詳細**: `README.md` の `Troubleshooting` と `docs/requirements.md` の「12. 開発環境トラブルシューティング（運用メモ）」を参照
 
+### エラー5: `Cannot find native module 'ExpoLocalization'`
+**原因**: `expo-localization` を追加後、古い Development Build を使っていた（ネイティブモジュール未同梱）
+**解決**: `eas build --platform android --profile development --clear-cache` でDev Buildを再作成し、端末の旧アプリを入れ替える
+
+### エラー6: `No apps connected`（`r` でリロード不可）
+**原因**: Metro起動中だが、端末アプリが未接続（またはポート不一致）
+**解決**: 端末でDev Client/Expo Goからプロジェクトに接続してから `r`。必要なら `--port 8081` で再起動
+
 ---
 
 ## コミット・プルリクエストの方針
@@ -391,4 +417,4 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 ---
 
 ## 最終更新日
-2026-02-09 - Phase 7-10 要件定義完了、課金モデル設計完了、i18n（英語/日本語）設計完了
+2026-02-09 - Phase 7主要機能（i18n/履歴/手動入力/AI利用管理）実装反映

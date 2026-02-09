@@ -17,6 +17,7 @@ import {
   StatsPeriod,
 } from '../utils/statsCalculator';
 import { IS_PREMIUM } from '../config/appConfig';
+import { getWeeklyRecoveryStatus } from '../services/recoveryService';
 
 const isPremium = IS_PREMIUM;
 
@@ -185,14 +186,33 @@ function ExerciseTypeRow({
 export default function StatsScreen() {
   const [period, setPeriod] = useState<StatsPeriod>('week');
   const [stats, setStats] = useState<StatsData>(defaultStats);
+  const [weeklyRecovery, setWeeklyRecovery] = useState({
+    generatedCount: 0,
+    resolvedCount: 0,
+    remainingCount: 0,
+  });
 
   const loadStats = useCallback(async () => {
     try {
-      const [meals, exercises] = await Promise.all([getMealRecords(), getExerciseRecords()]);
+      const [meals, exercises, recovery] = await Promise.all([
+        getMealRecords(),
+        getExerciseRecords(),
+        getWeeklyRecoveryStatus(),
+      ]);
       setStats(calculateStats(meals, exercises, period));
+      setWeeklyRecovery({
+        generatedCount: recovery.generatedCount,
+        resolvedCount: recovery.resolvedCount,
+        remainingCount: recovery.remainingCount,
+      });
     } catch (error) {
       console.error('Error loading stats:', error);
       setStats(defaultStats);
+      setWeeklyRecovery({
+        generatedCount: 0,
+        resolvedCount: 0,
+        remainingCount: 0,
+      });
     }
   }, [period]);
 
@@ -261,6 +281,18 @@ export default function StatsScreen() {
           <View style={styles.summaryCard}>
             <Text style={styles.summaryLabel}>{t('stats.exerciseSessions')}</Text>
             <Text style={styles.summaryValue}>{stats.exerciseSummary.totalSessions}</Text>
+          </View>
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryLabel}>{t('stats.recoverySummary')}</Text>
+            <Text style={styles.summaryValueSmall}>
+              {t('stats.recoveryResolvedShort', {
+                resolved: weeklyRecovery.resolvedCount,
+                generated: weeklyRecovery.generatedCount,
+              })}
+            </Text>
+            <Text style={styles.summaryValueHint}>
+              {t('stats.recoveryRemainingShort', { count: weeklyRecovery.remainingCount })}
+            </Text>
           </View>
         </View>
 
@@ -393,6 +425,16 @@ const styles = StyleSheet.create({
   summaryValue: {
     ...Typography.h4,
     color: Colors.text,
+  },
+  summaryValueSmall: {
+    ...Typography.body,
+    color: Colors.text,
+    fontWeight: '600',
+  },
+  summaryValueHint: {
+    ...Typography.caption,
+    color: Colors.textLight,
+    marginTop: 2,
   },
   upgradeCard: {
     backgroundColor: Colors.surface,

@@ -1,1 +1,1 @@
-export const IS_PREMIUM = true;
+export const IS_PREMIUM = false;

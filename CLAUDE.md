@@ -256,7 +256,7 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 
 ---
 
-## 実装済み機能（Phase 0-7 主要完了）
+## 実装済み機能（Phase 0-8 主要完了）
 
 ### ✅ Phase 0: 環境セットアップ
 - Node.js, Git, VSCode, Expo CLI
@@ -303,6 +303,16 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 - `ResultScreen` で MealRecord 保存、`ExerciseScreen` で ExerciseRecord 保存
 - `HomeScreen` の `Recent Activity` に直近3件表示 + `See All`
 
+### ✅ Phase 8: 統計・可視化 + リカバリー導線（主要）
+- `StatsScreen.tsx` 実装（週次バー + 月次カレンダーヒートマップ）
+- 食べた/食べない比率、運動種目別サマリー、週次リカバリー指標を表示
+- `HomeScreen` の Summary カードから `StatsScreen` へ遷移
+- `HomeScreen` に「今日のムーブ」カードを追加（残回数・件数表示）
+- ムーブ複数時は選択モーダルで対象メニューを選んで再開
+- `ExerciseScreen` に中断/再開UIを追加し、`pause/resume` をイベント保存
+- アプリ再起動後のセッション復元（カウントスナップショット復元）を実装
+- `ResultScreen` に解析結果の手動修正（食品名/カロリー）を実装
+
 ---
 
 ## 課金モデル設計
@@ -323,24 +333,7 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 
 ## 次の実装予定
 
-### Phase 7: 残タスク（軽微）
-- 履歴画面のUX微調整（削除操作、ラベル、表示整形）
-- 記録上限（500件）挙動の実機検証
-- 画面間導線の最終確認（ManualEntry/Log）
-
-### Phase 8: 統計・可視化（次の最優先）
-- **StatsScreen.tsx**: 統計画面（グラフ・チャート）
-- 週間カロリー節制の棒グラフ（プレミアム限定）
-- 食べた vs 食べなかった比率（プレミアム限定）
-- 運動種目別の実施回数（プレミアム限定）
-- 食べる選択後の運動義務・今週リカバリー表示（週次リセット）
-- 中断/再開UI + 再起動後のセッション復元
-- ホーム「今日のムーブ」カード + 複数メニュー選択モーダル
-- 無料ユーザーには「Upgrade」プロモーション表示
-- 詳細: `.steering/20260209-phase8-statistics/`
-- 追加要件詳細: `.steering/20260209-exercise-recovery-policy/`
-
-### Phase 9: 設定・UX改善
+### Phase 9: 設定・UX改善（次の最優先）
 - **SettingsScreen.tsx**: 設定画面
 - 日別カロリー目標設定
 - 音声フィードバックON/OFF
@@ -421,4 +414,4 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 ---
 
 ## 最終更新日
-2026-02-09 - Phase 8追加実装反映（今日のムーブ導線、複数選択、中断/再開、セッション復元）
+2026-02-09 - Phase 8完了反映（統計画面、今日のムーブ導線、中断/再開、セッション復元、手動修正）

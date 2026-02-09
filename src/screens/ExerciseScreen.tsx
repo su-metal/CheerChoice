@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { useCameraPermissions } from 'expo-camera';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Colors, Typography, Spacing, BorderRadius } from '../constants';
@@ -20,6 +21,7 @@ import { getPoseDetectorHtml } from '../utils/poseDetectorHtml';
 import { updateTodayExerciseSummary } from '../services/storageService';
 import { t } from '../i18n';
 import { saveExerciseRecord } from '../services/recordService';
+import { getSettings } from '../services/settingsService';
 import {
   addObligationProgress,
   applyRecoveryFromExercise,
@@ -59,15 +61,64 @@ export default function ExerciseScreen({ navigation, route }: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [voiceFeedbackEnabled, setVoiceFeedbackEnabled] = useState(true);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [scaleAnim] = useState(new Animated.Value(1));
   const [webViewKey, setWebViewKey] = useState(0);
   const webViewRef = useRef<WebView>(null);
   const hasSavedSessionRef = useRef(false);
   const hasLoggedStartRef = useRef(false);
   const pausedFromModeRef = useRef<InputMode>('motion');
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
   const exercise = EXERCISES[exerciseType];
   const exerciseName = t(`exercise.types.${exerciseType}.name`);
+
+  useEffect(() => {
+    let isMounted = true;
+    getSettings()
+      .then((settings) => {
+        if (isMounted) {
+          setVoiceFeedbackEnabled(settings.voiceFeedbackEnabled);
+          setSettingsLoaded(true);
+        }
+      })
+      .catch((error) => {
+        console.error('Error loading exercise settings:', error);
+        if (isMounted) {
+          setSettingsLoaded(true);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!cameraPermission || cameraPermission.granted || inputMode !== 'motion') {
+      return;
+    }
+    requestCameraPermission().catch((error) => {
+      console.error('Error requesting camera permission in ExerciseScreen:', error);
+    });
+  }, [cameraPermission, inputMode, requestCameraPermission]);
+
+  useEffect(() => {
+    if (inputMode !== 'motion' || hasError || !isLoading || !settingsLoaded) {
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      setHasError(true);
+      setIsLoading(false);
+      setErrorMessage(t('exercise.cameraInitTimeout'));
+    }, 7000);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [hasError, inputMode, isLoading, settingsLoaded]);
 
   useEffect(() => {
     if (!obligationId) {
@@ -260,7 +311,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
 
   const progressPercentage = Math.min(Math.round((count / targetReps) * 100), 100);
 
-  const htmlContent = getPoseDetectorHtml(exerciseType, targetReps);
+  const htmlContent = getPoseDetectorHtml(exerciseType, targetReps, voiceFeedbackEnabled);
 
   const switchInputMode = (nextMode: InputMode) => {
     if (isPaused) {
@@ -330,10 +381,18 @@ export default function ExerciseScreen({ navigation, route }: Props) {
     }
   };
 
+  const retryMotionMode = () => {
+    setHasError(false);
+    setErrorMessage('');
+    setIsLoading(true);
+    setInputMode('motion');
+    setWebViewKey((prev) => prev + 1);
+  };
+
   return (
     <View style={styles.container}>
       {/* WebView: Camera + MediaPipe (full background) */}
-      {inputMode === 'motion' && !hasError && (
+      {settingsLoaded && inputMode === 'motion' && cameraPermission?.granted && !hasError && (
         <WebView
           key={webViewKey}
           ref={webViewRef}
@@ -343,14 +402,28 @@ export default function ExerciseScreen({ navigation, route }: Props) {
           domStorageEnabled={true}
           mediaPlaybackRequiresUserAction={false}
           allowsInlineMediaPlayback={true}
-          mediaCapturePermissionGrantType="grant"
+          mediaCapturePermissionGrantType="grantIfSameHostElsePrompt"
           allowFileAccess={true}
           allowUniversalAccessFromFileURLs={true}
           originWhitelist={['*']}
           onMessage={handleMessage}
-          onError={() => {
+          onError={(event) => {
             setHasError(true);
-            setErrorMessage(t('exercise.webviewFailed'));
+            const description = event.nativeEvent?.description;
+            setErrorMessage(
+              description
+                ? `${t('exercise.webviewFailed')}: ${description}`
+                : t('exercise.webviewFailed')
+            );
+          }}
+          onHttpError={(event) => {
+            setHasError(true);
+            const statusCode = event.nativeEvent?.statusCode;
+            setErrorMessage(
+              statusCode
+                ? `${t('exercise.webviewFailed')}: HTTP ${statusCode}`
+                : t('exercise.webviewFailed')
+            );
           }}
         />
       )}
@@ -364,16 +437,36 @@ export default function ExerciseScreen({ navigation, route }: Props) {
           <Text style={styles.errorHint}>
             {t('exercise.errorHint')}
           </Text>
+          <TouchableOpacity style={styles.permissionButton} onPress={retryMotionMode}>
+            <Text style={styles.permissionButtonText}>{t('exercise.retryCamera')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.tapModeFallbackButton} onPress={() => switchInputMode('tap')}>
+            <Text style={styles.tapModeFallbackText}>{t('exercise.tapMode')}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {inputMode === 'motion' && settingsLoaded && cameraPermission && !cameraPermission.granted && !hasError && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorIcon}>📷</Text>
+          <Text style={styles.errorTitle}>{t('camera.permissionRequired')}</Text>
+          <Text style={styles.errorText}>{t('camera.permissionText')}</Text>
+          <TouchableOpacity style={styles.permissionButton} onPress={() => requestCameraPermission()}>
+            <Text style={styles.permissionButtonText}>{t('camera.grantPermission')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.tapModeFallbackButton} onPress={() => switchInputMode('tap')}>
+            <Text style={styles.tapModeFallbackText}>{t('exercise.tapMode')}</Text>
+          </TouchableOpacity>
         </View>
       )}
 
       {/* Loading overlay */}
-      {inputMode === 'motion' && isLoading && !hasError && (
+      {(inputMode === 'motion' && isLoading && !hasError && cameraPermission?.granted) || !settingsLoaded ? (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={Colors.surface} />
           <Text style={styles.loadingText}>{t('exercise.loadingModel')}</Text>
         </View>
-      )}
+      ) : null}
 
       {/* Top bar overlay */}
       <SafeAreaView style={styles.topBarSafe}>
@@ -515,6 +608,28 @@ const styles = StyleSheet.create({
     color: Colors.textLight,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  permissionButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    marginBottom: Spacing.sm,
+  },
+  permissionButtonText: {
+    ...Typography.button,
+    color: Colors.surface,
+  },
+  tapModeFallbackButton: {
+    backgroundColor: Colors.textLight,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.xl,
+  },
+  tapModeFallbackText: {
+    ...Typography.bodySmall,
+    color: Colors.surface,
+    fontWeight: '600',
   },
 
   // Top bar

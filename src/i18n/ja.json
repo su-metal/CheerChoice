@@ -22,7 +22,8 @@
     "exercise": "体を動かそう！",
     "log": "履歴",
     "manualEntry": "手動入力",
-    "stats": "統計"
+    "stats": "統計",
+    "settings": "設定"
   },
   "home": {
     "subtitle": "あなたのポジティブ健康パートナー",
@@ -104,6 +105,8 @@
     "cameraCouldNotStart": "カメラを開始できませんでした",
     "webviewFailed": "WebViewの読み込みに失敗しました",
     "cameraNotAvailable": "カメラを利用できません",
+    "cameraInitTimeout": "カメラの起動がタイムアウトしました。再試行してください。",
+    "retryCamera": "カメラを再試行",
     "errorHint": "この機能はDevelopment Buildが必要です。\nExpo GoではWebViewカメラが使えない場合があります。",
     "loadingModel": "AIモデルを読み込み中...",
     "targetLabel": "目標: %{targetReps} 回",
@@ -153,6 +156,9 @@
     "savedCalories": "節約カロリー",
     "totalMeals": "食事回数",
     "exerciseSessions": "運動セッション",
+    "recoverySummary": "今週リカバリー",
+    "recoveryResolvedShort": "解消 %{resolved} / 発生 %{generated}",
+    "recoveryRemainingShort": "残り %{count}",
     "unlockTitle": "詳細な統計をアンロック",
     "unlockBody": "プレミアムでグラフと詳細インサイトを表示できます。",
     "upgradeButton": "プレミアムにアップグレード",
@@ -174,9 +180,23 @@
     "ctaContinue": "今日のムーブを続ける",
     "ctaChoose": "メニューを選んで続ける",
     "selectTitle": "今日のムーブを選ぶ",
+    "moreItems": "ほか %{count} 件",
     "title": "今週のリカバリー",
     "remaining": "今週のリカバリー: あと %{count} 回",
     "resetHint": "毎週月曜に気持ちよくリスタート"
+  },
+  "settings": {
+    "goals": "目標",
+    "dailyGoal": "日別カロリー目標",
+    "preferences": "設定",
+    "voiceFeedback": "音声フィードバック",
+    "voiceFeedbackHint": "運動中のカウント読み上げ",
+    "data": "データ管理",
+    "exportData": "データをエクスポート",
+    "clearData": "すべてのデータを削除",
+    "about": "アプリ情報",
+    "tagline": "あなたのポジティブ健康パートナー",
+    "version": "バージョン %{value}"
   },
   "messages": {
     "skipped": {

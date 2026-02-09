@@ -11,6 +11,7 @@ import {
   LogScreen,
   ManualEntryScreen,
   StatsScreen,
+  SettingsScreen,
 } from '../screens';
 import { Colors } from '../constants';
 import { t } from '../i18n';
@@ -45,6 +46,7 @@ export type RootStackParamList = {
   Log: undefined;
   ManualEntry: undefined;
   Stats: undefined;
+  Settings: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -136,6 +138,14 @@ export default function AppNavigator() {
           component={StatsScreen}
           options={{
             title: t('navigation.stats'),
+            headerBackTitle: t('common.back'),
+          }}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{
+            title: t('navigation.settings'),
             headerBackTitle: t('common.back'),
           }}
         />

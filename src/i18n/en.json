@@ -22,7 +22,8 @@
     "exercise": "Let's Move!",
     "log": "History",
     "manualEntry": "Manual Entry",
-    "stats": "Statistics"
+    "stats": "Statistics",
+    "settings": "Settings"
   },
   "home": {
     "subtitle": "Your positive health companion",
@@ -104,6 +105,8 @@
     "cameraCouldNotStart": "Camera could not be started",
     "webviewFailed": "WebView failed to load",
     "cameraNotAvailable": "Camera Not Available",
+    "cameraInitTimeout": "Camera initialization timed out. Please retry.",
+    "retryCamera": "Retry Camera",
     "errorHint": "This feature requires a Development Build.\nExpo Go may not support WebView camera access.",
     "loadingModel": "Loading AI Model...",
     "targetLabel": "Target: %{targetReps} reps",
@@ -153,6 +156,9 @@
     "savedCalories": "Saved Calories",
     "totalMeals": "Total Meals",
     "exerciseSessions": "Exercise Sessions",
+    "recoverySummary": "Weekly Recovery",
+    "recoveryResolvedShort": "Resolved %{resolved} / Created %{generated}",
+    "recoveryRemainingShort": "%{count} remaining",
     "unlockTitle": "Unlock Full Statistics",
     "unlockBody": "See charts and detailed insights with Premium.",
     "upgradeButton": "Upgrade to Premium",
@@ -174,9 +180,23 @@
     "ctaContinue": "Continue today's move",
     "ctaChoose": "Choose a move to continue",
     "selectTitle": "Choose today's move",
+    "moreItems": "%{count} more",
     "title": "This Week's Recovery",
     "remaining": "Recovery this week: %{count} reps to go",
     "resetHint": "Fresh restart every Monday"
+  },
+  "settings": {
+    "goals": "Goals",
+    "dailyGoal": "Daily Calorie Goal",
+    "preferences": "Preferences",
+    "voiceFeedback": "Voice Feedback",
+    "voiceFeedbackHint": "Read count aloud during exercise",
+    "data": "Data",
+    "exportData": "Export Data",
+    "clearData": "Clear All Data",
+    "about": "About",
+    "tagline": "Your positive health companion",
+    "version": "Version %{value}"
   },
   "messages": {
     "skipped": {

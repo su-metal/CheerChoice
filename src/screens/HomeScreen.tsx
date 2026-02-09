@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
+  FlatList,
   Modal,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -19,7 +20,6 @@ import {
   getTodayRecordSummary,
   TodayRecordSummary,
 } from '../services/recordService';
-import { resetAIUsageOnce } from '../services/usageService';
 import { MealRecord } from '../types';
 import {
   getTodayObligationStatus,
@@ -95,7 +95,6 @@ export default function HomeScreen({ navigation }: Props) {
 
       async function loadSummary() {
         try {
-          await resetAIUsageOnce('manual-reset-20260209-qa');
           await runRecoveryMaintenance();
           const todaySummary = await getTodayRecordSummary();
           const latestRecords = await getRecentMealRecords(3);
@@ -196,6 +195,25 @@ export default function HomeScreen({ navigation }: Props) {
             {t('recovery.todayCount', { count: todayObligationCount })}
           </Text>
           {todayMoveOptions.length > 0 && (
+            <View style={styles.movePreviewList}>
+              {todayMoveOptions.slice(0, 3).map((move) => (
+                <View key={move.obligationId} style={styles.movePreviewItem}>
+                  <Text style={styles.movePreviewTitle} numberOfLines={1}>
+                    {move.foodName}
+                  </Text>
+                  <Text style={styles.movePreviewMeta}>
+                    {t(`exercise.types.${move.exerciseType}.name`)} • {move.remainingCount} {t('exerciseSelect.reps')}
+                  </Text>
+                </View>
+              ))}
+              {todayMoveOptions.length > 3 && (
+                <Text style={styles.movePreviewMore}>
+                  {t('recovery.moreItems', { count: todayMoveOptions.length - 3 })}
+                </Text>
+              )}
+            </View>
+          )}
+          {todayMoveOptions.length > 0 && (
             <TouchableOpacity
               style={styles.moveCtaButton}
               onPress={() => {
@@ -266,21 +284,28 @@ export default function HomeScreen({ navigation }: Props) {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>{t('recovery.selectTitle')}</Text>
-            {todayMoveOptions.map((move) => (
-              <TouchableOpacity
-                key={move.obligationId}
-                style={styles.modalOption}
-                onPress={() => {
-                  setShowMovePicker(false);
-                  navigateToMove(move);
-                }}
-              >
-                <Text style={styles.modalOptionTitle}>
-                  {t(`exercise.types.${move.exerciseType}.name`)} • {move.remainingCount} {t('exerciseSelect.reps')}
-                </Text>
-                <Text style={styles.modalOptionSub}>{move.foodName}</Text>
-              </TouchableOpacity>
-            ))}
+            <FlatList
+              style={styles.modalList}
+              data={todayMoveOptions}
+              keyExtractor={(item) => item.obligationId}
+              contentContainerStyle={styles.modalListContent}
+              showsVerticalScrollIndicator
+              nestedScrollEnabled
+              renderItem={({ item: move }) => (
+                <TouchableOpacity
+                  style={styles.modalOption}
+                  onPress={() => {
+                    setShowMovePicker(false);
+                    navigateToMove(move);
+                  }}
+                >
+                  <Text style={styles.modalOptionTitle}>
+                    {t(`exercise.types.${move.exerciseType}.name`)} • {move.remainingCount} {t('exerciseSelect.reps')}
+                  </Text>
+                  <Text style={styles.modalOptionSub}>{move.foodName}</Text>
+                </TouchableOpacity>
+              )}
+            />
             <TouchableOpacity
               style={styles.modalCloseButton}
               onPress={() => setShowMovePicker(false)}
@@ -413,6 +438,32 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     color: Colors.textLight,
   },
+  movePreviewList: {
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xs,
+    gap: 6,
+  },
+  movePreviewItem: {
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+  },
+  movePreviewTitle: {
+    ...Typography.bodySmall,
+    color: Colors.text,
+    fontWeight: '600',
+  },
+  movePreviewMeta: {
+    ...Typography.caption,
+    color: Colors.textLight,
+    marginTop: 2,
+  },
+  movePreviewMore: {
+    ...Typography.caption,
+    color: Colors.textLight,
+    marginTop: 2,
+  },
   moveCtaButton: {
     marginTop: Spacing.sm,
     backgroundColor: Colors.accent,
@@ -434,6 +485,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.xl,
     padding: Spacing.lg,
+    maxHeight: '80%',
+  },
+  modalList: {
+    maxHeight: 420,
+    minHeight: 0,
+    flexShrink: 1,
+  },
+  modalListContent: {
+    paddingBottom: Spacing.xs,
   },
   modalTitle: {
     ...Typography.h5,

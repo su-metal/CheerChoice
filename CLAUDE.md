@@ -172,6 +172,16 @@ const response = await openai.chat.completions.create({
 });
 ```
 
+### 5. 運動回数の計算ルール（Phase 5調整）
+```typescript
+// src/utils/exerciseCalculator.ts
+// 摂取カロリーを完全相殺せず、継続しやすい回数を提案する
+const BALANCE_RATIO = 0.25;        // カロリーの25%ぶんを目安に運動提案
+const MIN_RECOMMENDED_REPS = 8;    // 低すぎる回数を防ぐ下限
+const MAX_REPS_MULTIPLIER = 5;     // 種目ごとの defaultReps x 5 を上限
+```
+- 例: 20kcal の場合、スクワットは 40 回ではなく 10 回程度の提案になる。
+
 ---
 
 ## デザインシステム
@@ -230,7 +240,7 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 
 ---
 
-## 実装済み機能（Phase 0-3完了）
+## 実装済み機能（Phase 0-6完了）
 
 ### ✅ Phase 0: 環境セットアップ
 - Node.js, Git, VSCode, Expo CLI
@@ -251,25 +261,26 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 - OpenAI gpt-4o-miniでカロリー推定
 - ResultScreen（カロリー表示、選択UI）
 
+### ✅ Phase 4: 「食べない」選択フロー
+- SkippedScreen.tsx
+- ポジティブメッセージ表示
+- 累計節制カロリー表示
+
+### ✅ Phase 5: 「食べる」選択フロー
+- ExerciseSelectScreen.tsx
+- 運動メニュー提案（スクワット、腹筋、腕立て）
+
+### ✅ Phase 6: 骨格判定＆運動カウント
+- MediaPipe Pose（WebView統合）
+- ExerciseScreen.tsx
+- リアルタイム回数カウント
+- 進捗表示（回数/達成率）
+
 ---
 
 ## 次の実装予定
 
-### Phase 4: 「食べない」選択フロー（次のステップ）
-- SkippedScreen.tsx
-- ポジティブメッセージ表示
-- 累計節制カロリー計算
-
-### Phase 5: 「食べる」選択フロー
-- ExerciseSelectScreen.tsx
-- 運動メニュー提案（スクワット、腹筋、腕立て）
-
-### Phase 6: 骨格判定＆運動カウント ⭐最重要
-- MediaPipe Pose（WebView統合）
-- ExerciseScreen.tsx
-- リアルタイム回数カウント
-
-### Phase 7-10: ログ、統計、最適化、デプロイ
+### Phase 7-10: ログ、統計、最適化、デプロイ（次のステップ）
 
 ---
 
@@ -306,6 +317,11 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 **原因**: 新しいAPIへの移行推奨
 **解決**: legacyパスからインポート（上記と同じ）
 
+### エラー4: EAS Buildで `tar ... Permission denied`
+**原因**: Windowsで `assets` / `src` / `docs` などに `ReadOnly` 属性 (`R`) が付いた状態でアップロードされ、EAS側の `project.tar.gz` 展開時に書き込み失敗
+**解決**: `attrib -R assets /S /D`、`attrib -R src /S /D`、`attrib -R docs /S /D` 実行後に `eas build --clear-cache` で再実行
+**詳細**: `README.md` の `Troubleshooting` と `docs/requirements.md` の「12. 開発環境トラブルシューティング（運用メモ）」を参照
+
 ---
 
 ## コミット・プルリクエストの方針
@@ -324,4 +340,4 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 ---
 
 ## 最終更新日
-2026-02-08 - Phase 3完了（カメラ＆OpenAI統合）
+2026-02-09 - Phase 6完了（MediaPipe Pose連携、運動リアルタイムカウント）

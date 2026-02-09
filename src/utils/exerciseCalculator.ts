@@ -1,16 +1,21 @@
 import { ExerciseDefinition } from '../constants/Exercises';
 
 /**
- * 最大推奨回数（現実的な範囲）
+ * 回数提案の基本方針
+ * - 摂取カロリーを完全に相殺するのではなく、継続しやすい割合で提案する
+ * - 低カロリー食品でも過剰な回数にならないよう下限/上限を設ける
  */
-const MAX_RECOMMENDED_REPS = 200;
+const BALANCE_RATIO = 0.25;
+const MIN_RECOMMENDED_REPS = 8;
+const MAX_REPS_MULTIPLIER = 5;
+const TOO_MANY_REPS_THRESHOLD = 60;
 
 /**
  * カロリーに基づいて推奨運動回数を計算
  *
  * @param calories 摂取カロリー
  * @param exercise 運動定義
- * @returns 推奨回数（最大200回に制限）
+ * @returns 推奨回数（継続しやすい範囲に補正）
  */
 export function calculateRecommendedReps(
   calories: number,
@@ -20,8 +25,14 @@ export function calculateRecommendedReps(
     return exercise.defaultReps;
   }
 
-  const rawReps = Math.ceil(calories / exercise.caloriesPerRep);
-  return Math.min(rawReps, MAX_RECOMMENDED_REPS);
+  const adjustedCalories = calories * BALANCE_RATIO;
+  const rawReps = Math.ceil(adjustedCalories / exercise.caloriesPerRep);
+  const maxForExercise = exercise.defaultReps * MAX_REPS_MULTIPLIER;
+
+  return Math.min(
+    Math.max(rawReps, MIN_RECOMMENDED_REPS),
+    maxForExercise
+  );
 }
 
 /**
@@ -45,7 +56,7 @@ export function calculateBurnedCalories(
  * @returns 多すぎる場合true
  */
 export function isTooManyReps(reps: number): boolean {
-  return reps >= MAX_RECOMMENDED_REPS;
+  return reps >= TOO_MANY_REPS_THRESHOLD;
 }
 
 /**

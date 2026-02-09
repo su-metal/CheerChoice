@@ -17,6 +17,8 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { getRandomCompletionMessage, getRandomPartialMessage } from '../utils/exerciseMessages';
 import { EXERCISES } from '../constants/Exercises';
 import { getPoseDetectorHtml } from '../utils/poseDetectorHtml';
+// expo-speech: 再ビルド後に有効化
+// import * as Speech from 'expo-speech';
 
 type ExerciseScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -85,6 +87,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
         case 'count':
           if (data.count !== undefined) {
             setCount(data.count);
+            // TODO: 再ビルド後に expo-speech で音声カウント有効化
           }
           break;
         case 'error':

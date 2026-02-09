@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Typography, Spacing, BorderRadius } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { getTodaySummary, TodaySummary } from '../services/storageService';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -11,6 +13,36 @@ type Props = {
 };
 
 export default function HomeScreen({ navigation }: Props) {
+  const [summary, setSummary] = useState<TodaySummary>({
+    skippedCount: 0,
+    savedCalories: 0,
+    exerciseCount: 0,
+    lastUpdated: new Date().toISOString(),
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+
+      async function loadSummary() {
+        try {
+          const todaySummary = await getTodaySummary();
+          if (isMounted) {
+            setSummary(todaySummary);
+          }
+        } catch (error) {
+          console.error('Error loading home summary:', error);
+        }
+      }
+
+      loadSummary();
+
+      return () => {
+        isMounted = false;
+      };
+    }, [])
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
@@ -36,17 +68,17 @@ export default function HomeScreen({ navigation }: Props) {
           <Text style={styles.summaryTitle}>Today's Summary</Text>
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>0</Text>
+              <Text style={styles.summaryValue}>{summary.skippedCount}</Text>
               <Text style={styles.summaryLabel}>Skipped</Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>0 kcal</Text>
+              <Text style={styles.summaryValue}>{summary.savedCalories} kcal</Text>
               <Text style={styles.summaryLabel}>Saved</Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>0</Text>
+              <Text style={styles.summaryValue}>{summary.exerciseCount}</Text>
               <Text style={styles.summaryLabel}>Exercises</Text>
             </View>
           </View>

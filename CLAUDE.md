@@ -275,6 +275,7 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 - ExerciseScreen.tsx
 - リアルタイム回数カウント
 - 進捗表示（回数/達成率）
+- 運動完了後、Home の `Today's Summary`（Exercises）へ即時反映
 
 ---
 

@@ -13,7 +13,11 @@ import { RouteProp } from '@react-navigation/native';
 import { Colors, Typography, Spacing, BorderRadius } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getRandomSkippedMessage } from '../utils/messages';
-import { getSkippedStats, updateSkippedStats, SkippedStats } from '../services/storageService';
+import {
+  updateSkippedStats,
+  updateTodaySkippedSummary,
+  SkippedStats,
+} from '../services/storageService';
 
 type SkippedScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Skipped'>;
 type SkippedScreenRouteProp = RouteProp<RootStackParamList, 'Skipped'>;
@@ -36,7 +40,10 @@ export default function SkippedScreen({ navigation, route }: Props) {
     // 統計データを更新
     async function updateStats() {
       try {
-        const updatedStats = await updateSkippedStats(calories);
+        const [updatedStats] = await Promise.all([
+          updateSkippedStats(calories),
+          updateTodaySkippedSummary(calories),
+        ]);
         setStats(updatedStats);
       } catch (error) {
         console.error('Error updating stats:', error);

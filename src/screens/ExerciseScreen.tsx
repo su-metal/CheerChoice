@@ -17,6 +17,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { getRandomCompletionMessage, getRandomPartialMessage } from '../utils/exerciseMessages';
 import { EXERCISES } from '../constants/Exercises';
 import { getPoseDetectorHtml } from '../utils/poseDetectorHtml';
+import { updateTodayExerciseSummary } from '../services/storageService';
 // expo-speech: 再ビルド後に有効化
 // import * as Speech from 'expo-speech';
 
@@ -47,8 +48,24 @@ export default function ExerciseScreen({ navigation, route }: Props) {
   const [errorMessage, setErrorMessage] = useState('');
   const [scaleAnim] = useState(new Animated.Value(1));
   const webViewRef = useRef<WebView>(null);
+  const hasSavedSessionRef = useRef(false);
 
   const exercise = EXERCISES[exerciseType];
+
+  const persistExerciseSession = useCallback(async () => {
+    if (hasSavedSessionRef.current || count <= 0) {
+      return;
+    }
+
+    hasSavedSessionRef.current = true;
+
+    try {
+      await updateTodayExerciseSummary();
+    } catch (error) {
+      console.error('Error saving exercise summary:', error);
+      hasSavedSessionRef.current = false;
+    }
+  }, [count]);
 
   // 目標達成判定
   useEffect(() => {
@@ -110,7 +127,10 @@ export default function ExerciseScreen({ navigation, route }: Props) {
       [
         {
           text: 'Done',
-          onPress: () => navigation.navigate('Home'),
+          onPress: async () => {
+            await persistExerciseSession();
+            navigation.navigate('Home');
+          },
         },
       ]
     );
@@ -129,7 +149,10 @@ export default function ExerciseScreen({ navigation, route }: Props) {
         },
         {
           text: 'Stop',
-          onPress: () => navigation.navigate('Home'),
+          onPress: async () => {
+            await persistExerciseSession();
+            navigation.navigate('Home');
+          },
           style: 'destructive',
         },
       ]

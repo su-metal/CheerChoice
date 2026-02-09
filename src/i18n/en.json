@@ -43,7 +43,10 @@
     "hoursAgo": "%{count}h ago",
     "daysAgo": "%{count}d ago",
     "noActivity": "No activity yet",
-    "noActivitySubtext": "Take your first photo to get started!"
+    "noActivitySubtext": "Take your first photo to get started!",
+    "goalProgressTitle": "Daily Goal Progress",
+    "goalReached": "You hit your goal today!",
+    "goalRemaining": "%{count} kcal to your goal"
   },
   "camera": {
     "loading": "Loading camera...",
@@ -194,6 +197,26 @@
     "data": "Data",
     "exportData": "Export Data",
     "clearData": "Clear All Data",
+    "exporting": "Exporting...",
+    "exportFailed": "Failed to export data. Please try again.",
+    "clearConfirmTitle": "Clear all data?",
+    "clearConfirmBody": "This will delete all your records. This cannot be undone.",
+    "clearFailed": "Failed to clear data. Please try again.",
+    "subscription": "Subscription",
+    "plan": "Plan: %{value}",
+    "planFree": "Free",
+    "planPremium": "Premium",
+    "aiUsageFree": "AI Photos Used: %{used} / %{limit}",
+    "aiUsagePremium": "AI Photos Today: %{used} / %{limit}",
+    "loadingUsage": "Loading usage...",
+    "upgradeTitle": "Premium coming soon",
+    "upgradeBody": "Upgrade flow is coming soon.",
+    "language": "Language",
+    "languageOptions": {
+      "auto": "Auto",
+      "en": "English",
+      "ja": "Japanese"
+    },
     "about": "About",
     "tagline": "Your positive health companion",
     "version": "Version %{value}"

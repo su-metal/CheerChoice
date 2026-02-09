@@ -27,6 +27,7 @@ import {
   getWeeklyRecoveryStatus,
   runRecoveryMaintenance,
 } from '../services/recoveryService';
+import { getSettings } from '../services/settingsService';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -43,6 +44,7 @@ export default function HomeScreen({ navigation }: Props) {
   });
   const [recentRecords, setRecentRecords] = useState<MealRecord[]>([]);
   const [weeklyRecoveryRemaining, setWeeklyRecoveryRemaining] = useState(0);
+  const [dailyGoal, setDailyGoal] = useState(300);
   const [todayObligationRemaining, setTodayObligationRemaining] = useState(0);
   const [todayObligationCount, setTodayObligationCount] = useState(0);
   const [showMovePicker, setShowMovePicker] = useState(false);
@@ -100,6 +102,7 @@ export default function HomeScreen({ navigation }: Props) {
           const latestRecords = await getRecentMealRecords(3);
           const allMeals = await getMealRecords();
           const recovery = await getWeeklyRecoveryStatus();
+          const settings = await getSettings();
           const todayObligation = await getTodayObligationStatus();
           const todayOpenObligations = await getTodayOpenObligations();
           const moveOptions = todayOpenObligations.map((item) => {
@@ -117,6 +120,7 @@ export default function HomeScreen({ navigation }: Props) {
             setSummary(todaySummary);
             setRecentRecords(latestRecords);
             setWeeklyRecoveryRemaining(recovery.remainingCount);
+            setDailyGoal(settings.dailyCalorieGoal);
             setTodayObligationRemaining(todayObligation.remainingCount);
             setTodayObligationCount(todayObligation.openObligationCount);
             setTodayMoveOptions(moveOptions);
@@ -143,6 +147,15 @@ export default function HomeScreen({ navigation }: Props) {
       >
         {/* Header */}
         <View style={styles.header}>
+          <View style={styles.headerTopRow}>
+            <View />
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => navigation.navigate('Settings')}
+            >
+              <Text style={styles.settingsButtonText}>⚙️</Text>
+            </TouchableOpacity>
+          </View>
           <Text style={styles.title}>CheerChoice</Text>
           <Text style={styles.subtitle}>{t('home.subtitle')} 💪</Text>
         </View>
@@ -157,6 +170,33 @@ export default function HomeScreen({ navigation }: Props) {
           <Text style={styles.mainButtonText}>{t('home.mainButton')}</Text>
           <Text style={styles.mainButtonSubtext}>{t('home.mainButtonSubtext')}</Text>
         </TouchableOpacity>
+
+        <View style={styles.goalCard}>
+          <View style={styles.goalHeader}>
+            <Text style={styles.goalTitle}>{t('home.goalProgressTitle')}</Text>
+            <Text style={styles.goalValue}>
+              {summary.savedCalories} / {dailyGoal} {t('common.kcal')}
+            </Text>
+          </View>
+          <View style={styles.goalTrack}>
+            <View
+              style={[
+                styles.goalFill,
+                {
+                  width: `${Math.min(
+                    100,
+                    Math.round((summary.savedCalories / Math.max(1, dailyGoal)) * 100)
+                  )}%`,
+                },
+              ]}
+            />
+          </View>
+          <Text style={styles.goalHint}>
+            {summary.savedCalories >= dailyGoal
+              ? t('home.goalReached')
+              : t('home.goalRemaining', { count: Math.max(0, dailyGoal - summary.savedCalories) })}
+          </Text>
+        </View>
 
         {/* Today's Summary */}
         <TouchableOpacity
@@ -336,6 +376,24 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
     marginBottom: Spacing.xl,
   },
+  headerTopRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  settingsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.surface,
+  },
+  settingsButtonText: {
+    fontSize: 20,
+  },
   title: {
     ...Typography.h2,
     color: Colors.primary,
@@ -416,6 +474,44 @@ const styles = StyleSheet.create({
   summaryDivider: {
     width: 1,
     backgroundColor: Colors.divider,
+  },
+  goalCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  goalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  goalTitle: {
+    ...Typography.bodySmall,
+    color: Colors.textLight,
+  },
+  goalValue: {
+    ...Typography.bodySmall,
+    color: Colors.text,
+    fontWeight: '600',
+  },
+  goalTrack: {
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: Colors.divider,
+    overflow: 'hidden',
+  },
+  goalFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: Colors.secondary,
+  },
+  goalHint: {
+    ...Typography.caption,
+    color: Colors.textLight,
+    marginTop: Spacing.xs,
   },
   recentSection: {},
   obligationCard: {

@@ -1039,3 +1039,35 @@ create policy "Users can view own exercises"
 **次のステップ**: Phase 0（環境セットアップ）開始
 
 ---
+
+## 12. 開発環境トラブルシューティング（運用メモ）
+
+### 12.1 EAS Build で `tar ... Permission denied` が出るケース
+
+#### 症状
+- `tar: assets/...: Cannot open: Permission denied`
+- `tar: src/...: Cannot mkdir: Permission denied`
+- `tar -C /home/expo/workingdir/build --strip-components 1 -zxf ... exited with non-zero code: 2`
+
+#### 主原因
+- Windows 環境でディレクトリに `ReadOnly` 属性 (`R`) が付与された状態で EAS Build に送信され、ビルド環境で `project.tar.gz` 展開時に書き込み不可となる。
+
+#### 対処手順
+```powershell
+attrib -R assets /S /D
+attrib -R src /S /D
+attrib -R docs /S /D
+eas build --profile development --platform android --clear-cache
+```
+
+#### 事前確認
+```powershell
+attrib assets
+attrib src
+attrib docs
+```
+- `R` が表示されないことを確認する。
+
+#### 補足
+- `attrib -R .\* /S /D` 実行時に `.git` へ「隠しファイルは再設定できません」と表示されるのは通常挙動。
+- 必要な対象ディレクトリへ `R` が残っていなければ問題ない。

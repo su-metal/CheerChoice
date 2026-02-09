@@ -256,7 +256,7 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 
 ---
 
-## 実装済み機能（Phase 0-8 主要完了）
+## 実装済み機能（Phase 0-9 主要完了）
 
 ### ✅ Phase 0: 環境セットアップ
 - Node.js, Git, VSCode, Expo CLI
@@ -313,6 +313,14 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 - アプリ再起動後のセッション復元（カウントスナップショット復元）を実装
 - `ResultScreen` に解析結果の手動修正（食品名/カロリー）を実装
 
+### ✅ Phase 9: 設定・UX改善（主要）
+- `SettingsScreen.tsx` 実装（目標 / 設定 / データ管理 / サブスク表示 / アプリ情報）
+- 日別カロリー目標の保存・即時反映（Home の目標進捗カード）
+- 音声フィードバック ON/OFF 設定を永続化し、Exercise に反映
+- 言語設定（自動 / 英語 / 日本語）を追加し、即時反映
+- データエクスポート（JSON + Share）と全データ削除（確認ダイアログ）を実装
+- Home ヘッダーに設定導線（⚙️）を追加
+
 ---
 
 ## 課金モデル設計
@@ -332,14 +340,6 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 ---
 
 ## 次の実装予定
-
-### Phase 9: 設定・UX改善（次の最優先）
-- **SettingsScreen.tsx**: 設定画面
-- 日別カロリー目標設定
-- 音声フィードバックON/OFF
-- プレミアムステータス表示 + アップグレードボタン
-- データエクスポート（JSON）/ クリア
-- 詳細: `.steering/20260209-phase9-settings-ux/`
 
 ### Phase 10: 仕上げ・品質改善
 - **OnboardingScreen.tsx**: 初回起動時の3ページガイド（「15回無料AI体験」を訴求）
@@ -414,4 +414,4 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 ---
 
 ## 最終更新日
-2026-02-09 - Phase 8完了反映（統計画面、今日のムーブ導線、中断/再開、セッション復元、手動修正）
+2026-02-09 - Phase 9完了反映 + Phase 10開始（設定画面拡張、目標進捗、言語設定、データ管理、オンボーディング追加）

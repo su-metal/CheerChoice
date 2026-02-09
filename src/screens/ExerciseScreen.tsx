@@ -8,6 +8,7 @@ import {
   Alert,
   Animated,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useCameraPermissions } from 'expo-camera';
@@ -28,6 +29,7 @@ import {
   getSessionRestoreState,
   saveExerciseSessionEvent,
 } from '../services/recoveryService';
+import ErrorCard from '../components/ErrorCard';
 // expo-speech: 再ビルド後に有効化
 // import * as Speech from 'expo-speech';
 
@@ -431,32 +433,38 @@ export default function ExerciseScreen({ navigation, route }: Props) {
       {/* Error fallback */}
       {inputMode === 'motion' && hasError && (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorIcon}>📷</Text>
-          <Text style={styles.errorTitle}>{t('exercise.cameraNotAvailable')}</Text>
-          <Text style={styles.errorText}>{errorMessage}</Text>
-          <Text style={styles.errorHint}>
-            {t('exercise.errorHint')}
-          </Text>
-          <TouchableOpacity style={styles.permissionButton} onPress={retryMotionMode}>
-            <Text style={styles.permissionButtonText}>{t('exercise.retryCamera')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tapModeFallbackButton} onPress={() => switchInputMode('tap')}>
-            <Text style={styles.tapModeFallbackText}>{t('exercise.tapMode')}</Text>
-          </TouchableOpacity>
+          <ErrorCard
+            icon="📷"
+            title={t('exercise.cameraNotAvailable')}
+            message={errorMessage || t('exercise.cameraCouldNotStart')}
+            hint={t('exercise.errorHint')}
+            primaryLabel={t('exercise.retryCamera')}
+            onPrimaryPress={retryMotionMode}
+            secondaryLabel={t('exercise.tapMode')}
+            onSecondaryPress={() => switchInputMode('tap')}
+          />
         </View>
       )}
 
       {inputMode === 'motion' && settingsLoaded && cameraPermission && !cameraPermission.granted && !hasError && (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorIcon}>📷</Text>
-          <Text style={styles.errorTitle}>{t('camera.permissionRequired')}</Text>
-          <Text style={styles.errorText}>{t('camera.permissionText')}</Text>
-          <TouchableOpacity style={styles.permissionButton} onPress={() => requestCameraPermission()}>
-            <Text style={styles.permissionButtonText}>{t('camera.grantPermission')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tapModeFallbackButton} onPress={() => switchInputMode('tap')}>
-            <Text style={styles.tapModeFallbackText}>{t('exercise.tapMode')}</Text>
-          </TouchableOpacity>
+          <ErrorCard
+            icon="📷"
+            title={t('camera.permissionRequired')}
+            message={t('camera.permissionText')}
+            primaryLabel={t('camera.grantPermission')}
+            onPrimaryPress={() => {
+              requestCameraPermission().catch((error) => {
+                console.error('Error requesting camera permission on ExerciseScreen:', error);
+              });
+            }}
+            secondaryLabel={t('camera.openSettings')}
+            onSecondaryPress={() => {
+              Linking.openSettings().catch((error) => {
+                console.error('Error opening settings on ExerciseScreen:', error);
+              });
+            }}
+          />
         </View>
       )}
 
@@ -585,51 +593,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.xl,
     zIndex: 5,
-  },
-  errorIcon: {
-    fontSize: 60,
-    marginBottom: Spacing.lg,
-  },
-  errorTitle: {
-    ...Typography.h3,
-    color: Colors.text,
-    marginBottom: Spacing.md,
-  },
-  errorText: {
-    ...Typography.body,
-    color: Colors.textLight,
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
-  },
-  errorHint: {
-    ...Typography.bodySmall,
-    color: Colors.textLight,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  permissionButton: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.xl,
-    marginBottom: Spacing.sm,
-  },
-  permissionButtonText: {
-    ...Typography.button,
-    color: Colors.surface,
-  },
-  tapModeFallbackButton: {
-    backgroundColor: Colors.textLight,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.xl,
-  },
-  tapModeFallbackText: {
-    ...Typography.bodySmall,
-    color: Colors.surface,
-    fontWeight: '600',
   },
 
   // Top bar

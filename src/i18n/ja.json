@@ -53,6 +53,7 @@
     "permissionRequired": "カメラ権限が必要です",
     "permissionText": "食べ物の写真を撮るためにカメラへのアクセスが必要です。",
     "grantPermission": "権限を許可",
+    "openSettings": "設定を開く",
     "retake": "撮り直す",
     "usePhoto": "この写真を使う",
     "flip": "切替",
@@ -81,6 +82,7 @@
     "foodNameLabel": "食べ物名",
     "caloriesLabel": "推定カロリー",
     "invalidEdit": "食べ物名とカロリーを正しく入力してください。",
+    "analysisFailed": "写真の解析がうまくできませんでした。別の角度で試してみてください。",
     "saveError": "記録の保存に失敗しました。もう一度お試しください。",
     "backToCamera": "カメラに戻る",
     "takeAnotherPhoto": "もう一度撮影する"
@@ -144,6 +146,17 @@
     "caloriesPlaceholder": "例: 350",
     "quickPicks": "クイック選択",
     "continue": "続ける"
+  },
+  "onboarding": {
+    "skip": "スキップ",
+    "next": "次へ",
+    "getStarted": "はじめる",
+    "page1Title": "撮る、選ぶ、動く！",
+    "page1Body": "食べ物を撮影すると、CheerChoiceが次のポジティブな一歩を提案します。",
+    "page2Title": "食べるも食べないも正解",
+    "page2Body": "食べないなら節約を記録、食べるなら楽しくムーブ。どちらの選択も前進です。",
+    "page3Title": "罪悪感はゼロでいこう",
+    "page3Body": "あなたの選択はいつでも価値があります。まずはAI撮影15回無料体験から。"
   },
   "log": {
     "ate": "食べた",

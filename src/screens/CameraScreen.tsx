@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image, Alert, Linking } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -8,6 +8,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { t } from '../i18n';
 import { canUseAI, getRemainingAIUses } from '../services/usageService';
 import { IS_PREMIUM } from '../config/appConfig';
+import ErrorCard from '../components/ErrorCard';
 
 type CameraScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Camera'>;
 
@@ -55,14 +56,23 @@ export default function CameraScreen({ navigation }: Props) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.permissionContainer}>
-          <Text style={styles.permissionIcon}>📸</Text>
-          <Text style={styles.permissionTitle}>{t('camera.permissionRequired')}</Text>
-          <Text style={styles.permissionText}>
-            {t('camera.permissionText')}
-          </Text>
-          <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-            <Text style={styles.permissionButtonText}>{t('camera.grantPermission')}</Text>
-          </TouchableOpacity>
+          <ErrorCard
+            icon="📸"
+            title={t('camera.permissionRequired')}
+            message={t('camera.permissionText')}
+            primaryLabel={t('camera.grantPermission')}
+            onPrimaryPress={() => {
+              requestPermission().catch((error) => {
+                console.error('Error requesting camera permission:', error);
+              });
+            }}
+            secondaryLabel={t('camera.openSettings')}
+            onSecondaryPress={() => {
+              Linking.openSettings().catch((error) => {
+                console.error('Error opening settings:', error);
+              });
+            }}
+          />
         </View>
       </SafeAreaView>
     );
@@ -174,32 +184,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.xl,
-  },
-  permissionIcon: {
-    fontSize: 80,
-    marginBottom: Spacing.lg,
-  },
-  permissionTitle: {
-    ...Typography.h3,
-    color: Colors.text,
-    marginBottom: Spacing.md,
-    textAlign: 'center',
-  },
-  permissionText: {
-    ...Typography.body,
-    color: Colors.textLight,
-    textAlign: 'center',
-    marginBottom: Spacing.xl,
-  },
-  permissionButton: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.xl,
-  },
-  permissionButtonText: {
-    ...Typography.button,
-    color: Colors.surface,
   },
   camera: {
     flex: 1,

@@ -53,6 +53,7 @@
     "permissionRequired": "Camera Permission Required",
     "permissionText": "We need access to your camera to take photos of your food.",
     "grantPermission": "Grant Permission",
+    "openSettings": "Open Settings",
     "retake": "Retake",
     "usePhoto": "Use Photo",
     "flip": "Flip",
@@ -81,6 +82,7 @@
     "foodNameLabel": "Food name",
     "caloriesLabel": "Estimated calories",
     "invalidEdit": "Please enter a valid food name and calories.",
+    "analysisFailed": "We could not analyze that photo. Please try another angle.",
     "saveError": "Failed to save record. Please try again.",
     "backToCamera": "Back to Camera",
     "takeAnotherPhoto": "Take Another Photo"
@@ -144,6 +146,17 @@
     "caloriesPlaceholder": "e.g. 350",
     "quickPicks": "Quick picks",
     "continue": "Continue"
+  },
+  "onboarding": {
+    "skip": "Skip",
+    "next": "Next",
+    "getStarted": "Get Started",
+    "page1Title": "Snap, Choose, Move!",
+    "page1Body": "Take a photo of your food and CheerChoice helps you choose your next positive step.",
+    "page2Title": "Eat or Skip, Both Great",
+    "page2Body": "Skip it to save calories, or eat it and enjoy a short move. Every choice counts.",
+    "page3Title": "No Guilt, Ever!",
+    "page3Body": "Your choices are always valid. Start with 15 free AI photo analyses."
   },
   "log": {
     "ate": "Ate",

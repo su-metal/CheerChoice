@@ -23,6 +23,7 @@ import { saveMealRecord } from '../services/recordService';
 import { EXERCISES } from '../constants/Exercises';
 import { calculateRecommendedReps } from '../utils/exerciseCalculator';
 import { createExerciseObligation } from '../services/recoveryService';
+import ErrorCard from '../components/ErrorCard';
 
 type ResultScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Result'>;
 type ResultScreenRouteProp = RouteProp<RootStackParamList, 'Result'>;
@@ -81,7 +82,7 @@ export default function ResultScreen({ navigation, route }: Props) {
       await incrementAIUsage();
     } catch (err) {
       console.error('Error analyzing photo:', err);
-      setError(err instanceof Error ? err.message : t('common.unknownError'));
+      setError(t('result.analysisFailed'));
     } finally {
       setLoading(false);
     }
@@ -105,18 +106,15 @@ export default function ResultScreen({ navigation, route }: Props) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorIcon}>😕</Text>
-          <Text style={styles.errorTitle}>{t('common.oops')}</Text>
-          <Text style={styles.errorText}>{error || t('common.unknownError')}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={analyzePhoto}>
-            <Text style={styles.retryButtonText}>{t('common.tryAgain')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.navigate('Camera')}
-          >
-            <Text style={styles.backButtonText}>{t('result.takeAnotherPhoto')}</Text>
-          </TouchableOpacity>
+          <ErrorCard
+            icon="😕"
+            title={t('common.oops')}
+            message={error || t('common.unknownError')}
+            primaryLabel={t('common.tryAgain')}
+            onPrimaryPress={analyzePhoto}
+            secondaryLabel={t('result.takeAnotherPhoto')}
+            onSecondaryPress={() => navigation.navigate('Camera')}
+          />
         </View>
       </SafeAreaView>
     );
@@ -355,22 +353,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.xl,
   },
-  errorIcon: {
-    fontSize: 80,
-    marginBottom: Spacing.lg,
-  },
-  errorTitle: {
-    ...Typography.h3,
-    color: Colors.text,
-    marginBottom: Spacing.md,
-    textAlign: 'center',
-  },
-  errorText: {
-    ...Typography.body,
-    color: Colors.textLight,
-    marginBottom: Spacing.xl,
-    textAlign: 'center',
-  },
   photoPreview: {
     width: '100%',
     height: 250,
@@ -553,29 +535,6 @@ const styles = StyleSheet.create({
     ...Typography.bodySmall,
     color: Colors.surface,
     opacity: 0.9,
-  },
-  retryButton: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.xl,
-    marginBottom: Spacing.md,
-  },
-  retryButtonText: {
-    ...Typography.button,
-    color: Colors.surface,
-    textAlign: 'center',
-  },
-  backButton: {
-    backgroundColor: Colors.textLight,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.xl,
-  },
-  backButtonText: {
-    ...Typography.button,
-    color: Colors.surface,
-    textAlign: 'center',
   },
   retakeButton: {
     margin: Spacing.lg,

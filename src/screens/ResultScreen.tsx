@@ -5,12 +5,12 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
   ScrollView,
   TextInput,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Colors, Typography, Spacing, BorderRadius } from '../constants';
@@ -41,6 +41,7 @@ export default function ResultScreen({ navigation, route }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedFoodName, setEditedFoodName] = useState('');
   const [editedCalories, setEditedCalories] = useState('');
+  const [isSubmittingChoice, setIsSubmittingChoice] = useState(false);
   const isManualEntry = Boolean(manualInput);
 
   // コンポーネントマウント時にカロリー推定を実行
@@ -158,11 +159,12 @@ export default function ResultScreen({ navigation, route }: Props) {
   }
 
   async function handleChoice(choice: 'ate' | 'skipped') {
-    if (!result) {
+    if (!result || isSubmittingChoice) {
       return;
     }
 
     try {
+      setIsSubmittingChoice(true);
       const mealRecord = await saveMealRecord({
         timestamp: new Date().toISOString(),
         photoUri: photoUri ?? '',
@@ -198,6 +200,7 @@ export default function ResultScreen({ navigation, route }: Props) {
     } catch (saveError) {
       console.error('Error saving meal record:', saveError);
       Alert.alert(t('common.oops'), t('result.saveError'));
+      setIsSubmittingChoice(false);
     }
   }
 
@@ -289,7 +292,8 @@ export default function ResultScreen({ navigation, route }: Props) {
           <Text style={styles.choiceTitle}>{t('result.choiceTitle')}</Text>
 
           <TouchableOpacity
-            style={[styles.choiceButton, styles.skipButton]}
+            style={[styles.choiceButton, styles.skipButton, isSubmittingChoice && styles.choiceButtonDisabled]}
+            disabled={isSubmittingChoice}
             onPress={() => handleChoice('skipped')}
           >
             <Text style={styles.choiceButtonIcon}>🌟</Text>
@@ -298,7 +302,8 @@ export default function ResultScreen({ navigation, route }: Props) {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.choiceButton, styles.eatButton]}
+            style={[styles.choiceButton, styles.eatButton, isSubmittingChoice && styles.choiceButtonDisabled]}
+            disabled={isSubmittingChoice}
             onPress={() => handleChoice('ate')}
           >
             <Text style={styles.choiceButtonIcon}>🍽️</Text>
@@ -516,6 +521,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
+  choiceButtonDisabled: {
+    opacity: 0.6,
+  },
   skipButton: {
     backgroundColor: Colors.secondary,
   },
@@ -549,3 +557,4 @@ const styles = StyleSheet.create({
     color: Colors.textLight,
   },
 });
+

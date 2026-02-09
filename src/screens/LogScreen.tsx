@@ -1,13 +1,15 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
+  ActivityIndicator,
   SectionList,
-  SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { BorderRadius, Colors, Spacing, Typography } from '../constants';
 import { ExerciseRecord, MealRecord } from '../types';
@@ -39,14 +41,18 @@ const CHOICE_ICON: Record<MealRecord['choice'], string> = {
 export default function LogScreen() {
   const [mealRecords, setMealRecords] = useState<MealRecord[]>([]);
   const [exerciseRecords, setExerciseRecords] = useState<ExerciseRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const loadRecords = useCallback(async () => {
     try {
+      setIsLoading(true);
       const [meals, exercises] = await Promise.all([getMealRecords(), getExerciseRecords()]);
       setMealRecords(meals);
       setExerciseRecords(exercises);
     } catch (error) {
       console.error('Error loading log records:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -136,6 +142,24 @@ export default function LogScreen() {
     );
   };
 
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.loadingContent}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>{t('log.loading')}</Text>
+          {[0, 1, 2].map((index) => (
+            <View key={`skeleton-${index}`} style={styles.skeletonCard}>
+              <View style={styles.skeletonTitle} />
+              <View style={styles.skeletonLine} />
+              <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
+            </View>
+          ))}
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <SectionList
@@ -166,6 +190,37 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.md,
     flexGrow: 1,
+  },
+  loadingContent: {
+    padding: Spacing.lg,
+    gap: Spacing.md,
+  },
+  loadingText: {
+    ...Typography.bodySmall,
+    color: Colors.textLight,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  skeletonCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.md,
+    gap: Spacing.xs,
+  },
+  skeletonTitle: {
+    width: '56%',
+    height: 18,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.divider,
+  },
+  skeletonLine: {
+    width: '88%',
+    height: 12,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.divider,
+  },
+  skeletonLineShort: {
+    width: '64%',
   },
   sectionHeader: {
     ...Typography.h5,
@@ -223,3 +278,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+

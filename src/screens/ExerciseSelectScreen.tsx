@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Colors, Typography, Spacing, BorderRadius } from '../constants';
@@ -30,9 +30,14 @@ type Props = {
 
 export default function ExerciseSelectScreen({ navigation, route }: Props) {
   const { calories, foodName, mealRecordId, obligationId } = route.params;
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // 運動を選択したときの処理
   async function handleExerciseSelect(exercise: ExerciseDefinition) {
+    if (isNavigating) {
+      return;
+    }
+    setIsNavigating(true);
     const recommendedReps = calculateRecommendedReps(calories, exercise);
     if (obligationId) {
       await updateExerciseObligationTarget(obligationId, {
@@ -53,6 +58,10 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
 
   // 「Maybe Later」ボタンの処理
   function handleMaybeLater() {
+    if (isNavigating) {
+      return;
+    }
+    setIsNavigating(true);
     navigation.navigate('Home');
   }
 
@@ -77,8 +86,9 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
             return (
               <TouchableOpacity
                 key={exercise.id}
-                style={styles.exerciseCard}
+                style={[styles.exerciseCard, isNavigating && styles.exerciseCardDisabled]}
                 onPress={() => handleExerciseSelect(exercise)}
+                disabled={isNavigating}
                 activeOpacity={0.7}
               >
                 <View style={styles.exerciseIcon}>
@@ -103,7 +113,11 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
         </View>
 
         {/* Maybe Laterボタン */}
-        <TouchableOpacity style={styles.maybeLaterButton} onPress={handleMaybeLater}>
+        <TouchableOpacity
+          style={[styles.maybeLaterButton, isNavigating && styles.exerciseCardDisabled]}
+          onPress={handleMaybeLater}
+          disabled={isNavigating}
+        >
           <Text style={styles.maybeLaterText}>{t('exerciseSelect.maybeLater')}</Text>
         </TouchableOpacity>
 
@@ -158,6 +172,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
+  },
+  exerciseCardDisabled: {
+    opacity: 0.6,
   },
   exerciseIcon: {
     width: 60,
@@ -221,3 +238,4 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
 });
+

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image, Alert, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, Linking } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -21,6 +22,7 @@ export default function CameraScreen({ navigation }: Props) {
   const [permission, requestPermission] = useCameraPermissions();
   const [photo, setPhoto] = useState<string | null>(null);
   const [remaining, setRemaining] = useState(0);
+  const [isUsingPhoto, setIsUsingPhoto] = useState(false);
   const cameraRef = useRef<CameraView>(null);
 
   useFocusEffect(
@@ -92,12 +94,18 @@ export default function CameraScreen({ navigation }: Props) {
               <Text style={styles.previewButtonText}>{t('camera.retake')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.previewButton, styles.usePhotoButton]}
+              style={[styles.previewButton, styles.usePhotoButton, isUsingPhoto && styles.previewButtonDisabled]}
+              disabled={isUsingPhoto}
               onPress={async () => {
+                if (isUsingPhoto) {
+                  return;
+                }
+                setIsUsingPhoto(true);
                 const allowed = await canUseAI(IS_PREMIUM);
                 if (!allowed) {
                   Alert.alert(t('camera.limitTitle'), t('camera.limitMessage'));
                   navigation.navigate('ManualEntry');
+                  setIsUsingPhoto(false);
                   return;
                 }
                 navigation.navigate('Result', { photoUri: photo ?? undefined });
@@ -137,30 +145,33 @@ export default function CameraScreen({ navigation }: Props) {
   // カメラプレビュー
   return (
     <SafeAreaView style={styles.container}>
-      <CameraView style={styles.camera} facing={facing} ref={cameraRef}>
-        {/* Header with flip button */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.flipButton} onPress={toggleCameraFacing}>
-            <Text style={styles.flipButtonText}>🔄 {t('camera.flip')}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Bottom controls */}
-        <View style={styles.controls}>
-          <View style={styles.badgeRow}>
-            <View style={styles.remainingBadge}>
-              <Text style={styles.remainingText}>{t('camera.remaining', { count: remaining })}</Text>
-            </View>
-            <TouchableOpacity onPress={() => navigation.navigate('ManualEntry')}>
-              <Text style={styles.manualLink}>{t('camera.manualEntry')}</Text>
+      <View style={styles.cameraContainer}>
+        <CameraView style={styles.camera} facing={facing} ref={cameraRef} />
+        <View style={styles.cameraOverlay} pointerEvents="box-none">
+          {/* Header with flip button */}
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.flipButton} onPress={toggleCameraFacing}>
+              <Text style={styles.flipButtonText}>🔄 {t('camera.flip')}</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.guideText}>{t('camera.guideText')}</Text>
-          <TouchableOpacity style={styles.shutterButton} onPress={takePicture}>
-            <View style={styles.shutterInner} />
-          </TouchableOpacity>
+
+          {/* Bottom controls */}
+          <View style={styles.controls}>
+            <View style={styles.badgeRow}>
+              <View style={styles.remainingBadge}>
+                <Text style={styles.remainingText}>{t('camera.remaining', { count: remaining })}</Text>
+              </View>
+              <TouchableOpacity onPress={() => navigation.navigate('ManualEntry')}>
+                <Text style={styles.manualLink}>{t('camera.manualEntry')}</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.guideText}>{t('camera.guideText')}</Text>
+            <TouchableOpacity style={styles.shutterButton} onPress={takePicture}>
+              <View style={styles.shutterInner} />
+            </TouchableOpacity>
+          </View>
         </View>
-      </CameraView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -169,6 +180,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  cameraContainer: {
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
@@ -186,7 +200,10 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
   },
   camera: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
+  },
+  cameraOverlay: {
+    ...StyleSheet.absoluteFillObject,
   },
   header: {
     flexDirection: 'row',
@@ -274,6 +291,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.xl,
     alignItems: 'center',
+  },
+  previewButtonDisabled: {
+    opacity: 0.6,
   },
   retakeButton: {
     backgroundColor: Colors.textLight,

@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
-  SafeAreaView,
   Share,
   ScrollView,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BorderRadius, Colors, Spacing, Typography } from '../constants';
 import { setAppLocale, t } from '../i18n';
@@ -356,3 +356,4 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
 });
+

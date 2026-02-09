@@ -2,13 +2,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useRef, useState } from 'react';
 import {
   FlatList,
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   useWindowDimensions,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BorderRadius, Colors, Spacing, Typography } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -196,3 +196,4 @@ const styles = StyleSheet.create({
     color: Colors.surface,
   },
 });
+

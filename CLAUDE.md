@@ -342,10 +342,13 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 ## 次の実装予定
 
 ### Phase 10: 仕上げ・品質改善
-- **OnboardingScreen.tsx**: 初回起動時の3ページガイド（「15回無料AI体験」を訴求）
-- エラーハンドリング統一
-- アプリアイコン・スプラッシュスクリーン
-- 全画面バグ修正
+- ✅ **OnboardingScreen.tsx**: 初回起動時の3ページガイド（「15回無料AI体験」を訴求）
+- ✅ エラーハンドリング統一（Camera/Result/Exercise を共通エラーカード化）
+- ✅ ローディング状態の改善（Log/Stats にスピナー + プレースホルダー）
+- ✅ アプリアイコン・スプラッシュスクリーン（`assets/*` + `app.json` 反映）
+- ✅ 主要バグ修正（`CameraView` の children 警告解消、SafeAreaView 非推奨警告解消）
+- ✅ 主要バグ修正（連打による二重遷移/二重保存ガードを Camera/Result/ExerciseSelect に追加）
+- 全画面バグ修正（最終実機チェック残）
 - 詳細: `.steering/20260209-phase10-polish/`
 
 ---
@@ -414,4 +417,4 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 ---
 
 ## 最終更新日
-2026-02-09 - Phase 9完了反映 + Phase 10開始（設定画面拡張、目標進捗、言語設定、データ管理、オンボーディング追加）
+2026-02-09 - Phase 10進捗更新（オンボーディング、エラーUI統一、ローディング改善、アイコン/スプラッシュ反映、主要警告修正）

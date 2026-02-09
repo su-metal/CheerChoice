@@ -161,6 +161,7 @@
   "log": {
     "ate": "Ate",
     "skipped": "Skipped",
+    "loading": "Loading your activity...",
     "deleteTitle": "Delete record",
     "deleteMessage": "Are you sure you want to delete this record?",
     "emptyTitle": "No records yet",
@@ -169,6 +170,7 @@
   "stats": {
     "thisWeek": "This Week",
     "thisMonth": "This Month",
+    "loading": "Loading your stats...",
     "savedCalories": "Saved Calories",
     "totalMeals": "Total Meals",
     "exerciseSessions": "Exercise Sessions",

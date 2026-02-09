@@ -161,6 +161,7 @@
   "log": {
     "ate": "食べた",
     "skipped": "食べない",
+    "loading": "アクティビティを読み込み中...",
     "deleteTitle": "記録を削除",
     "deleteMessage": "この記録を削除しますか？",
     "emptyTitle": "まだ記録がありません",
@@ -169,6 +170,7 @@
   "stats": {
     "thisWeek": "今週",
     "thisMonth": "今月",
+    "loading": "統計を読み込み中...",
     "savedCalories": "節約カロリー",
     "totalMeals": "食事回数",
     "exerciseSessions": "運動セッション",

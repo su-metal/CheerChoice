@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  TextInput,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
@@ -36,6 +37,9 @@ export default function ResultScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<CalorieEstimationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedFoodName, setEditedFoodName] = useState('');
+  const [editedCalories, setEditedCalories] = useState('');
   const isManualEntry = Boolean(manualInput);
 
   // コンポーネントマウント時にカロリー推定を実行
@@ -51,6 +55,8 @@ export default function ResultScreen({ navigation, route }: Props) {
         confidence: 0,
         portionSize: t('result.manualLabel'),
       });
+      setEditedFoodName(manualInput.foodName);
+      setEditedCalories(String(manualInput.estimatedCalories));
       setLoading(false);
       return;
     }
@@ -70,6 +76,8 @@ export default function ResultScreen({ navigation, route }: Props) {
       setError(null);
       const estimation = await estimateCalories(photoUri);
       setResult(estimation);
+      setEditedFoodName(estimation.foodName);
+      setEditedCalories(String(estimation.estimatedCalories));
       await incrementAIUsage();
     } catch (err) {
       console.error('Error analyzing photo:', err);
@@ -115,6 +123,42 @@ export default function ResultScreen({ navigation, route }: Props) {
   }
 
   // 結果表示
+  function startEdit() {
+    if (!result) {
+      return;
+    }
+    setEditedFoodName(result.foodName);
+    setEditedCalories(String(result.estimatedCalories));
+    setIsEditing(true);
+  }
+
+  function saveEdit() {
+    if (!result) {
+      return;
+    }
+
+    const name = editedFoodName.trim();
+    const calories = Number(editedCalories);
+    if (!name || !Number.isFinite(calories) || calories <= 0) {
+      Alert.alert(t('common.oops'), t('result.invalidEdit'));
+      return;
+    }
+
+    const normalizedCalories = Math.round(calories);
+    setResult({
+      ...result,
+      foodName: name,
+      estimatedCalories: normalizedCalories,
+      calorieRange: {
+        min: normalizedCalories,
+        max: normalizedCalories,
+      },
+      confidence: 0,
+      portionSize: t('result.manualLabel'),
+    });
+    setIsEditing(false);
+  }
+
   async function handleChoice(choice: 'ate' | 'skipped') {
     if (!result) {
       return;
@@ -173,31 +217,67 @@ export default function ResultScreen({ navigation, route }: Props) {
 
         {/* カロリー情報カード */}
         <View style={styles.resultCard}>
-          <Text style={styles.foodName}>{result.foodName}</Text>
+          {isEditing ? (
+            <>
+              <Text style={styles.inputLabel}>{t('result.foodNameLabel')}</Text>
+              <TextInput
+                value={editedFoodName}
+                onChangeText={setEditedFoodName}
+                style={styles.editInput}
+                placeholder={t('result.foodNameLabel')}
+                placeholderTextColor={Colors.textExtraLight}
+              />
+              <Text style={styles.inputLabel}>{t('result.caloriesLabel')}</Text>
+              <TextInput
+                value={editedCalories}
+                onChangeText={setEditedCalories}
+                style={styles.editInput}
+                keyboardType="number-pad"
+                placeholder="300"
+                placeholderTextColor={Colors.textExtraLight}
+              />
+              <View style={styles.editActions}>
+                <TouchableOpacity style={styles.editCancelButton} onPress={() => setIsEditing(false)}>
+                  <Text style={styles.editCancelText}>{t('common.cancel')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.editSaveButton} onPress={saveEdit}>
+                  <Text style={styles.editSaveText}>{t('result.saveEdit')}</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={styles.foodName}>{result.foodName}</Text>
 
-          <View style={styles.calorieSection}>
-            <Text style={styles.calorieValue}>{result.estimatedCalories}</Text>
-            <Text style={styles.calorieUnit}>{t('common.kcal')}</Text>
-          </View>
+              <View style={styles.calorieSection}>
+                <Text style={styles.calorieValue}>{result.estimatedCalories}</Text>
+                <Text style={styles.calorieUnit}>{t('common.kcal')}</Text>
+              </View>
 
-          <Text style={styles.calorieRange}>
-            {t('result.range', { min: result.calorieRange.min, max: result.calorieRange.max })}
-          </Text>
-
-          <View style={styles.metaInfo}>
-            <View style={styles.metaItem}>
-              <Text style={styles.metaLabel}>{t('result.portionSize')}</Text>
-              <Text style={styles.metaValue}>{result.portionSize}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Text style={styles.metaLabel}>{t('result.confidence')}</Text>
-              <Text style={styles.metaValue}>
-                {isManualEntry ? t('result.manualLabel') : `${result.confidence}%`}
+              <Text style={styles.calorieRange}>
+                {t('result.range', { min: result.calorieRange.min, max: result.calorieRange.max })}
               </Text>
-            </View>
-          </View>
 
-          {!isManualEntry && result.confidence < 50 && (
+              <View style={styles.metaInfo}>
+                <View style={styles.metaItem}>
+                  <Text style={styles.metaLabel}>{t('result.portionSize')}</Text>
+                  <Text style={styles.metaValue}>{result.portionSize}</Text>
+                </View>
+                <View style={styles.metaItem}>
+                  <Text style={styles.metaLabel}>{t('result.confidence')}</Text>
+                  <Text style={styles.metaValue}>
+                    {isManualEntry ? t('result.manualLabel') : `${result.confidence}%`}
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.editButton} onPress={startEdit}>
+                <Text style={styles.editButtonText}>{t('result.editEstimate')}</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {!isManualEntry && !isEditing && result.confidence < 50 && (
             <View style={styles.lowConfidenceWarning}>
               <Text style={styles.warningText}>
                 ⚠️ {t('result.lowConfidenceWarning')}
@@ -376,6 +456,63 @@ const styles = StyleSheet.create({
     ...Typography.bodySmall,
     color: '#856404',
     textAlign: 'center',
+  },
+  editButton: {
+    marginTop: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+  },
+  editButtonText: {
+    ...Typography.bodySmall,
+    color: Colors.accent,
+    fontWeight: '600',
+  },
+  inputLabel: {
+    ...Typography.bodySmall,
+    color: Colors.textLight,
+    marginBottom: Spacing.xs,
+    marginTop: Spacing.xs,
+  },
+  editInput: {
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    ...Typography.body,
+    color: Colors.text,
+    marginBottom: Spacing.sm,
+  },
+  editActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  editCancelButton: {
+    flex: 1,
+    backgroundColor: Colors.textExtraLight,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+  },
+  editCancelText: {
+    ...Typography.bodySmall,
+    color: Colors.surface,
+    fontWeight: '600',
+  },
+  editSaveButton: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+  },
+  editSaveText: {
+    ...Typography.bodySmall,
+    color: Colors.surface,
+    fontWeight: '600',
   },
   choiceSection: {
     padding: Spacing.lg,

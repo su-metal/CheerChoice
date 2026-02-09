@@ -72,6 +72,11 @@
     "eatIt": "食べる",
     "eatSubtext": "運動でバランスを取ろう",
     "manualLabel": "手動入力",
+    "editEstimate": "解析結果を修正する",
+    "saveEdit": "修正を保存",
+    "foodNameLabel": "食べ物名",
+    "caloriesLabel": "推定カロリー",
+    "invalidEdit": "食べ物名とカロリーを正しく入力してください。",
     "saveError": "記録の保存に失敗しました。もう一度お試しください。",
     "backToCamera": "カメラに戻る",
     "takeAnotherPhoto": "もう一度撮影する"
@@ -105,6 +110,10 @@
     "motionMode": "運動モード",
     "tapMode": "タップモード",
     "tapToCount": "タップ +1",
+    "pause": "いったん休む",
+    "resume": "再開する",
+    "pausedTitle": "中断中",
+    "restoreHint": "前回の続きから再開できます",
     "finish": "完了！",
     "types": {
       "squat": {
@@ -159,9 +168,15 @@
     "totalBurned": "消費: %{count} kcal"
   },
   "recovery": {
+    "todayTitle": "今日のムーブ",
+    "todayRemaining": "あと %{count} 回でOK",
+    "todayCount": "いま動けるメニュー: %{count} 件",
+    "ctaContinue": "今日のムーブを続ける",
+    "ctaChoose": "メニューを選んで続ける",
+    "selectTitle": "今日のムーブを選ぶ",
     "title": "今週のリカバリー",
-    "remaining": "あと %{count} 回で今週達成",
-    "resetHint": "毎週月曜にリスタートします"
+    "remaining": "今週のリカバリー: あと %{count} 回",
+    "resetHint": "毎週月曜に気持ちよくリスタート"
   },
   "messages": {
     "skipped": {

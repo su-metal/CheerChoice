@@ -202,6 +202,39 @@ export async function saveExerciseSessionEvent(
   await writeArray(SESSION_EVENTS_KEY, [nextEvent, ...events]);
 }
 
+export type SessionRestoreState = {
+  hasEvents: boolean;
+  isPaused: boolean;
+  countSnapshot: number;
+  lastEventType?: ExerciseSessionEvent['eventType'];
+};
+
+export async function getSessionRestoreState(
+  obligationId: string
+): Promise<SessionRestoreState> {
+  await runRecoveryMaintenance();
+  const events = await readArray<ExerciseSessionEvent>(SESSION_EVENTS_KEY);
+  const filtered = events
+    .filter((event) => event.obligationId === obligationId)
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  if (filtered.length === 0) {
+    return {
+      hasEvents: false,
+      isPaused: false,
+      countSnapshot: 0,
+    };
+  }
+
+  const latest = filtered[0];
+  return {
+    hasEvents: true,
+    isPaused: latest.eventType === 'pause',
+    countSnapshot: Math.max(0, latest.countSnapshot),
+    lastEventType: latest.eventType,
+  };
+}
+
 export async function addObligationProgress(
   obligationId: string,
   count: number
@@ -286,3 +319,47 @@ export async function getWeeklyRecoveryStatus(nowDate: Date = new Date()): Promi
   };
 }
 
+export type TodayObligationStatus = {
+  dateKey: string;
+  openObligationCount: number;
+  remainingCount: number;
+};
+
+export async function getTodayObligationStatus(nowDate: Date = new Date()): Promise<TodayObligationStatus> {
+  await runRecoveryMaintenance(nowDate);
+  const todayKey = getLocalDateKey(nowDate);
+  const obligations = await readArray<ExerciseObligation>(OBLIGATIONS_KEY);
+  const todayOpen = obligations.filter(
+    (obligation) => obligation.dueLocalDate === todayKey && obligation.status === 'open'
+  );
+
+  return {
+    dateKey: todayKey,
+    openObligationCount: todayOpen.length,
+    remainingCount: todayOpen.reduce(
+      (sum, obligation) => sum + Math.max(0, obligation.targetCount - obligation.completedCount),
+      0
+    ),
+  };
+}
+
+export type TodayOpenObligation = ExerciseObligation & {
+  remainingCount: number;
+};
+
+export async function getTodayOpenObligations(
+  nowDate: Date = new Date()
+): Promise<TodayOpenObligation[]> {
+  await runRecoveryMaintenance(nowDate);
+  const todayKey = getLocalDateKey(nowDate);
+  const obligations = await readArray<ExerciseObligation>(OBLIGATIONS_KEY);
+
+  return obligations
+    .filter((obligation) => obligation.dueLocalDate === todayKey && obligation.status === 'open')
+    .map((obligation) => ({
+      ...obligation,
+      remainingCount: Math.max(0, obligation.targetCount - obligation.completedCount),
+    }))
+    .filter((obligation) => obligation.remainingCount > 0)
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+}

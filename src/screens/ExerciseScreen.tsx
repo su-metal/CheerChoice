@@ -23,6 +23,7 @@ import { saveExerciseRecord } from '../services/recordService';
 import {
   addObligationProgress,
   applyRecoveryFromExercise,
+  getSessionRestoreState,
   saveExerciseSessionEvent,
 } from '../services/recoveryService';
 // expo-speech: 再ビルド後に有効化
@@ -52,6 +53,8 @@ export default function ExerciseScreen({ navigation, route }: Props) {
 
   const [count, setCount] = useState(0);
   const [inputMode, setInputMode] = useState<InputMode>('motion');
+  const [isPaused, setIsPaused] = useState(false);
+  const [showRestoreHint, setShowRestoreHint] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -61,10 +64,44 @@ export default function ExerciseScreen({ navigation, route }: Props) {
   const webViewRef = useRef<WebView>(null);
   const hasSavedSessionRef = useRef(false);
   const hasLoggedStartRef = useRef(false);
-  const previousModeRef = useRef<InputMode>('motion');
+  const pausedFromModeRef = useRef<InputMode>('motion');
 
   const exercise = EXERCISES[exerciseType];
   const exerciseName = t(`exercise.types.${exerciseType}.name`);
+
+  useEffect(() => {
+    if (!obligationId) {
+      return;
+    }
+
+    let isMounted = true;
+    getSessionRestoreState(obligationId)
+      .then((state) => {
+        if (!isMounted) {
+          return;
+        }
+
+        if (state.countSnapshot > 0) {
+          setCount(state.countSnapshot);
+        }
+        if (state.hasEvents) {
+          hasLoggedStartRef.current = true;
+        }
+        if (state.isPaused) {
+          setIsPaused(true);
+          setInputMode('tap');
+          setIsLoading(false);
+          setShowRestoreHint(true);
+        }
+      })
+      .catch((error) => {
+        console.error('Error restoring exercise session state:', error);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [obligationId]);
 
   const persistExerciseSession = useCallback(async () => {
     if (hasSavedSessionRef.current) {
@@ -120,22 +157,6 @@ export default function ExerciseScreen({ navigation, route }: Props) {
     });
   }, [count, obligationId]);
 
-  useEffect(() => {
-    if (!obligationId) {
-      return;
-    }
-
-    if (previousModeRef.current === inputMode) {
-      return;
-    }
-
-    const eventType = inputMode === 'tap' ? 'pause' : 'resume';
-    previousModeRef.current = inputMode;
-    saveExerciseSessionEvent(obligationId, eventType, count).catch((error) => {
-      console.error(`Error saving exercise session ${eventType} event:`, error);
-    });
-  }, [count, inputMode, obligationId]);
-
   // 目標達成判定
   useEffect(() => {
     if (count >= targetReps && !isComplete) {
@@ -172,6 +193,9 @@ export default function ExerciseScreen({ navigation, route }: Props) {
           break;
         case 'count':
           if (data.count !== undefined) {
+            if (isPaused) {
+              return;
+            }
             setCount(data.count);
             // TODO: 再ビルド後に expo-speech で音声カウント有効化
           }
@@ -186,7 +210,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
     } catch {
       // ignore parse errors
     }
-  }, []);
+  }, [isPaused]);
 
   // 完了処理
   const handleFinish = () => {
@@ -239,6 +263,10 @@ export default function ExerciseScreen({ navigation, route }: Props) {
   const htmlContent = getPoseDetectorHtml(exerciseType, targetReps);
 
   const switchInputMode = (nextMode: InputMode) => {
+    if (isPaused) {
+      return;
+    }
+
     if (nextMode === inputMode) {
       return;
     }
@@ -255,11 +283,51 @@ export default function ExerciseScreen({ navigation, route }: Props) {
   };
 
   const incrementByTap = () => {
+    if (isPaused) {
+      return;
+    }
     setCount((prev) => prev + 1);
   };
 
   const decrementByTap = () => {
+    if (isPaused) {
+      return;
+    }
     setCount((prev) => Math.max(0, prev - 1));
+  };
+
+  const handlePause = async () => {
+    if (isPaused) {
+      return;
+    }
+
+    pausedFromModeRef.current = inputMode;
+    setIsPaused(true);
+
+    if (inputMode === 'motion') {
+      setInputMode('tap');
+      setIsLoading(false);
+    }
+
+    if (obligationId) {
+      await saveExerciseSessionEvent(obligationId, 'pause', count);
+    }
+  };
+
+  const handleResume = async () => {
+    if (!isPaused) {
+      return;
+    }
+
+    setIsPaused(false);
+    setShowRestoreHint(false);
+    if (pausedFromModeRef.current === 'motion' && !hasError) {
+      switchInputMode('motion');
+    }
+
+    if (obligationId) {
+      await saveExerciseSessionEvent(obligationId, 'resume', count);
+    }
   };
 
   return (
@@ -338,6 +406,14 @@ export default function ExerciseScreen({ navigation, route }: Props) {
         <Animated.View style={[styles.countContainer, { transform: [{ scale: scaleAnim }] }]}>
           <Text style={styles.countText}>{count}</Text>
         </Animated.View>
+        {isPaused && (
+          <View style={styles.pausedBadge}>
+            <Text style={styles.pausedBadgeText}>{t('exercise.pausedTitle')}</Text>
+          </View>
+        )}
+        {showRestoreHint && (
+          <Text style={styles.restoreHintText}>{t('exercise.restoreHint')}</Text>
+        )}
 
         {/* Progress bar */}
         <View style={styles.progressBar}>
@@ -360,6 +436,17 @@ export default function ExerciseScreen({ navigation, route }: Props) {
       {/* Bottom bar overlay */}
       <SafeAreaView style={styles.bottomBarSafe}>
         <View style={styles.bottomBar}>
+          <View style={styles.bottomActionRow}>
+            {isPaused ? (
+              <TouchableOpacity style={styles.resumeButton} onPress={handleResume}>
+                <Text style={styles.resumeButtonText}>{t('exercise.resume')}</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.pauseButton} onPress={handlePause}>
+                <Text style={styles.pauseButtonText}>{t('exercise.pause')}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           {isComplete ? (
             <TouchableOpacity style={styles.finishButton} onPress={handleFinish}>
               <Text style={styles.finishButtonText}>{t('exercise.finish')} 🎉</Text>
@@ -522,6 +609,27 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginTop: 4,
   },
+  pausedBadge: {
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.md,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+  },
+  pausedBadgeText: {
+    ...Typography.bodySmall,
+    color: Colors.surface,
+    fontWeight: '600',
+  },
+  restoreHintText: {
+    ...Typography.caption,
+    color: Colors.surface,
+    marginTop: Spacing.xs,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.sm,
+  },
   tapControls: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -558,6 +666,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.lg,
     alignItems: 'center',
+  },
+  bottomActionRow: {
+    marginBottom: Spacing.sm,
+    width: '70%',
+  },
+  pauseButton: {
+    backgroundColor: 'rgba(45, 52, 54, 0.85)',
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.xl,
+    alignItems: 'center',
+  },
+  pauseButtonText: {
+    ...Typography.button,
+    color: Colors.surface,
+  },
+  resumeButton: {
+    backgroundColor: Colors.accent,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.xl,
+    alignItems: 'center',
+  },
+  resumeButtonText: {
+    ...Typography.button,
+    color: Colors.surface,
   },
   finishButton: {
     backgroundColor: Colors.secondary,

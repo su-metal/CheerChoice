@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UsageData } from '../types';
 
 const USAGE_KEY = '@CheerChoice:usageData';
+const USAGE_RESET_MARKER_KEY = '@CheerChoice:usageResetMarker';
 const FREE_TIER_LIFETIME_LIMIT = 15;
 const PREMIUM_DAILY_LIMIT = 20;
 
@@ -75,4 +76,23 @@ export async function incrementAIUsage(): Promise<UsageData> {
   };
   await AsyncStorage.setItem(USAGE_KEY, JSON.stringify(updated));
   return updated;
+}
+
+export async function resetAIUsage(): Promise<void> {
+  await AsyncStorage.setItem(USAGE_KEY, JSON.stringify(defaultUsageData));
+}
+
+export async function resetAIUsageOnce(marker: string): Promise<boolean> {
+  try {
+    const currentMarker = await AsyncStorage.getItem(USAGE_RESET_MARKER_KEY);
+    if (currentMarker === marker) {
+      return false;
+    }
+    await resetAIUsage();
+    await AsyncStorage.setItem(USAGE_RESET_MARKER_KEY, marker);
+    return true;
+  } catch (error) {
+    console.error('Error resetting AI usage once:', error);
+    return false;
+  }
 }

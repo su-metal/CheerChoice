@@ -72,6 +72,11 @@
     "eatIt": "Eat It",
     "eatSubtext": "Balance with exercise",
     "manualLabel": "Manual Entry",
+    "editEstimate": "Edit estimation",
+    "saveEdit": "Save changes",
+    "foodNameLabel": "Food name",
+    "caloriesLabel": "Estimated calories",
+    "invalidEdit": "Please enter a valid food name and calories.",
     "saveError": "Failed to save record. Please try again.",
     "backToCamera": "Back to Camera",
     "takeAnotherPhoto": "Take Another Photo"
@@ -105,6 +110,10 @@
     "motionMode": "Motion",
     "tapMode": "Tap",
     "tapToCount": "Tap +1",
+    "pause": "Pause",
+    "resume": "Resume",
+    "pausedTitle": "Paused",
+    "restoreHint": "You can continue from where you left off",
     "finish": "Finish!",
     "types": {
       "squat": {
@@ -159,9 +168,15 @@
     "totalBurned": "Burned: %{count} kcal"
   },
   "recovery": {
+    "todayTitle": "Today's Move",
+    "todayRemaining": "%{count} reps to go",
+    "todayCount": "%{count} move options right now",
+    "ctaContinue": "Continue today's move",
+    "ctaChoose": "Choose a move to continue",
+    "selectTitle": "Choose today's move",
     "title": "This Week's Recovery",
-    "remaining": "%{count} reps left to recover this week",
-    "resetHint": "Resets every Monday"
+    "remaining": "Recovery this week: %{count} reps to go",
+    "resetHint": "Fresh restart every Monday"
   },
   "messages": {
     "skipped": {

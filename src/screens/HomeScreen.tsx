@@ -1,13 +1,32 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+  Modal,
+} from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Typography, Spacing, BorderRadius } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { t } from '../i18n';
-import { getRecentMealRecords, getTodayRecordSummary, TodayRecordSummary } from '../services/recordService';
+import {
+  getMealRecords,
+  getRecentMealRecords,
+  getTodayRecordSummary,
+  TodayRecordSummary,
+} from '../services/recordService';
+import { resetAIUsageOnce } from '../services/usageService';
 import { MealRecord } from '../types';
-import { getWeeklyRecoveryStatus, runRecoveryMaintenance } from '../services/recoveryService';
+import {
+  getTodayObligationStatus,
+  getTodayOpenObligations,
+  getWeeklyRecoveryStatus,
+  runRecoveryMaintenance,
+} from '../services/recoveryService';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -24,6 +43,35 @@ export default function HomeScreen({ navigation }: Props) {
   });
   const [recentRecords, setRecentRecords] = useState<MealRecord[]>([]);
   const [weeklyRecoveryRemaining, setWeeklyRecoveryRemaining] = useState(0);
+  const [todayObligationRemaining, setTodayObligationRemaining] = useState(0);
+  const [todayObligationCount, setTodayObligationCount] = useState(0);
+  const [showMovePicker, setShowMovePicker] = useState(false);
+  const [todayMoveOptions, setTodayMoveOptions] = useState<Array<{
+    obligationId: string;
+    exerciseType: 'squat' | 'situp' | 'pushup';
+    remainingCount: number;
+    foodName: string;
+    calories: number;
+    mealRecordId?: string;
+  }>>([]);
+
+  const navigateToMove = (move: {
+    obligationId: string;
+    exerciseType: 'squat' | 'situp' | 'pushup';
+    remainingCount: number;
+    foodName: string;
+    calories: number;
+    mealRecordId?: string;
+  }) => {
+    navigation.navigate('Exercise', {
+      exerciseType: move.exerciseType,
+      targetReps: move.remainingCount,
+      calories: move.calories,
+      foodName: move.foodName,
+      mealRecordId: move.mealRecordId,
+      obligationId: move.obligationId,
+    });
+  };
 
   const getRelativeTime = (timestamp: string) => {
     const minutes = Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000);
@@ -47,14 +95,32 @@ export default function HomeScreen({ navigation }: Props) {
 
       async function loadSummary() {
         try {
+          await resetAIUsageOnce('manual-reset-20260209-qa');
           await runRecoveryMaintenance();
           const todaySummary = await getTodayRecordSummary();
           const latestRecords = await getRecentMealRecords(3);
+          const allMeals = await getMealRecords();
           const recovery = await getWeeklyRecoveryStatus();
+          const todayObligation = await getTodayObligationStatus();
+          const todayOpenObligations = await getTodayOpenObligations();
+          const moveOptions = todayOpenObligations.map((item) => {
+            const linkedMeal = allMeals.find((meal) => meal.id === item.mealRecordId);
+            return {
+              obligationId: item.id,
+              exerciseType: item.exerciseType,
+              remainingCount: item.remainingCount,
+              foodName: linkedMeal?.foodName ?? 'Meal',
+              calories: linkedMeal?.estimatedCalories ?? 0,
+              mealRecordId: item.mealRecordId,
+            };
+          });
           if (isMounted) {
             setSummary(todaySummary);
             setRecentRecords(latestRecords);
             setWeeklyRecoveryRemaining(recovery.remainingCount);
+            setTodayObligationRemaining(todayObligation.remainingCount);
+            setTodayObligationCount(todayObligation.openObligationCount);
+            setTodayMoveOptions(moveOptions);
           }
         } catch (error) {
           console.error('Error loading home summary:', error);
@@ -121,6 +187,32 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         </TouchableOpacity>
 
+        <View style={styles.obligationCard}>
+          <Text style={styles.obligationTitle}>{t('recovery.todayTitle')}</Text>
+          <Text style={styles.obligationValue}>
+            {t('recovery.todayRemaining', { count: todayObligationRemaining })}
+          </Text>
+          <Text style={styles.obligationHint}>
+            {t('recovery.todayCount', { count: todayObligationCount })}
+          </Text>
+          {todayMoveOptions.length > 0 && (
+            <TouchableOpacity
+              style={styles.moveCtaButton}
+              onPress={() => {
+                if (todayMoveOptions.length === 1) {
+                  navigateToMove(todayMoveOptions[0]);
+                  return;
+                }
+                setShowMovePicker(true);
+              }}
+            >
+              <Text style={styles.moveCtaText}>
+                {todayMoveOptions.length === 1 ? t('recovery.ctaContinue') : t('recovery.ctaChoose')}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         <View style={styles.recoveryCard}>
           <Text style={styles.recoveryTitle}>{t('recovery.title')}</Text>
           <Text style={styles.recoveryValue}>
@@ -164,6 +256,40 @@ export default function HomeScreen({ navigation }: Props) {
           )}
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showMovePicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMovePicker(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>{t('recovery.selectTitle')}</Text>
+            {todayMoveOptions.map((move) => (
+              <TouchableOpacity
+                key={move.obligationId}
+                style={styles.modalOption}
+                onPress={() => {
+                  setShowMovePicker(false);
+                  navigateToMove(move);
+                }}
+              >
+                <Text style={styles.modalOptionTitle}>
+                  {t(`exercise.types.${move.exerciseType}.name`)} • {move.remainingCount} {t('exerciseSelect.reps')}
+                </Text>
+                <Text style={styles.modalOptionSub}>{move.foodName}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowMovePicker(false)}
+            >
+              <Text style={styles.modalCloseButtonText}>{t('common.cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -267,6 +393,79 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.divider,
   },
   recentSection: {},
+  obligationCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  obligationTitle: {
+    ...Typography.bodySmall,
+    color: Colors.textLight,
+    marginBottom: Spacing.xs,
+  },
+  obligationValue: {
+    ...Typography.h5,
+    color: Colors.text,
+    marginBottom: 2,
+  },
+  obligationHint: {
+    ...Typography.caption,
+    color: Colors.textLight,
+  },
+  moveCtaButton: {
+    marginTop: Spacing.sm,
+    backgroundColor: Colors.accent,
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+  },
+  moveCtaText: {
+    ...Typography.button,
+    color: Colors.surface,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  modalCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+  },
+  modalTitle: {
+    ...Typography.h5,
+    color: Colors.text,
+    marginBottom: Spacing.md,
+  },
+  modalOption: {
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+  },
+  modalOptionTitle: {
+    ...Typography.body,
+    color: Colors.text,
+    fontWeight: '600',
+  },
+  modalOptionSub: {
+    ...Typography.caption,
+    color: Colors.textLight,
+    marginTop: 2,
+  },
+  modalCloseButton: {
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.divider,
+  },
+  modalCloseButtonText: {
+    ...Typography.button,
+    color: Colors.text,
+  },
   recoveryCard: {
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.lg,

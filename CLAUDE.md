@@ -306,6 +306,11 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 **原因**: 新しいAPIへの移行推奨
 **解決**: legacyパスからインポート（上記と同じ）
 
+### エラー4: EAS Buildで `tar ... Permission denied`
+**原因**: Windowsで `assets` / `src` / `docs` などに `ReadOnly` 属性 (`R`) が付いた状態でアップロードされ、EAS側の `project.tar.gz` 展開時に書き込み失敗
+**解決**: `attrib -R assets /S /D`、`attrib -R src /S /D`、`attrib -R docs /S /D` 実行後に `eas build --clear-cache` で再実行
+**詳細**: `README.md` の `Troubleshooting` と `docs/requirements.md` の「12. 開発環境トラブルシューティング（運用メモ）」を参照
+
 ---
 
 ## コミット・プルリクエストの方針

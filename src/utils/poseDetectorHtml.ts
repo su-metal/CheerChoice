@@ -74,6 +74,17 @@ export function getPoseDetectorHtml(exerciseType: string, targetReps: number): s
       z-index: 10;
       display: none;
     }
+    #flash-border {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      border: 6px solid transparent;
+      pointer-events: none;
+      z-index: 50;
+      transition: border-color 0.05s ease-in;
+    }
+    #flash-border.flash {
+      border-color: #A28FDB;
+    }
   </style>
 </head>
 <body>
@@ -85,6 +96,7 @@ export function getPoseDetectorHtml(exerciseType: string, targetReps: number): s
       Loading AI Model...
     </div>
     <div id="guide">SHOW FULL BODY</div>
+    <div id="flash-border"></div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -131,6 +143,61 @@ export function getPoseDetectorHtml(exerciseType: string, targetReps: number): s
       if (window.ReactNativeWebView) {
         window.ReactNativeWebView.postMessage(JSON.stringify(data));
       }
+    }
+
+    // ============================================
+    // Sound & Visual Feedback
+    // ============================================
+    var femaleVoice = null;
+    function findFemaleVoice() {
+      if (femaleVoice) return;
+      var voices = speechSynthesis.getVoices();
+      // Prefer English female voices
+      var preferred = ['female', 'samantha', 'victoria', 'karen', 'moira', 'fiona', 'tessa'];
+      for (var i = 0; i < voices.length; i++) {
+        var name = voices[i].name.toLowerCase();
+        if (voices[i].lang.startsWith('en') && preferred.some(function(p) { return name.indexOf(p) >= 0; })) {
+          femaleVoice = voices[i];
+          return;
+        }
+      }
+      // Fallback: any English voice
+      for (var j = 0; j < voices.length; j++) {
+        if (voices[j].lang.startsWith('en')) {
+          femaleVoice = voices[j];
+          return;
+        }
+      }
+    }
+
+    if (window.speechSynthesis) {
+      speechSynthesis.onvoiceschanged = findFemaleVoice;
+      findFemaleVoice();
+    }
+
+    function speakCount(num) {
+      try {
+        if (!window.speechSynthesis) return;
+        speechSynthesis.cancel();
+        var utter = new SpeechSynthesisUtterance(String(num));
+        utter.rate = 1.1;
+        utter.pitch = 1.2;
+        utter.volume = 1.0;
+        utter.lang = 'en-US';
+        findFemaleVoice();
+        if (femaleVoice) utter.voice = femaleVoice;
+        speechSynthesis.speak(utter);
+      } catch (e) {}
+    }
+
+    var flashEl = document.getElementById('flash-border');
+    var flashTimer = null;
+    function flashBorder() {
+      flashEl.classList.add('flash');
+      if (flashTimer) clearTimeout(flashTimer);
+      flashTimer = setTimeout(function() {
+        flashEl.classList.remove('flash');
+      }, 200);
     }
 
     // ============================================
@@ -240,6 +307,8 @@ export function getPoseDetectorHtml(exerciseType: string, targetReps: number): s
     function countRep() {
       state.isDown = false;
       state.count++;
+      speakCount(state.count);
+      flashBorder();
       sendToRN({ type: 'count', count: state.count });
     }
 

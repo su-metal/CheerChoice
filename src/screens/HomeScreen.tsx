@@ -6,6 +6,8 @@ import { Colors, Typography, Spacing, BorderRadius } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getTodaySummary, TodaySummary } from '../services/storageService';
 import { t } from '../i18n';
+import { getRecentMealRecords } from '../services/recordService';
+import { MealRecord } from '../types';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -20,6 +22,23 @@ export default function HomeScreen({ navigation }: Props) {
     exerciseCount: 0,
     lastUpdated: new Date().toISOString(),
   });
+  const [recentRecords, setRecentRecords] = useState<MealRecord[]>([]);
+
+  const getRelativeTime = (timestamp: string) => {
+    const minutes = Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000);
+    if (minutes < 1) {
+      return t('home.justNow');
+    }
+    if (minutes < 60) {
+      return t('home.minutesAgo', { count: minutes });
+    }
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) {
+      return t('home.hoursAgo', { count: hours });
+    }
+    const days = Math.floor(hours / 24);
+    return t('home.daysAgo', { count: days });
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -28,8 +47,10 @@ export default function HomeScreen({ navigation }: Props) {
       async function loadSummary() {
         try {
           const todaySummary = await getTodaySummary();
+          const latestRecords = await getRecentMealRecords(3);
           if (isMounted) {
             setSummary(todaySummary);
+            setRecentRecords(latestRecords);
           }
         } catch (error) {
           console.error('Error loading home summary:', error);
@@ -87,12 +108,37 @@ export default function HomeScreen({ navigation }: Props) {
 
         {/* Recent Activity Placeholder */}
         <View style={styles.recentSection}>
-          <Text style={styles.recentTitle}>{t('home.recentActivity')}</Text>
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateIcon}>🌟</Text>
-            <Text style={styles.emptyStateText}>{t('home.noActivity')}</Text>
-            <Text style={styles.emptyStateSubtext}>{t('home.noActivitySubtext')}</Text>
+          <View style={styles.recentHeader}>
+            <Text style={styles.recentTitle}>{t('home.recentActivity')}</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Log')}>
+              <Text style={styles.seeAll}>{t('home.seeAll')}</Text>
+            </TouchableOpacity>
           </View>
+          {recentRecords.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateIcon}>🌟</Text>
+              <Text style={styles.emptyStateText}>{t('home.noActivity')}</Text>
+              <Text style={styles.emptyStateSubtext}>{t('home.noActivitySubtext')}</Text>
+            </View>
+          ) : (
+            <View style={styles.activityList}>
+              {recentRecords.map((record) => (
+                <View key={record.id} style={styles.activityCard}>
+                  <View style={styles.activityTopRow}>
+                    <Text style={styles.activityFood} numberOfLines={1}>
+                      {record.foodName}
+                    </Text>
+                    <Text style={styles.activityChoice}>
+                      {record.choice === 'ate' ? t('home.ate') : t('home.skippedChoice')}
+                    </Text>
+                  </View>
+                  <Text style={styles.activityMeta}>
+                    {record.estimatedCalories} {t('common.kcal')} • {getRelativeTime(record.timestamp)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       </View>
     </SafeAreaView>
@@ -191,7 +237,16 @@ const styles = StyleSheet.create({
   recentTitle: {
     ...Typography.h5,
     color: Colors.text,
+  },
+  recentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: Spacing.md,
+  },
+  seeAll: {
+    ...Typography.caption,
+    color: Colors.primary,
   },
   emptyState: {
     flex: 1,
@@ -210,5 +265,33 @@ const styles = StyleSheet.create({
   emptyStateSubtext: {
     ...Typography.bodySmall,
     color: Colors.textExtraLight,
+  },
+  activityList: {
+    gap: Spacing.sm,
+  },
+  activityCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+  },
+  activityTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+    gap: Spacing.sm,
+  },
+  activityFood: {
+    ...Typography.body,
+    color: Colors.text,
+    flex: 1,
+  },
+  activityChoice: {
+    ...Typography.caption,
+    color: Colors.textLight,
+  },
+  activityMeta: {
+    ...Typography.caption,
+    color: Colors.textLight,
   },
 });

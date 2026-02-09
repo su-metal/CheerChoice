@@ -5,8 +5,10 @@
  * 将来的にユーザーの体重・年齢で調整可能
  */
 
+export type ExerciseType = 'squat' | 'situp' | 'pushup';
+
 export interface ExerciseDefinition {
-  id: string;
+  id: ExerciseType;
   name: string;           // 日本語名
   nameEn: string;         // 英語名
   caloriesPerRep: number; // 1回あたりの消費カロリー
@@ -15,7 +17,7 @@ export interface ExerciseDefinition {
   description: string;    // 説明
 }
 
-export const EXERCISES: Record<string, ExerciseDefinition> = {
+export const EXERCISES: Record<ExerciseType, ExerciseDefinition> = {
   squat: {
     id: 'squat',
     name: 'スクワット',
@@ -49,8 +51,3 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
  * 運動リスト（配列形式）
  */
 export const EXERCISE_LIST = Object.values(EXERCISES);
-
-/**
- * 運動タイプ（型定義）
- */
-export type ExerciseType = keyof typeof EXERCISES;

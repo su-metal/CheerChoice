@@ -1,6 +1,8 @@
 {
   "common": {
     "back": "Back",
+    "cancel": "Cancel",
+    "delete": "Delete",
     "kcal": "kcal",
     "today": "Today",
     "thisWeek": "This Week",
@@ -16,7 +18,9 @@
     "result": "Calorie Analysis",
     "skipped": "Amazing!",
     "exerciseSelect": "Choose Your Exercise",
-    "exercise": "Let's Move!"
+    "exercise": "Let's Move!",
+    "log": "History",
+    "manualEntry": "Manual Entry"
   },
   "home": {
     "subtitle": "Your positive health companion",
@@ -27,6 +31,13 @@
     "saved": "Saved",
     "exercises": "Exercises",
     "recentActivity": "Recent Activity",
+    "seeAll": "See All",
+    "ate": "Ate",
+    "skippedChoice": "Skipped",
+    "justNow": "just now",
+    "minutesAgo": "%{count}m ago",
+    "hoursAgo": "%{count}h ago",
+    "daysAgo": "%{count}d ago",
     "noActivity": "No activity yet",
     "noActivitySubtext": "Take your first photo to get started!"
   },
@@ -38,6 +49,10 @@
     "retake": "Retake",
     "usePhoto": "Use Photo",
     "flip": "Flip",
+    "remaining": "AI analyses left: %{count}",
+    "manualEntry": "Enter manually",
+    "limitTitle": "AI limit reached",
+    "limitMessage": "You used all AI analyses. Please enter manually.",
     "guideText": "Center your food in the frame",
     "errorTakePhoto": "Failed to take picture. Please try again."
   },
@@ -53,6 +68,9 @@
     "skipSubtext": "Save %{calories} kcal",
     "eatIt": "Eat It",
     "eatSubtext": "Balance with exercise",
+    "manualLabel": "Manual Entry",
+    "saveError": "Failed to save record. Please try again.",
+    "backToCamera": "Back to Camera",
     "takeAnotherPhoto": "Take Another Photo"
   },
   "skipped": {
@@ -96,6 +114,23 @@
         "description": "Upper body strength"
       }
     }
+  },
+  "manualEntry": {
+    "heading": "Enter your food details",
+    "foodName": "Food name",
+    "foodNamePlaceholder": "e.g. Caesar Salad",
+    "calories": "Estimated calories",
+    "caloriesPlaceholder": "e.g. 350",
+    "quickPicks": "Quick picks",
+    "continue": "Continue"
+  },
+  "log": {
+    "ate": "Ate",
+    "skipped": "Skipped",
+    "deleteTitle": "Delete record",
+    "deleteMessage": "Are you sure you want to delete this record?",
+    "emptyTitle": "No records yet",
+    "emptyBody": "Start by scanning or entering your food."
   },
   "messages": {
     "skipped": {

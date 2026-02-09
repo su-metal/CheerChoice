@@ -1,6 +1,8 @@
 {
   "common": {
     "back": "戻る",
+    "cancel": "キャンセル",
+    "delete": "削除",
     "kcal": "kcal",
     "today": "今日",
     "thisWeek": "今週",
@@ -16,7 +18,9 @@
     "result": "カロリー分析",
     "skipped": "すごい！",
     "exerciseSelect": "運動を選ぼう",
-    "exercise": "体を動かそう！"
+    "exercise": "体を動かそう！",
+    "log": "履歴",
+    "manualEntry": "手動入力"
   },
   "home": {
     "subtitle": "あなたのポジティブ健康パートナー",
@@ -27,6 +31,13 @@
     "saved": "節約",
     "exercises": "運動",
     "recentActivity": "最近のアクティビティ",
+    "seeAll": "すべて見る",
+    "ate": "食べた",
+    "skippedChoice": "食べない",
+    "justNow": "たった今",
+    "minutesAgo": "%{count}分前",
+    "hoursAgo": "%{count}時間前",
+    "daysAgo": "%{count}日前",
     "noActivity": "まだ記録がありません",
     "noActivitySubtext": "最初の写真を撮って始めよう！"
   },
@@ -38,6 +49,10 @@
     "retake": "撮り直す",
     "usePhoto": "この写真を使う",
     "flip": "切替",
+    "remaining": "AI分析の残り: %{count}",
+    "manualEntry": "手動で入力",
+    "limitTitle": "AI上限に達しました",
+    "limitMessage": "AI分析の上限です。手動入力を使ってください。",
     "guideText": "食べ物をフレームの中央に合わせてください",
     "errorTakePhoto": "写真の撮影に失敗しました。もう一度お試しください。"
   },
@@ -53,6 +68,9 @@
     "skipSubtext": "%{calories} kcal 節約",
     "eatIt": "食べる",
     "eatSubtext": "運動でバランスを取ろう",
+    "manualLabel": "手動入力",
+    "saveError": "記録の保存に失敗しました。もう一度お試しください。",
+    "backToCamera": "カメラに戻る",
     "takeAnotherPhoto": "もう一度撮影する"
   },
   "skipped": {
@@ -96,6 +114,23 @@
         "description": "上半身を鍛える"
       }
     }
+  },
+  "manualEntry": {
+    "heading": "食べ物の情報を入力",
+    "foodName": "食べ物名",
+    "foodNamePlaceholder": "例: シーザーサラダ",
+    "calories": "推定カロリー",
+    "caloriesPlaceholder": "例: 350",
+    "quickPicks": "クイック選択",
+    "continue": "続ける"
+  },
+  "log": {
+    "ate": "食べた",
+    "skipped": "食べない",
+    "deleteTitle": "記録を削除",
+    "deleteMessage": "この記録を削除しますか？",
+    "emptyTitle": "まだ記録がありません",
+    "emptyBody": "写真撮影または手動入力から始めましょう。"
   },
   "messages": {
     "skipped": {

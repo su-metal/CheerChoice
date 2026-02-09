@@ -1,21 +1,42 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { HomeScreen, CameraScreen, ResultScreen, SkippedScreen, ExerciseSelectScreen, ExerciseScreen } from '../screens';
+import {
+  HomeScreen,
+  CameraScreen,
+  ResultScreen,
+  SkippedScreen,
+  ExerciseSelectScreen,
+  ExerciseScreen,
+  LogScreen,
+  ManualEntryScreen,
+} from '../screens';
 import { Colors } from '../constants';
 import { t } from '../i18n';
+import { ExerciseRecord } from '../types';
 
 // Define screen param types
 export type RootStackParamList = {
   Home: undefined;
   Camera: undefined;
-  Result: { photoUri: string };
-  Skipped: { calories: number; foodName: string };
-  ExerciseSelect: { calories: number; foodName: string };
-  Exercise: { exerciseType: string; targetReps: number; calories: number; foodName: string };
-  // More screens will be added later:
-  // Log: undefined;
-  // Settings: undefined;
+  Result: {
+    photoUri?: string;
+    manualInput?: {
+      foodName: string;
+      estimatedCalories: number;
+    };
+  };
+  Skipped: { calories: number; foodName: string; mealRecordId?: string };
+  ExerciseSelect: { calories: number; foodName: string; mealRecordId?: string };
+  Exercise: {
+    exerciseType: ExerciseRecord['exerciseType'];
+    targetReps: number;
+    calories: number;
+    foodName: string;
+    mealRecordId?: string;
+  };
+  Log: undefined;
+  ManualEntry: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -83,6 +104,22 @@ export default function AppNavigator() {
           component={ExerciseScreen}
           options={{
             title: t('navigation.exercise'),
+            headerBackTitle: t('common.back'),
+          }}
+        />
+        <Stack.Screen
+          name="Log"
+          component={LogScreen}
+          options={{
+            title: t('navigation.log'),
+            headerBackTitle: t('common.back'),
+          }}
+        />
+        <Stack.Screen
+          name="ManualEntry"
+          component={ManualEntryScreen}
+          options={{
+            title: t('navigation.manualEntry'),
             headerBackTitle: t('common.back'),
           }}
         />

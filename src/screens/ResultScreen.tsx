@@ -17,6 +17,8 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { CalorieEstimationResult } from '../types';
 import { estimateCalories } from '../services/calorieEstimator';
 import { t } from '../i18n';
+import { incrementAIUsage } from '../services/usageService';
+import { saveMealRecord } from '../services/recordService';
 
 type ResultScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Result'>;
 type ResultScreenRouteProp = RouteProp<RootStackParamList, 'Result'>;
@@ -27,22 +29,45 @@ type Props = {
 };
 
 export default function ResultScreen({ navigation, route }: Props) {
-  const { photoUri } = route.params;
+  const { photoUri, manualInput } = route.params;
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<CalorieEstimationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const isManualEntry = Boolean(manualInput);
 
   // コンポーネントマウント時にカロリー推定を実行
   useEffect(() => {
+    if (manualInput) {
+      setResult({
+        foodName: manualInput.foodName,
+        estimatedCalories: manualInput.estimatedCalories,
+        calorieRange: {
+          min: manualInput.estimatedCalories,
+          max: manualInput.estimatedCalories,
+        },
+        confidence: 0,
+        portionSize: t('result.manualLabel'),
+      });
+      setLoading(false);
+      return;
+    }
+
     analyzePhoto();
-  }, []);
+  }, [manualInput]);
 
   async function analyzePhoto() {
+    if (!photoUri) {
+      setError(t('common.unknownError'));
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
       const estimation = await estimateCalories(photoUri);
       setResult(estimation);
+      await incrementAIUsage();
     } catch (err) {
       console.error('Error analyzing photo:', err);
       setError(err instanceof Error ? err.message : t('common.unknownError'));
@@ -87,11 +112,52 @@ export default function ResultScreen({ navigation, route }: Props) {
   }
 
   // 結果表示
+  async function handleChoice(choice: 'ate' | 'skipped') {
+    if (!result) {
+      return;
+    }
+
+    try {
+      const mealRecord = await saveMealRecord({
+        timestamp: new Date().toISOString(),
+        photoUri: photoUri ?? '',
+        estimatedCalories: result.estimatedCalories,
+        foodName: result.foodName,
+        confidence: result.confidence,
+        choice,
+      });
+
+      if (choice === 'skipped') {
+        navigation.navigate('Skipped', {
+          calories: result.estimatedCalories,
+          foodName: result.foodName,
+          mealRecordId: mealRecord.id,
+        });
+        return;
+      }
+
+      navigation.navigate('ExerciseSelect', {
+        calories: result.estimatedCalories,
+        foodName: result.foodName,
+        mealRecordId: mealRecord.id,
+      });
+    } catch (saveError) {
+      console.error('Error saving meal record:', saveError);
+      Alert.alert(t('common.oops'), t('result.saveError'));
+    }
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         {/* 写真プレビュー */}
-        <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+        {photoUri ? (
+          <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+        ) : (
+          <View style={styles.manualPlaceholder}>
+            <Text style={styles.manualPlaceholderText}>🍽️ {t('result.manualLabel')}</Text>
+          </View>
+        )}
 
         {/* カロリー情報カード */}
         <View style={styles.resultCard}>
@@ -113,11 +179,13 @@ export default function ResultScreen({ navigation, route }: Props) {
             </View>
             <View style={styles.metaItem}>
               <Text style={styles.metaLabel}>{t('result.confidence')}</Text>
-              <Text style={styles.metaValue}>{result.confidence}%</Text>
+              <Text style={styles.metaValue}>
+                {isManualEntry ? t('result.manualLabel') : `${result.confidence}%`}
+              </Text>
             </View>
           </View>
 
-          {result.confidence < 50 && (
+          {!isManualEntry && result.confidence < 50 && (
             <View style={styles.lowConfidenceWarning}>
               <Text style={styles.warningText}>
                 ⚠️ {t('result.lowConfidenceWarning')}
@@ -132,12 +200,7 @@ export default function ResultScreen({ navigation, route }: Props) {
 
           <TouchableOpacity
             style={[styles.choiceButton, styles.skipButton]}
-            onPress={() => {
-              navigation.navigate('Skipped', {
-                calories: result.estimatedCalories,
-                foodName: result.foodName,
-              });
-            }}
+            onPress={() => handleChoice('skipped')}
           >
             <Text style={styles.choiceButtonIcon}>🌟</Text>
             <Text style={styles.choiceButtonText}>{t('result.skipIt')}</Text>
@@ -146,12 +209,7 @@ export default function ResultScreen({ navigation, route }: Props) {
 
           <TouchableOpacity
             style={[styles.choiceButton, styles.eatButton]}
-            onPress={() => {
-              navigation.navigate('ExerciseSelect', {
-                calories: result.estimatedCalories,
-                foodName: result.foodName,
-              });
-            }}
+            onPress={() => handleChoice('ate')}
           >
             <Text style={styles.choiceButtonIcon}>🍽️</Text>
             <Text style={styles.choiceButtonText}>{t('result.eatIt')}</Text>
@@ -164,7 +222,9 @@ export default function ResultScreen({ navigation, route }: Props) {
           style={styles.retakeButton}
           onPress={() => navigation.navigate('Camera')}
         >
-          <Text style={styles.retakeButtonText}>{t('result.takeAnotherPhoto')}</Text>
+          <Text style={styles.retakeButtonText}>
+            {isManualEntry ? t('result.backToCamera') : t('result.takeAnotherPhoto')}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -223,6 +283,17 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 250,
     resizeMode: 'cover',
+  },
+  manualPlaceholder: {
+    width: '100%',
+    height: 180,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+  },
+  manualPlaceholderText: {
+    ...Typography.h4,
+    color: Colors.textLight,
   },
   resultCard: {
     backgroundColor: Colors.surface,

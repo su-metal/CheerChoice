@@ -19,6 +19,7 @@ import { EXERCISES } from '../constants/Exercises';
 import { getPoseDetectorHtml } from '../utils/poseDetectorHtml';
 import { updateTodayExerciseSummary } from '../services/storageService';
 import { t } from '../i18n';
+import { saveExerciseRecord } from '../services/recordService';
 // expo-speech: 再ビルド後に有効化
 // import * as Speech from 'expo-speech';
 
@@ -40,7 +41,7 @@ type WebViewMessage = {
 };
 
 export default function ExerciseScreen({ navigation, route }: Props) {
-  const { exerciseType, targetReps, calories, foodName } = route.params;
+  const { exerciseType, targetReps, foodName, mealRecordId } = route.params;
 
   const [count, setCount] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
@@ -62,12 +63,23 @@ export default function ExerciseScreen({ navigation, route }: Props) {
     hasSavedSessionRef.current = true;
 
     try {
-      await updateTodayExerciseSummary();
+      const caloriesBurned = Math.round(count * exercise.caloriesPerRep);
+      await Promise.all([
+        updateTodayExerciseSummary(),
+        saveExerciseRecord({
+          mealRecordId,
+          timestamp: new Date().toISOString(),
+          exerciseType,
+          count,
+          targetCount: targetReps,
+          caloriesBurned,
+        }),
+      ]);
     } catch (error) {
       console.error('Error saving exercise summary:', error);
       hasSavedSessionRef.current = false;
     }
-  }, [count]);
+  }, [count, exercise.caloriesPerRep, exerciseType, mealRecordId, targetReps]);
 
   // 目標達成判定
   useEffect(() => {

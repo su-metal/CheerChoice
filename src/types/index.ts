@@ -17,26 +17,29 @@ export interface CalorieEstimationResult {
 // Meal Record
 export interface MealRecord {
   id: string;
-  userId: string;
-  timestamp: Date;
+  timestamp: string; // ISO string
   photoUri: string;
   estimatedCalories: number;
   foodName: string;
   confidence: number;
   choice: 'ate' | 'skipped';
-  exerciseId?: string;
 }
 
 // Exercise Record
 export interface ExerciseRecord {
   id: string;
-  userId: string;
-  mealRecordId: string;
-  timestamp: Date;
+  mealRecordId?: string;
+  timestamp: string; // ISO string
   exerciseType: 'squat' | 'situp' | 'pushup';
   count: number;
-  duration: number; // seconds
+  targetCount: number;
   caloriesBurned: number;
+}
+
+export interface UsageData {
+  aiPhotosUsed: number;
+  aiPhotosToday: number;
+  lastResetDate: string; // YYYY-MM-DD
 }
 
 // Exercise Definition

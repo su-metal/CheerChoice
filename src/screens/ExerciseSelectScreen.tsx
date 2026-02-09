@@ -28,7 +28,7 @@ type Props = {
 };
 
 export default function ExerciseSelectScreen({ navigation, route }: Props) {
-  const { calories, foodName } = route.params;
+  const { calories, foodName, mealRecordId } = route.params;
 
   // 運動を選択したときの処理
   function handleExerciseSelect(exercise: ExerciseDefinition) {
@@ -39,6 +39,7 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
       targetReps: recommendedReps,
       calories: calories,
       foodName: foodName,
+      mealRecordId,
     });
   }
 

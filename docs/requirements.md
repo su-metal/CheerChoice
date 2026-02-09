@@ -4,8 +4,8 @@
 
 ## 📋 ドキュメント情報
 - **作成日**: 2026-02-08
-- **最終更新**: 2026-02-08
-- **バージョン**: 2.0
+- **最終更新**: 2026-02-09
+- **バージョン**: 2.1
 - **ステータス**: 要件定義完了
 - **次フェーズ**: 実装開始
 
@@ -527,6 +527,29 @@ function getRealisticReps(calculatedReps: number, exercise: Exercise) {
 - "食べる喜びを、運動の楽しさでバランス！"
 - "You chose to eat, and that's perfectly fine! Let's celebrate with some fun movement 💃"
 
+#### 5.5.4 食べる選択後の運動義務・リカバリー仕様 🆕
+
+**設計原則**:
+- 「食べる」は完了ではなく、運動義務（Exercise Obligation）の発生として扱う
+- 義務未達の可視化は行うが、ユーザー体験上は「負債」ではなく「今週のリカバリー」と表現する
+
+**基本ルール**:
+1. 「食べる」選択時に、目標回数/目標運動量を持つ運動義務を自動作成する
+2. 運動は分割実施を許可する（例: 10回 + 15回）
+3. 運動セッションは `start / pause / resume / end` を時系列ログとして保存する
+4. 日次締め時刻（ローカル時刻 23:59）で義務の達成/未達を確定する
+5. セッション0件で未達の場合は「未達100%」として今週リカバリーに計上する
+6. 一部達成で未達の場合は「残量分」を今週リカバリーに計上する
+
+**週次リセット**:
+- 今週リカバリー残高は毎週月曜 00:00（ローカル時刻）に 0 へリセットする
+- リセット時も履歴は削除せず、分析用に保持する
+- 未達は翌週へ持ち越さない（離脱防止を優先）
+
+**UI/文言方針**:
+- 「負債」ではなく「今週のリカバリー」を正式文言として使用する
+- 例: 「今週のリカバリー: あと15回で達成」「今週もリスタートしました」
+
 ---
 
 ### 5.6 運動カウント機能（骨格判定）
@@ -835,7 +858,43 @@ interface ExerciseRecord {
 }
 ```
 
-### 7.4 統計データ（計算フィールド）
+### 7.4 運動義務・セッション記録（新規）
+```typescript
+interface ExerciseObligation {
+  id: string;
+  userId: string;
+  mealRecordId: string;
+  createdAt: Date;
+  dueAt: Date; // 当日 23:59 (local)
+  exerciseType: 'squat' | 'situp' | 'pushup';
+  targetCount: number;
+  completedCount: number;
+  status: 'open' | 'completed' | 'unmet';
+  finalizedAt?: Date;
+}
+
+interface ExerciseSessionEvent {
+  id: string;
+  obligationId: string;
+  timestamp: Date;
+  eventType: 'start' | 'pause' | 'resume' | 'end';
+  countSnapshot: number;
+}
+
+interface RecoveryLedgerEntry {
+  id: string;
+  userId: string;
+  obligationId: string;
+  weekStartDate: Date; // Monday 00:00 (local)
+  generatedAt: Date;
+  initialUnmetCount: number;
+  recoveredCount: number;
+  remainingCount: number;
+  status: 'open' | 'closed' | 'reset';
+}
+```
+
+### 7.5 統計データ（計算フィールド）
 ```typescript
 interface Statistics {
   userId: string;
@@ -850,6 +909,8 @@ interface Statistics {
   ateCount: number;
   exerciseCount: number;
   averageDailySkipped: number;
+  weeklyRecoveryGeneratedCount: number; // 週内で発生した未達回数
+  weeklyRecoveryResolvedCount: number;  // 週内で解消した回数
 }
 ```
 
@@ -919,6 +980,7 @@ interface Statistics {
 - 日別カロリー目標設定
 - 音声フィードバックON/OFF
 - データエクスポート / クリア
+- 今週リカバリー表示（週次リセット文言を含む）
 - 詳細: `.steering/20260209-phase9-settings-ux/`
 
 ### Phase 10: 仕上げ・品質改善

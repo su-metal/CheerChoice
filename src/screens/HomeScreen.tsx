@@ -4,9 +4,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Typography, Spacing, BorderRadius } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { getTodaySummary, TodaySummary } from '../services/storageService';
 import { t } from '../i18n';
-import { getRecentMealRecords } from '../services/recordService';
+import { getRecentMealRecords, getTodayRecordSummary, TodayRecordSummary } from '../services/recordService';
 import { MealRecord } from '../types';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -16,7 +15,7 @@ type Props = {
 };
 
 export default function HomeScreen({ navigation }: Props) {
-  const [summary, setSummary] = useState<TodaySummary>({
+  const [summary, setSummary] = useState<TodayRecordSummary>({
     skippedCount: 0,
     savedCalories: 0,
     exerciseCount: 0,
@@ -46,7 +45,7 @@ export default function HomeScreen({ navigation }: Props) {
 
       async function loadSummary() {
         try {
-          const todaySummary = await getTodaySummary();
+          const todaySummary = await getTodayRecordSummary();
           const latestRecords = await getRecentMealRecords(3);
           if (isMounted) {
             setSummary(todaySummary);
@@ -86,8 +85,15 @@ export default function HomeScreen({ navigation }: Props) {
         </TouchableOpacity>
 
         {/* Today's Summary */}
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>{t('home.todaySummary')}</Text>
+        <TouchableOpacity
+          style={styles.summaryCard}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('Stats')}
+        >
+          <View style={styles.summaryHeader}>
+            <Text style={styles.summaryTitle}>{t('home.todaySummary')}</Text>
+            <Text style={styles.summaryLink}>{t('home.viewStats')}</Text>
+          </View>
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryValue}>{summary.skippedCount}</Text>
@@ -104,7 +110,7 @@ export default function HomeScreen({ navigation }: Props) {
               <Text style={styles.summaryLabel}>{t('home.exercises')}</Text>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* Recent Activity Placeholder */}
         <View style={styles.recentSection}>
@@ -208,7 +214,16 @@ const styles = StyleSheet.create({
   summaryTitle: {
     ...Typography.h5,
     color: Colors.text,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: Spacing.md,
+  },
+  summaryLink: {
+    ...Typography.caption,
+    color: Colors.primary,
   },
   summaryRow: {
     flexDirection: 'row',

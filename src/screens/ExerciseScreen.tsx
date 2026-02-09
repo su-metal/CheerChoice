@@ -40,15 +40,19 @@ type WebViewMessage = {
   message?: string;
 };
 
+type InputMode = 'motion' | 'tap';
+
 export default function ExerciseScreen({ navigation, route }: Props) {
   const { exerciseType, targetReps, foodName, mealRecordId } = route.params;
 
   const [count, setCount] = useState(0);
+  const [inputMode, setInputMode] = useState<InputMode>('motion');
   const [isComplete, setIsComplete] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [scaleAnim] = useState(new Animated.Value(1));
+  const [webViewKey, setWebViewKey] = useState(0);
   const webViewRef = useRef<WebView>(null);
   const hasSavedSessionRef = useRef(false);
 
@@ -124,6 +128,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
         case 'error':
           setIsLoading(false);
           setHasError(true);
+          setInputMode('tap');
           setErrorMessage(data.message || t('exercise.cameraCouldNotStart'));
           break;
       }
@@ -182,11 +187,36 @@ export default function ExerciseScreen({ navigation, route }: Props) {
 
   const htmlContent = getPoseDetectorHtml(exerciseType, targetReps);
 
+  const switchInputMode = (nextMode: InputMode) => {
+    if (nextMode === inputMode) {
+      return;
+    }
+
+    setInputMode(nextMode);
+    if (nextMode === 'motion') {
+      setHasError(false);
+      setErrorMessage('');
+      setIsLoading(true);
+      setWebViewKey((prev) => prev + 1);
+      return;
+    }
+    setIsLoading(false);
+  };
+
+  const incrementByTap = () => {
+    setCount((prev) => prev + 1);
+  };
+
+  const decrementByTap = () => {
+    setCount((prev) => Math.max(0, prev - 1));
+  };
+
   return (
     <View style={styles.container}>
       {/* WebView: Camera + MediaPipe (full background) */}
-      {!hasError && (
+      {inputMode === 'motion' && !hasError && (
         <WebView
+          key={webViewKey}
           ref={webViewRef}
           source={{ html: htmlContent, baseUrl: 'https://localhost' }}
           style={styles.webview}
@@ -207,7 +237,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
       )}
 
       {/* Error fallback */}
-      {hasError && (
+      {inputMode === 'motion' && hasError && (
         <View style={styles.errorContainer}>
           <Text style={styles.errorIcon}>📷</Text>
           <Text style={styles.errorTitle}>{t('exercise.cameraNotAvailable')}</Text>
@@ -219,7 +249,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
       )}
 
       {/* Loading overlay */}
-      {isLoading && !hasError && (
+      {inputMode === 'motion' && isLoading && !hasError && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={Colors.surface} />
           <Text style={styles.loadingText}>{t('exercise.loadingModel')}</Text>
@@ -231,6 +261,24 @@ export default function ExerciseScreen({ navigation, route }: Props) {
         <View style={styles.topBar}>
           <Text style={styles.exerciseName}>{exercise.icon} {exerciseName}</Text>
           <Text style={styles.targetText}>{t('exercise.targetLabel', { targetReps })}</Text>
+          <View style={styles.modeSwitch}>
+            <TouchableOpacity
+              style={[styles.modeButton, inputMode === 'motion' && styles.modeButtonActive]}
+              onPress={() => switchInputMode('motion')}
+            >
+              <Text style={[styles.modeButtonText, inputMode === 'motion' && styles.modeButtonTextActive]}>
+                {t('exercise.motionMode')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modeButton, inputMode === 'tap' && styles.modeButtonActive]}
+              onPress={() => switchInputMode('tap')}
+            >
+              <Text style={[styles.modeButtonText, inputMode === 'tap' && styles.modeButtonTextActive]}>
+                {t('exercise.tapMode')}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </SafeAreaView>
 
@@ -245,6 +293,17 @@ export default function ExerciseScreen({ navigation, route }: Props) {
           <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
         </View>
         <Text style={styles.progressText}>{progressPercentage}%</Text>
+
+        {inputMode === 'tap' && (
+          <View style={styles.tapControls}>
+            <TouchableOpacity style={styles.tapMinusButton} onPress={decrementByTap}>
+              <Text style={styles.tapButtonText}>-1</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.tapPlusButton} onPress={incrementByTap}>
+              <Text style={styles.tapButtonText}>{t('exercise.tapToCount')}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       {/* Bottom bar overlay */}
@@ -347,6 +406,29 @@ const styles = StyleSheet.create({
     color: Colors.surface,
     opacity: 0.9,
   },
+  modeSwitch: {
+    marginTop: Spacing.sm,
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderRadius: BorderRadius.md,
+    padding: 3,
+  },
+  modeButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.sm,
+  },
+  modeButtonActive: {
+    backgroundColor: Colors.surface,
+  },
+  modeButtonText: {
+    ...Typography.caption,
+    color: Colors.surface,
+    fontWeight: '600',
+  },
+  modeButtonTextActive: {
+    color: Colors.accent,
+  },
 
   // Center overlay
   centerOverlay: {
@@ -388,6 +470,29 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
     marginTop: 4,
+  },
+  tapControls: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  tapPlusButton: {
+    backgroundColor: Colors.secondary,
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    alignItems: 'center',
+  },
+  tapMinusButton: {
+    backgroundColor: 'rgba(99, 110, 114, 0.9)',
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    alignItems: 'center',
+  },
+  tapButtonText: {
+    ...Typography.button,
+    color: Colors.surface,
   },
 
   // Bottom bar

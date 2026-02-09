@@ -7,6 +7,7 @@ import { Colors, Typography, Spacing, BorderRadius } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { t } from '../i18n';
 import { canUseAI, getRemainingAIUses } from '../services/usageService';
+import { IS_PREMIUM } from '../config/appConfig';
 
 type CameraScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Camera'>;
 
@@ -25,7 +26,7 @@ export default function CameraScreen({ navigation }: Props) {
     React.useCallback(() => {
       let active = true;
       async function loadRemaining() {
-        const count = await getRemainingAIUses(false);
+        const count = await getRemainingAIUses(IS_PREMIUM);
         if (active) {
           setRemaining(count);
         }
@@ -83,7 +84,7 @@ export default function CameraScreen({ navigation }: Props) {
             <TouchableOpacity
               style={[styles.previewButton, styles.usePhotoButton]}
               onPress={async () => {
-                const allowed = await canUseAI(false);
+                const allowed = await canUseAI(IS_PREMIUM);
                 if (!allowed) {
                   Alert.alert(t('camera.limitTitle'), t('camera.limitMessage'));
                   navigation.navigate('ManualEntry');

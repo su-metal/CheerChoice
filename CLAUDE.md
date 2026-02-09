@@ -333,8 +333,10 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 - 週間カロリー節制の棒グラフ（プレミアム限定）
 - 食べた vs 食べなかった比率（プレミアム限定）
 - 運動種目別の実施回数（プレミアム限定）
+- 食べる選択後の運動義務・今週リカバリー表示（週次リセット）
 - 無料ユーザーには「Upgrade」プロモーション表示
 - 詳細: `.steering/20260209-phase8-statistics/`
+- 追加要件詳細: `.steering/20260209-exercise-recovery-policy/`
 
 ### Phase 9: 設定・UX改善
 - **SettingsScreen.tsx**: 設定画面
@@ -417,4 +419,4 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 ---
 
 ## 最終更新日
-2026-02-09 - Phase 7主要機能（i18n/履歴/手動入力/AI利用管理）実装反映
+2026-02-09 - Phase 7主要機能反映 + 食べる後の運動義務/週次リカバリー方針を追記

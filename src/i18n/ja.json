@@ -21,7 +21,8 @@
     "exerciseSelect": "運動を選ぼう",
     "exercise": "体を動かそう！",
     "log": "履歴",
-    "manualEntry": "手動入力"
+    "manualEntry": "手動入力",
+    "stats": "統計"
   },
   "home": {
     "subtitle": "あなたのポジティブ健康パートナー",
@@ -32,6 +33,7 @@
     "saved": "節約",
     "exercises": "運動",
     "recentActivity": "最近のアクティビティ",
+    "viewStats": "統計を見る",
     "seeAll": "すべて見る",
     "ate": "食べた",
     "skippedChoice": "食べない",
@@ -100,6 +102,9 @@
     "errorHint": "この機能はDevelopment Buildが必要です。\nExpo GoではWebViewカメラが使えない場合があります。",
     "loadingModel": "AIモデルを読み込み中...",
     "targetLabel": "目標: %{targetReps} 回",
+    "motionMode": "運動モード",
+    "tapMode": "タップモード",
+    "tapToCount": "タップ +1",
     "finish": "完了！",
     "types": {
       "squat": {
@@ -132,6 +137,25 @@
     "deleteMessage": "この記録を削除しますか？",
     "emptyTitle": "まだ記録がありません",
     "emptyBody": "写真撮影または手動入力から始めましょう。"
+  },
+  "stats": {
+    "thisWeek": "今週",
+    "thisMonth": "今月",
+    "savedCalories": "節約カロリー",
+    "totalMeals": "食事回数",
+    "exerciseSessions": "運動セッション",
+    "unlockTitle": "詳細な統計をアンロック",
+    "unlockBody": "プレミアムでグラフと詳細インサイトを表示できます。",
+    "upgradeButton": "プレミアムにアップグレード",
+    "choiceRatio": "あなたの選択",
+    "skippedLabel": "食べない: %{count}回 (%{percent}%)",
+    "ateLabel": "食べた: %{count}回 (%{percent}%)",
+    "exerciseBreakdown": "運動アクティビティ",
+    "squatSessions": "スクワット: %{count} セッション",
+    "situpSessions": "腹筋: %{count} セッション",
+    "pushupSessions": "腕立て: %{count} セッション",
+    "totalReps": "合計回数: %{count}",
+    "totalBurned": "消費: %{count} kcal"
   },
   "messages": {
     "skipped": {

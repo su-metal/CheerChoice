@@ -10,3 +10,4 @@ export { default as ExerciseSelectScreen } from './ExerciseSelectScreen';
 export { default as ExerciseScreen } from './ExerciseScreen';
 export { default as LogScreen } from './LogScreen';
 export { default as ManualEntryScreen } from './ManualEntryScreen';
+export { default as StatsScreen } from './StatsScreen';

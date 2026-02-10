@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/AppNavigator';
 import { getSettings } from './src/services/settingsService';
 import { setAppLocale } from './src/i18n';
+import { bootstrapSupabase } from './src/services/migrationService';
 
 export default function App() {
   useEffect(() => {
@@ -14,6 +15,12 @@ export default function App() {
       .catch((error) => {
         console.error('Error loading language setting:', error);
       });
+  }, []);
+
+  useEffect(() => {
+    bootstrapSupabase().catch((error) => {
+      console.error('Supabase bootstrap failed:', error);
+    });
   }, []);
 
   return (

@@ -1,6 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getExerciseRecords, getMealRecords } from './recordService';
 import { getUsageData } from './usageService';
+import { APP_ID } from '../constants/app';
+import { ensureSupabaseAnonymousAuth, getCurrentSupabaseUserId } from './authService';
+import { getSupabaseClient } from './supabaseClient';
 
 const SETTINGS_KEY = '@CheerChoice:settings';
 const APP_STORAGE_KEYS = [
@@ -37,6 +40,74 @@ const defaultSettings: AppSettings = {
   language: 'auto',
 };
 
+type SettingsRow = {
+  daily_calorie_goal: number;
+  voice_feedback_enabled: boolean;
+  language: 'auto' | 'en' | 'ja';
+};
+
+async function readSettingsFromSupabase(): Promise<AppSettings | null> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return null;
+  }
+
+  const userId = (await getCurrentSupabaseUserId()) ?? (await ensureSupabaseAnonymousAuth());
+  if (!userId) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from('cc_user_settings')
+    .select('daily_calorie_goal, voice_feedback_enabled, language')
+    .eq('app_id', APP_ID)
+    .eq('user_id', userId)
+    .maybeSingle<SettingsRow>();
+
+  if (error) {
+    console.error('Error loading settings from Supabase:', error.message);
+    return null;
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return sanitizeSettings({
+    dailyCalorieGoal: Number(data.daily_calorie_goal) || defaultSettings.dailyCalorieGoal,
+    voiceFeedbackEnabled: !!data.voice_feedback_enabled,
+    language: data.language,
+  });
+}
+
+async function writeSettingsToSupabase(settings: AppSettings): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return;
+  }
+
+  const userId = (await getCurrentSupabaseUserId()) ?? (await ensureSupabaseAnonymousAuth());
+  if (!userId) {
+    return;
+  }
+
+  const payload = {
+    app_id: APP_ID,
+    user_id: userId,
+    daily_calorie_goal: settings.dailyCalorieGoal,
+    voice_feedback_enabled: settings.voiceFeedbackEnabled,
+    language: settings.language,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error } = await supabase.from('cc_user_settings').upsert(payload, {
+    onConflict: 'user_id',
+  });
+  if (error) {
+    console.error('Error saving settings to Supabase:', error.message);
+  }
+}
+
 function sanitizeSettings(data: Partial<AppSettings>): AppSettings {
   const dailyGoal = Number(data.dailyCalorieGoal);
   const normalizedGoal = Number.isFinite(dailyGoal)
@@ -58,6 +129,12 @@ function sanitizeSettings(data: Partial<AppSettings>): AppSettings {
 
 export async function getSettings(): Promise<AppSettings> {
   try {
+    const supabaseSettings = await readSettingsFromSupabase();
+    if (supabaseSettings) {
+      await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(supabaseSettings));
+      return supabaseSettings;
+    }
+
     const raw = await AsyncStorage.getItem(SETTINGS_KEY);
     if (!raw) {
       return defaultSettings;
@@ -77,6 +154,7 @@ export async function updateSettings(partial: Partial<AppSettings>): Promise<App
     ...partial,
   });
   await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+  await writeSettingsToSupabase(next);
   return next;
 }
 
@@ -102,4 +180,35 @@ export async function exportAllData(): Promise<string> {
 
 export async function clearAllData(): Promise<void> {
   await AsyncStorage.multiRemove([...APP_STORAGE_KEYS]);
+
+  const supabase = getSupabaseClient();
+  const userId = supabase
+    ? (await getCurrentSupabaseUserId()) ?? (await ensureSupabaseAnonymousAuth())
+    : null;
+  if (!supabase || !userId) {
+    return;
+  }
+
+  const tables = [
+    'cc_exercise_session_events',
+    'cc_recovery_ledger',
+    'cc_exercise_obligations',
+    'cc_exercise_records',
+    'cc_meal_records',
+    'cc_usage_tracking',
+    'cc_user_settings',
+  ] as const;
+
+  await Promise.all(
+    tables.map(async (table) => {
+      const { error } = await supabase
+        .from(table)
+        .delete()
+        .eq('app_id', APP_ID)
+        .eq('user_id', userId);
+      if (error) {
+        console.error(`Error clearing ${table}:`, error.message);
+      }
+    })
+  );
 }

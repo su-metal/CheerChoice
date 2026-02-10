@@ -356,6 +356,12 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 - **インデックス**: `(app_id, user_id, ...)` の複合インデックス
 - **移行戦略**: AsyncStorage → Supabase の段階的移行（読み取り優先）
 - **MCP接続**: `~/.claude/config.json` に Supabase MCP サーバー設定済み
+- **匿名認証運用**:
+  - 開発・検証では Supabase Anonymous Sign-In を利用
+  - 本番リリース前に `Anonymous` を無効化するか、通常認証（Google/Apple等）へ移行
+- **共有プロジェクト安全化（実施済み）**:
+  - `apps`, `profiles`, `stripe_events`, `usage_events`, `user_presets_backup_20260114` を RLS 有効化
+  - `stripe_events` / `user_presets_backup_20260114` はクライアント（anon/authenticated）拒否ポリシー
 - 詳細: `.steering/20260210-phase11-supabase-migration/`
 
 ---

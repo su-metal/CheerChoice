@@ -58,3 +58,19 @@ eas build --platform android --profile development --clear-cache
 - High: 0件
 - Medium: 0件（現時点）
 - 備考: なし
+
+## 8. 実施ログ（2026-02-10）
+
+- [OK] `.env` 本番値を設定済み（Supabase / Sentry DSN / Legal URL）
+- [OK] `Settings > 法的情報` から Privacy/Terms のリンクが開くことを確認
+- [OK] 主要導線確認:
+  - 撮影 -> 判定 -> 食べる/食べない -> 保存 -> 履歴表示
+  - アプリ再起動後に履歴が残ることを確認
+- [OK] PR自動チェック（`pr-check.yml`）がGitHub PRで実行され、`checks` 成功を確認
+
+## 9. main反映手順（PRマージ）
+
+1. `dev_0.1` から `main` へPRを作成
+2. `PR Check` が `checks` 緑で完了していることを確認
+3. PRをマージ
+4. `main` で最新化後、リリース作業へ進む

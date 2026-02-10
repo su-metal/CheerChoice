@@ -233,6 +233,12 @@
       "ja": "日本語"
     },
     "about": "アプリ情報",
+    "legal": "法的情報",
+    "privacyPolicy": "プライバシーポリシー",
+    "termsOfService": "利用規約",
+    "legalUrlMissingTitle": "URL未設定",
+    "legalUrlMissingBody": "このリンクはまだ設定されていません。開発者に連絡してください。",
+    "legalOpenFailed": "リンクを開けませんでした。",
     "tagline": "あなたのポジティブ健康パートナー",
     "version": "バージョン %{value}"
   },

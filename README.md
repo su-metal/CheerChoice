@@ -1,5 +1,17 @@
 # CheerChoice
 
+## Environment Variables
+
+`.env` に以下を設定してください:
+
+```env
+EXPO_PUBLIC_SUPABASE_URL=...
+EXPO_PUBLIC_SUPABASE_ANON_KEY=...
+EXPO_PUBLIC_SENTRY_DSN=...
+EXPO_PUBLIC_PRIVACY_POLICY_URL=...
+EXPO_PUBLIC_TERMS_URL=...
+```
+
 ## Troubleshooting
 
 ### EAS Build: `tar ... Permission denied` で失敗する場合

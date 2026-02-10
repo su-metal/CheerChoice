@@ -233,6 +233,12 @@
       "ja": "Japanese"
     },
     "about": "About",
+    "legal": "Legal",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "legalUrlMissingTitle": "URL not configured",
+    "legalUrlMissingBody": "This link is not configured yet. Please contact the app owner.",
+    "legalOpenFailed": "Failed to open link.",
     "tagline": "Your positive health companion",
     "version": "Version %{value}"
   },

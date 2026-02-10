@@ -34,7 +34,8 @@
     },
     "plugins": [
       "expo-asset",
-      "expo-localization"
+      "expo-localization",
+      "@sentry/react-native"
     ],
     "extra": {
       "eas": {

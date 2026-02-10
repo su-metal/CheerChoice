@@ -21,7 +21,6 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { getRandomCompletionMessage, getRandomPartialMessage } from '../utils/exerciseMessages';
 import { EXERCISES } from '../constants/Exercises';
 import { getPoseDetectorHtml } from '../utils/poseDetectorHtml';
-import { updateTodayExerciseSummary } from '../services/storageService';
 import { resolveLocale, t } from '../i18n';
 import { saveExerciseRecord } from '../services/recordService';
 import { getSettings } from '../services/settingsService';
@@ -392,7 +391,6 @@ export default function ExerciseScreen({ navigation, route }: Props) {
       };
 
       await Promise.all([
-        updateTodayExerciseSummary(),
         saveExerciseRecord({
           mealRecordId,
           timestamp: new Date().toISOString(),

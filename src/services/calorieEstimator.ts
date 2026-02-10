@@ -15,9 +15,7 @@ export async function estimateCalories(
 ): Promise<CalorieEstimationResult> {
   try {
     // 画像を処理（リサイズ + Base64変換）
-    console.log('Processing image...');
     const base64Image = await processImageForAI(imageUri);
-    console.log('Image processed, calling OpenAI API...');
 
     // OpenAI API呼び出し
     const response = await openai.chat.completions.create({
@@ -60,8 +58,6 @@ Important:
     if (!content) {
       throw new Error('No response from OpenAI');
     }
-
-    console.log('OpenAI response:', content);
 
     // JSONをパース
     const result = JSON.parse(content) as CalorieEstimationResult;

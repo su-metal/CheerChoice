@@ -15,7 +15,6 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { getRandomSkippedMessage } from '../utils/messages';
 import {
   updateSkippedStats,
-  updateTodaySkippedSummary,
   SkippedStats,
 } from '../services/storageService';
 import { t } from '../i18n';
@@ -41,10 +40,7 @@ export default function SkippedScreen({ navigation, route }: Props) {
     // 統計データを更新
     async function updateStats() {
       try {
-        const [updatedStats] = await Promise.all([
-          updateSkippedStats(calories),
-          updateTodaySkippedSummary(calories),
-        ]);
+        const updatedStats = await updateSkippedStats(calories);
         setStats(updatedStats);
       } catch (error) {
         console.error('Error updating stats:', error);

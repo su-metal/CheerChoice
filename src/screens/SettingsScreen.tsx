@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Linking,
   Share,
   ScrollView,
   StyleSheet,
@@ -14,7 +15,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BorderRadius, Colors, Spacing, Typography } from '../constants';
 import { setAppLocale, t } from '../i18n';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { IS_PREMIUM } from '../config/appConfig';
+import { IS_PREMIUM, PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '../config/appConfig';
 import { getUsageData } from '../services/usageService';
 import { UsageData } from '../types';
 import {
@@ -121,6 +122,20 @@ export default function SettingsScreen({ navigation }: Props) {
         },
       ]
     );
+  };
+
+  const openExternalUrl = async (url: string) => {
+    if (!url) {
+      Alert.alert(t('settings.legalUrlMissingTitle'), t('settings.legalUrlMissingBody'));
+      return;
+    }
+
+    try {
+      await Linking.openURL(url);
+    } catch (error) {
+      console.error('Error opening external URL:', error);
+      Alert.alert(t('common.oops'), t('settings.legalOpenFailed'));
+    }
   };
 
   return (
@@ -234,6 +249,24 @@ export default function SettingsScreen({ navigation }: Props) {
                 <Text style={styles.actionButtonText}>{t('stats.upgradeButton')}</Text>
               </TouchableOpacity>
             )}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('settings.legal')}</Text>
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => openExternalUrl(PRIVACY_POLICY_URL)}
+            >
+              <Text style={styles.actionButtonText}>{t('settings.privacyPolicy')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => openExternalUrl(TERMS_OF_SERVICE_URL)}
+            >
+              <Text style={styles.actionButtonText}>{t('settings.termsOfService')}</Text>
+            </TouchableOpacity>
           </View>
         </View>
 

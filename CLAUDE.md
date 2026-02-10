@@ -363,6 +363,10 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 - Sentry導入（クラッシュレポート）
 - プライバシーポリシー・利用規約作成（GitHub Pages）
 - アプリアイコン・スプラッシュ最終化
+- **リリース判定ゲート（Phase 12 exit criteria）**:
+  - 重大クラッシュ（起動不能/保存不能/課金不能）0件
+  - 主要導線（撮影→判定→運動→保存→履歴表示）を実機で通過
+  - 既知Highバグ 0件、Mediumバグは回避策付きで管理
 - 詳細: `.steering/20260210-phase12-release-prep/`
 
 ### Phase 13: APIセキュリティ（Supabase Edge Function）
@@ -370,6 +374,11 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 - `EXPO_PUBLIC_OPENAI_API_KEY` をクライアントから除去
 - サーバーサイドでのレート制限・使用回数検証
 - `openai` npm パッケージの削除
+- **セキュリティ必須要件**:
+  - Edge Function でJWT検証（未認証リクエスト拒否）
+  - ユーザー単位のレート制限（短期/日次）
+  - タイムアウトと失敗時リトライ上限の設定
+  - 監査ログ（user_id, endpoint, status, latency）の記録
 - 詳細: `.steering/20260210-phase13-api-security/`
 
 ### Phase 14: 課金実装（RevenueCat）
@@ -377,6 +386,11 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 - Google Play サブスクリプション（$4.99/月）
 - `IS_PREMIUM` ハードコード → RevenueCat `CustomerInfo` 動的判定
 - Paywall画面、購入復元、RevenueCat Webhook → `entitlements` 連携
+- **失敗系テスト（必須）**:
+  - 購入失敗時のリカバリー導線表示
+  - 購入復元失敗時の再試行導線表示
+  - 解約/期限切れ反映遅延時のガード（短時間キャッシュ + 再検証）
+  - オフライン時のPremium判定フォールバック確認
 - 詳細: `.steering/20260210-phase14-iap-revenueCat/`
 
 ### Phase 15: Google Play ストア提出

@@ -16,7 +16,6 @@ const APP_STORAGE_KEYS = [
   '@CheerChoice:usageData',
   '@CheerChoice:usageResetMarker',
   '@CheerChoice:skippedStats',
-  '@CheerChoice:todaySummary',
 ] as const;
 
 export interface AppSettings {
@@ -39,6 +38,18 @@ const defaultSettings: AppSettings = {
   voiceFeedbackEnabled: true,
   language: 'auto',
 };
+
+function getAppVersion(): string {
+  try {
+    const config = require('../../app.json') as {
+      expo?: { version?: string };
+    };
+    const version = config?.expo?.version;
+    return typeof version === 'string' && version.trim().length > 0 ? version.trim() : '1.0.0';
+  } catch {
+    return '1.0.0';
+  }
+}
 
 type SettingsRow = {
   daily_calorie_goal: number;
@@ -168,7 +179,7 @@ export async function exportAllData(): Promise<string> {
 
   const payload: ExportPayload = {
     exportDate: new Date().toISOString(),
-    appVersion: '1.0.0',
+    appVersion: getAppVersion(),
     mealRecords,
     exerciseRecords,
     settings,

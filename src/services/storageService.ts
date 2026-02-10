@@ -1,19 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SKIPPED_STATS_KEY = '@CheerChoice:skippedStats';
-const TODAY_SUMMARY_KEY = '@CheerChoice:todaySummary';
 
 export interface SkippedStats {
   today: number;
   thisWeek: number;
   thisMonth: number;
-  lastUpdated: string; // ISO date string
-}
-
-export interface TodaySummary {
-  skippedCount: number;
-  savedCalories: number;
-  exerciseCount: number;
   lastUpdated: string; // ISO date string
 }
 
@@ -27,13 +19,6 @@ const defaultStats: SkippedStats = {
   lastUpdated: new Date().toISOString(),
 };
 
-const defaultTodaySummary: TodaySummary = {
-  skippedCount: 0,
-  savedCalories: 0,
-  exerciseCount: 0,
-  lastUpdated: new Date().toISOString(),
-};
-
 /**
  * 2つの日付が同じ日かどうかを判定
  */
@@ -43,23 +28,6 @@ function isSameDay(date1: Date, date2: Date): boolean {
     date1.getMonth() === date2.getMonth() &&
     date1.getDate() === date2.getDate()
   );
-}
-
-/**
- * 日跨ぎ時は TodaySummary をリセット
- */
-function normalizeTodaySummary(summary: TodaySummary): TodaySummary {
-  const now = new Date();
-  const lastUpdated = new Date(summary.lastUpdated);
-
-  if (!isSameDay(lastUpdated, now)) {
-    return {
-      ...defaultTodaySummary,
-      lastUpdated: now.toISOString(),
-    };
-  }
-
-  return summary;
 }
 
 /**
@@ -149,73 +117,11 @@ export async function updateSkippedStats(calories: number): Promise<SkippedStats
 }
 
 /**
- * 今日のサマリーを取得
- */
-export async function getTodaySummary(): Promise<TodaySummary> {
-  try {
-    const summaryJson = await AsyncStorage.getItem(TODAY_SUMMARY_KEY);
-
-    if (!summaryJson) {
-      return defaultTodaySummary;
-    }
-
-    const summary: TodaySummary = JSON.parse(summaryJson);
-    return normalizeTodaySummary(summary);
-  } catch (error) {
-    console.error('Error loading today summary:', error);
-    return defaultTodaySummary;
-  }
-}
-
-/**
- * 「食べない」選択時の今日サマリー更新
- */
-export async function updateTodaySkippedSummary(calories: number): Promise<TodaySummary> {
-  try {
-    const currentSummary = await getTodaySummary();
-    const updatedSummary: TodaySummary = {
-      skippedCount: currentSummary.skippedCount + 1,
-      savedCalories: currentSummary.savedCalories + calories,
-      exerciseCount: currentSummary.exerciseCount,
-      lastUpdated: new Date().toISOString(),
-    };
-
-    await AsyncStorage.setItem(TODAY_SUMMARY_KEY, JSON.stringify(updatedSummary));
-    return updatedSummary;
-  } catch (error) {
-    console.error('Error updating today skipped summary:', error);
-    throw new Error('Failed to update today summary');
-  }
-}
-
-/**
- * 運動完了時の今日サマリー更新
- */
-export async function updateTodayExerciseSummary(): Promise<TodaySummary> {
-  try {
-    const currentSummary = await getTodaySummary();
-    const updatedSummary: TodaySummary = {
-      skippedCount: currentSummary.skippedCount,
-      savedCalories: currentSummary.savedCalories,
-      exerciseCount: currentSummary.exerciseCount + 1,
-      lastUpdated: new Date().toISOString(),
-    };
-
-    await AsyncStorage.setItem(TODAY_SUMMARY_KEY, JSON.stringify(updatedSummary));
-    return updatedSummary;
-  } catch (error) {
-    console.error('Error updating today exercise summary:', error);
-    throw new Error('Failed to update today summary');
-  }
-}
-
-/**
  * 統計データをリセット（テスト用）
  */
 export async function resetSkippedStats(): Promise<void> {
   try {
     await AsyncStorage.removeItem(SKIPPED_STATS_KEY);
-    await AsyncStorage.removeItem(TODAY_SUMMARY_KEY);
   } catch (error) {
     console.error('Error resetting skipped stats:', error);
   }

@@ -363,6 +363,11 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 - Sentry導入（クラッシュレポート）
 - プライバシーポリシー・利用規約作成（GitHub Pages）
 - アプリアイコン・スプラッシュ最終化
+- 実装済み:
+  - `Settings` から法的リンク導線を追加（Privacy/Terms）
+  - `docs/legal/*.html` を追加し、GitHub Pages公開対応
+  - `.env` に `EXPO_PUBLIC_PRIVACY_POLICY_URL` / `EXPO_PUBLIC_TERMS_URL` を接続
+  - Sentryテストイベント制御（`EXPO_PUBLIC_SENTRY_TEST_EVENT`）
 - **リリース判定ゲート（Phase 12 exit criteria）**:
   - 重大クラッシュ（起動不能/保存不能/課金不能）0件
   - 主要導線（撮影→判定→運動→保存→履歴表示）を実機で通過

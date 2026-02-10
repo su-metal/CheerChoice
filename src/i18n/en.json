@@ -43,13 +43,17 @@
     "hoursAgo": "%{count}h ago",
     "daysAgo": "%{count}d ago",
     "noActivity": "No activity yet",
-    "noActivitySubtext": "Take your first photo to get started!"
+    "noActivitySubtext": "Take your first photo to get started!",
+    "goalProgressTitle": "Daily Goal Progress",
+    "goalReached": "You hit your goal today!",
+    "goalRemaining": "%{count} kcal to your goal"
   },
   "camera": {
     "loading": "Loading camera...",
     "permissionRequired": "Camera Permission Required",
     "permissionText": "We need access to your camera to take photos of your food.",
     "grantPermission": "Grant Permission",
+    "openSettings": "Open Settings",
     "retake": "Retake",
     "usePhoto": "Use Photo",
     "flip": "Flip",
@@ -78,6 +82,7 @@
     "foodNameLabel": "Food name",
     "caloriesLabel": "Estimated calories",
     "invalidEdit": "Please enter a valid food name and calories.",
+    "analysisFailed": "We could not analyze that photo. Please try another angle.",
     "saveError": "Failed to save record. Please try again.",
     "backToCamera": "Back to Camera",
     "takeAnotherPhoto": "Take Another Photo"
@@ -142,9 +147,21 @@
     "quickPicks": "Quick picks",
     "continue": "Continue"
   },
+  "onboarding": {
+    "skip": "Skip",
+    "next": "Next",
+    "getStarted": "Get Started",
+    "page1Title": "Snap, Choose, Move!",
+    "page1Body": "Take a photo of your food and CheerChoice helps you choose your next positive step.",
+    "page2Title": "Eat or Skip, Both Great",
+    "page2Body": "Skip it to save calories, or eat it and enjoy a short move. Every choice counts.",
+    "page3Title": "No Guilt, Ever!",
+    "page3Body": "Your choices are always valid. Start with 15 free AI photo analyses."
+  },
   "log": {
     "ate": "Ate",
     "skipped": "Skipped",
+    "loading": "Loading your activity...",
     "deleteTitle": "Delete record",
     "deleteMessage": "Are you sure you want to delete this record?",
     "emptyTitle": "No records yet",
@@ -153,6 +170,7 @@
   "stats": {
     "thisWeek": "This Week",
     "thisMonth": "This Month",
+    "loading": "Loading your stats...",
     "savedCalories": "Saved Calories",
     "totalMeals": "Total Meals",
     "exerciseSessions": "Exercise Sessions",
@@ -194,6 +212,26 @@
     "data": "Data",
     "exportData": "Export Data",
     "clearData": "Clear All Data",
+    "exporting": "Exporting...",
+    "exportFailed": "Failed to export data. Please try again.",
+    "clearConfirmTitle": "Clear all data?",
+    "clearConfirmBody": "This will delete all your records. This cannot be undone.",
+    "clearFailed": "Failed to clear data. Please try again.",
+    "subscription": "Subscription",
+    "plan": "Plan: %{value}",
+    "planFree": "Free",
+    "planPremium": "Premium",
+    "aiUsageFree": "AI Photos Used: %{used} / %{limit}",
+    "aiUsagePremium": "AI Photos Today: %{used} / %{limit}",
+    "loadingUsage": "Loading usage...",
+    "upgradeTitle": "Premium coming soon",
+    "upgradeBody": "Upgrade flow is coming soon.",
+    "language": "Language",
+    "languageOptions": {
+      "auto": "Auto",
+      "en": "English",
+      "ja": "Japanese"
+    },
     "about": "About",
     "tagline": "Your positive health companion",
     "version": "Version %{value}"

@@ -43,13 +43,17 @@
     "hoursAgo": "%{count}時間前",
     "daysAgo": "%{count}日前",
     "noActivity": "まだ記録がありません",
-    "noActivitySubtext": "最初の写真を撮って始めよう！"
+    "noActivitySubtext": "最初の写真を撮って始めよう！",
+    "goalProgressTitle": "今日の目標進捗",
+    "goalReached": "今日の目標を達成しました！",
+    "goalRemaining": "目標まであと %{count} kcal"
   },
   "camera": {
     "loading": "カメラを読み込み中...",
     "permissionRequired": "カメラ権限が必要です",
     "permissionText": "食べ物の写真を撮るためにカメラへのアクセスが必要です。",
     "grantPermission": "権限を許可",
+    "openSettings": "設定を開く",
     "retake": "撮り直す",
     "usePhoto": "この写真を使う",
     "flip": "切替",
@@ -78,6 +82,7 @@
     "foodNameLabel": "食べ物名",
     "caloriesLabel": "推定カロリー",
     "invalidEdit": "食べ物名とカロリーを正しく入力してください。",
+    "analysisFailed": "写真の解析がうまくできませんでした。別の角度で試してみてください。",
     "saveError": "記録の保存に失敗しました。もう一度お試しください。",
     "backToCamera": "カメラに戻る",
     "takeAnotherPhoto": "もう一度撮影する"
@@ -142,9 +147,21 @@
     "quickPicks": "クイック選択",
     "continue": "続ける"
   },
+  "onboarding": {
+    "skip": "スキップ",
+    "next": "次へ",
+    "getStarted": "はじめる",
+    "page1Title": "撮る、選ぶ、動く！",
+    "page1Body": "食べ物を撮影すると、CheerChoiceが次のポジティブな一歩を提案します。",
+    "page2Title": "食べるも食べないも正解",
+    "page2Body": "食べないなら節約を記録、食べるなら楽しくムーブ。どちらの選択も前進です。",
+    "page3Title": "罪悪感はゼロでいこう",
+    "page3Body": "あなたの選択はいつでも価値があります。まずはAI撮影15回無料体験から。"
+  },
   "log": {
     "ate": "食べた",
     "skipped": "食べない",
+    "loading": "アクティビティを読み込み中...",
     "deleteTitle": "記録を削除",
     "deleteMessage": "この記録を削除しますか？",
     "emptyTitle": "まだ記録がありません",
@@ -153,6 +170,7 @@
   "stats": {
     "thisWeek": "今週",
     "thisMonth": "今月",
+    "loading": "統計を読み込み中...",
     "savedCalories": "節約カロリー",
     "totalMeals": "食事回数",
     "exerciseSessions": "運動セッション",
@@ -194,6 +212,26 @@
     "data": "データ管理",
     "exportData": "データをエクスポート",
     "clearData": "すべてのデータを削除",
+    "exporting": "エクスポート中...",
+    "exportFailed": "データのエクスポートに失敗しました。",
+    "clearConfirmTitle": "データを削除しますか？",
+    "clearConfirmBody": "すべての記録が削除されます。この操作は元に戻せません。",
+    "clearFailed": "データ削除に失敗しました。",
+    "subscription": "サブスクリプション",
+    "plan": "プラン: %{value}",
+    "planFree": "無料",
+    "planPremium": "プレミアム",
+    "aiUsageFree": "AI撮影使用数: %{used} / %{limit}",
+    "aiUsagePremium": "今日のAI撮影: %{used} / %{limit}",
+    "loadingUsage": "利用状況を読み込み中...",
+    "upgradeTitle": "プレミアムは準備中です",
+    "upgradeBody": "アップグレード機能は近日対応予定です。",
+    "language": "言語",
+    "languageOptions": {
+      "auto": "自動",
+      "en": "英語",
+      "ja": "日本語"
+    },
     "about": "アプリ情報",
     "tagline": "あなたのポジティブ健康パートナー",
     "version": "バージョン %{value}"

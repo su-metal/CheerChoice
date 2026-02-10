@@ -131,6 +131,9 @@ export function getPoseDetectorHtml(
       _lastPersonTs: null,
       initialized: false
     };
+    let currentStream = null;
+    let rafId = null;
+    let isDisposed = false;
 
     // ============================================
     // DOM
@@ -148,6 +151,27 @@ export function getPoseDetectorHtml(
       if (window.ReactNativeWebView) {
         window.ReactNativeWebView.postMessage(JSON.stringify(data));
       }
+    }
+
+    function cleanupMedia() {
+      try {
+        isDisposed = true;
+        state.initialized = false;
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+        if (currentStream && currentStream.getTracks) {
+          currentStream.getTracks().forEach(function(track) { track.stop(); });
+        }
+        currentStream = null;
+        if (videoEl && videoEl.srcObject && videoEl.srcObject.getTracks) {
+          videoEl.srcObject.getTracks().forEach(function(track) { track.stop(); });
+        }
+        if (videoEl) {
+          videoEl.srcObject = null;
+        }
+      } catch (e) {}
     }
 
     // ============================================
@@ -461,6 +485,10 @@ export function getPoseDetectorHtml(
             videoEl.srcObject.getTracks().forEach(function(track) { track.stop(); });
             videoEl.srcObject = null;
           }
+          if (currentStream && currentStream.getTracks) {
+            currentStream.getTracks().forEach(function(track) { track.stop(); });
+            currentStream = null;
+          }
         } catch (e) {}
 
         // Check getUserMedia availability
@@ -481,6 +509,7 @@ export function getPoseDetectorHtml(
 
         // First get camera stream to confirm it works
         var stream = await getCameraStreamWithFallback();
+        currentStream = stream;
         videoEl.srcObject = stream;
 
         // Some WebViews reject play() promise without user gesture.
@@ -529,7 +558,7 @@ export function getPoseDetectorHtml(
           try {
             await pose.send({ image: videoEl });
           } catch (e) {}
-          requestAnimationFrame(processFrame);
+          rafId = requestAnimationFrame(processFrame);
         }
 
         loadingEl.style.display = 'none';
@@ -540,6 +569,7 @@ export function getPoseDetectorHtml(
         processFrame();
 
       } catch (err) {
+        cleanupMedia();
         var baseMessage = (err && err.name ? err.name + ': ' : '') + ((err && err.message) || 'Could not access camera');
         var message = baseMessage;
         if (err && err.name === 'NotReadableError') {
@@ -553,9 +583,18 @@ export function getPoseDetectorHtml(
     // Start (single automatic retry for flaky device camera init)
     initMediaPipe().catch(function() {
       setTimeout(function() {
+        isDisposed = false;
         initMediaPipe();
       }, 500);
     });
+
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'hidden') {
+        cleanupMedia();
+      }
+    });
+    window.addEventListener('pagehide', cleanupMedia);
+    window.addEventListener('beforeunload', cleanupMedia);
   })();
   </script>
 </body>

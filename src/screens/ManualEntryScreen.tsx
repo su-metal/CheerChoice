@@ -1,13 +1,16 @@
 import React, { useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
-  TextInput,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BorderRadius, Colors, Spacing, Typography } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -195,3 +198,4 @@ const styles = StyleSheet.create({
     color: Colors.surface,
   },
 });
+

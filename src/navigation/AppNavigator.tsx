@@ -1,4 +1,6 @@
-import React from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
@@ -12,13 +14,17 @@ import {
   ManualEntryScreen,
   StatsScreen,
   SettingsScreen,
+  OnboardingScreen,
 } from '../screens';
 import { Colors } from '../constants';
 import { t } from '../i18n';
 import { ExerciseRecord } from '../types';
 
+const ONBOARDING_COMPLETE_KEY = '@CheerChoice:onboardingComplete';
+
 // Define screen param types
 export type RootStackParamList = {
+  Onboarding: undefined;
   Home: undefined;
   Camera: undefined;
   Result: {
@@ -52,10 +58,35 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
+  const [isFirstLaunch, setIsFirstLaunch] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY)
+      .then((value) => {
+        setIsFirstLaunch(value !== 'true');
+      })
+      .catch((error) => {
+        console.error('Error checking onboarding status:', error);
+        setIsFirstLaunch(false);
+      })
+      .finally(() => {
+        setIsCheckingOnboarding(false);
+      });
+  }, []);
+
+  if (isCheckingOnboarding) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Home"
+        initialRouteName={isFirstLaunch ? 'Onboarding' : 'Home'}
         screenOptions={{
           headerStyle: {
             backgroundColor: Colors.surface,
@@ -70,6 +101,13 @@ export default function AppNavigator() {
           },
         }}
       >
+        <Stack.Screen
+          name="Onboarding"
+          component={OnboardingScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
         <Stack.Screen
           name="Home"
           component={HomeScreen}
@@ -153,3 +191,12 @@ export default function AppNavigator() {
     </NavigationContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.background,
+  },
+});

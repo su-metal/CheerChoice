@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#FFF8F0"
     },
     "ios": {
       "supportsTablet": true
@@ -20,7 +20,7 @@
       "package": "com.suchan.cheerchoice",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#FF6B6B"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,

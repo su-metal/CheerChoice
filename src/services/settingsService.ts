@@ -1,11 +1,34 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getExerciseRecords, getMealRecords } from './recordService';
+import { getUsageData } from './usageService';
 
 const SETTINGS_KEY = '@CheerChoice:settings';
+const APP_STORAGE_KEYS = [
+  '@CheerChoice:settings',
+  '@CheerChoice:mealRecords',
+  '@CheerChoice:exerciseRecords',
+  '@CheerChoice:exerciseObligations',
+  '@CheerChoice:exerciseSessionEvents',
+  '@CheerChoice:recoveryLedger',
+  '@CheerChoice:usageData',
+  '@CheerChoice:usageResetMarker',
+  '@CheerChoice:skippedStats',
+  '@CheerChoice:todaySummary',
+] as const;
 
 export interface AppSettings {
   dailyCalorieGoal: number;
   voiceFeedbackEnabled: boolean;
   language: 'auto' | 'en' | 'ja';
+}
+
+export interface ExportPayload {
+  exportDate: string;
+  appVersion: string;
+  mealRecords: Awaited<ReturnType<typeof getMealRecords>>;
+  exerciseRecords: Awaited<ReturnType<typeof getExerciseRecords>>;
+  settings: AppSettings;
+  usage: Awaited<ReturnType<typeof getUsageData>>;
 }
 
 const defaultSettings: AppSettings = {
@@ -57,3 +80,26 @@ export async function updateSettings(partial: Partial<AppSettings>): Promise<App
   return next;
 }
 
+export async function exportAllData(): Promise<string> {
+  const [mealRecords, exerciseRecords, settings, usage] = await Promise.all([
+    getMealRecords(),
+    getExerciseRecords(),
+    getSettings(),
+    getUsageData(),
+  ]);
+
+  const payload: ExportPayload = {
+    exportDate: new Date().toISOString(),
+    appVersion: '1.0.0',
+    mealRecords,
+    exerciseRecords,
+    settings,
+    usage,
+  };
+
+  return JSON.stringify(payload, null, 2);
+}
+
+export async function clearAllData(): Promise<void> {
+  await AsyncStorage.multiRemove([...APP_STORAGE_KEYS]);
+}

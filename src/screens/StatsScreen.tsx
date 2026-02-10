@@ -1,12 +1,13 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  SafeAreaView,
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { BorderRadius, Colors, Spacing, Typography } from '../constants';
 import { getExerciseRecords, getMealRecords } from '../services/recordService';
@@ -186,6 +187,7 @@ function ExerciseTypeRow({
 export default function StatsScreen() {
   const [period, setPeriod] = useState<StatsPeriod>('week');
   const [stats, setStats] = useState<StatsData>(defaultStats);
+  const [isLoading, setIsLoading] = useState(true);
   const [weeklyRecovery, setWeeklyRecovery] = useState({
     generatedCount: 0,
     resolvedCount: 0,
@@ -194,6 +196,7 @@ export default function StatsScreen() {
 
   const loadStats = useCallback(async () => {
     try {
+      setIsLoading(true);
       const [meals, exercises, recovery] = await Promise.all([
         getMealRecords(),
         getExerciseRecords(),
@@ -213,6 +216,8 @@ export default function StatsScreen() {
         resolvedCount: 0,
         remainingCount: 0,
       });
+    } finally {
+      setIsLoading(false);
     }
   }, [period]);
 
@@ -296,7 +301,36 @@ export default function StatsScreen() {
           </View>
         </View>
 
-        {!isPremium && (
+        {isLoading && (
+          <>
+            <View style={styles.loadingHeader}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+              <Text style={styles.loadingText}>{t('stats.loading')}</Text>
+            </View>
+            <View style={styles.summaryGrid}>
+              {[0, 1, 2, 3].map((index) => (
+                <View key={`summary-skeleton-${index}`} style={styles.summaryCard}>
+                  <View style={styles.skeletonLabel} />
+                  <View style={styles.skeletonValue} />
+                </View>
+              ))}
+            </View>
+            <View style={styles.card}>
+              <View style={styles.skeletonTitle} />
+              <View style={styles.previewChart}>
+                <View style={[styles.previewBar, { height: 20 }]} />
+                <View style={[styles.previewBar, { height: 34 }]} />
+                <View style={[styles.previewBar, { height: 14 }]} />
+                <View style={[styles.previewBar, { height: 42 }]} />
+                <View style={[styles.previewBar, { height: 28 }]} />
+                <View style={[styles.previewBar, { height: 18 }]} />
+                <View style={[styles.previewBar, { height: 36 }]} />
+              </View>
+            </View>
+          </>
+        )}
+
+        {!isLoading && !isPremium && (
           <View style={styles.upgradeCard}>
             <Text style={styles.upgradeTitle}>{t('stats.unlockTitle')}</Text>
             <Text style={styles.upgradeBody}>{t('stats.unlockBody')}</Text>
@@ -315,7 +349,7 @@ export default function StatsScreen() {
           </View>
         )}
 
-        {isPremium && (
+        {!isLoading && isPremium && (
           <>
             <View style={styles.card}>
               <Text style={styles.cardTitle}>{t('stats.savedCalories')}</Text>
@@ -412,6 +446,14 @@ const styles = StyleSheet.create({
   summaryGrid: {
     gap: Spacing.sm,
   },
+  loadingHeader: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  loadingText: {
+    ...Typography.bodySmall,
+    color: Colors.textLight,
+  },
   summaryCard: {
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.lg,
@@ -435,6 +477,26 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     color: Colors.textLight,
     marginTop: 2,
+  },
+  skeletonLabel: {
+    width: '38%',
+    height: 10,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.divider,
+    marginBottom: Spacing.sm,
+  },
+  skeletonValue: {
+    width: '54%',
+    height: 18,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.divider,
+  },
+  skeletonTitle: {
+    width: '42%',
+    height: 18,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.divider,
+    marginBottom: Spacing.sm,
   },
   upgradeCard: {
     backgroundColor: Colors.surface,
@@ -604,3 +666,4 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
 });
+

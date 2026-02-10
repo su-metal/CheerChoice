@@ -5,12 +5,12 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
   ScrollView,
   TextInput,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Colors, Typography, Spacing, BorderRadius } from '../constants';
@@ -23,6 +23,7 @@ import { saveMealRecord } from '../services/recordService';
 import { EXERCISES } from '../constants/Exercises';
 import { calculateRecommendedReps } from '../utils/exerciseCalculator';
 import { createExerciseObligation } from '../services/recoveryService';
+import ErrorCard from '../components/ErrorCard';
 
 type ResultScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Result'>;
 type ResultScreenRouteProp = RouteProp<RootStackParamList, 'Result'>;
@@ -40,6 +41,7 @@ export default function ResultScreen({ navigation, route }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedFoodName, setEditedFoodName] = useState('');
   const [editedCalories, setEditedCalories] = useState('');
+  const [isSubmittingChoice, setIsSubmittingChoice] = useState(false);
   const isManualEntry = Boolean(manualInput);
 
   // コンポーネントマウント時にカロリー推定を実行
@@ -81,7 +83,7 @@ export default function ResultScreen({ navigation, route }: Props) {
       await incrementAIUsage();
     } catch (err) {
       console.error('Error analyzing photo:', err);
-      setError(err instanceof Error ? err.message : t('common.unknownError'));
+      setError(t('result.analysisFailed'));
     } finally {
       setLoading(false);
     }
@@ -105,18 +107,15 @@ export default function ResultScreen({ navigation, route }: Props) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorIcon}>😕</Text>
-          <Text style={styles.errorTitle}>{t('common.oops')}</Text>
-          <Text style={styles.errorText}>{error || t('common.unknownError')}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={analyzePhoto}>
-            <Text style={styles.retryButtonText}>{t('common.tryAgain')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.navigate('Camera')}
-          >
-            <Text style={styles.backButtonText}>{t('result.takeAnotherPhoto')}</Text>
-          </TouchableOpacity>
+          <ErrorCard
+            icon="😕"
+            title={t('common.oops')}
+            message={error || t('common.unknownError')}
+            primaryLabel={t('common.tryAgain')}
+            onPrimaryPress={analyzePhoto}
+            secondaryLabel={t('result.takeAnotherPhoto')}
+            onSecondaryPress={() => navigation.navigate('Camera')}
+          />
         </View>
       </SafeAreaView>
     );
@@ -160,11 +159,12 @@ export default function ResultScreen({ navigation, route }: Props) {
   }
 
   async function handleChoice(choice: 'ate' | 'skipped') {
-    if (!result) {
+    if (!result || isSubmittingChoice) {
       return;
     }
 
     try {
+      setIsSubmittingChoice(true);
       const mealRecord = await saveMealRecord({
         timestamp: new Date().toISOString(),
         photoUri: photoUri ?? '',
@@ -200,6 +200,7 @@ export default function ResultScreen({ navigation, route }: Props) {
     } catch (saveError) {
       console.error('Error saving meal record:', saveError);
       Alert.alert(t('common.oops'), t('result.saveError'));
+      setIsSubmittingChoice(false);
     }
   }
 
@@ -291,7 +292,8 @@ export default function ResultScreen({ navigation, route }: Props) {
           <Text style={styles.choiceTitle}>{t('result.choiceTitle')}</Text>
 
           <TouchableOpacity
-            style={[styles.choiceButton, styles.skipButton]}
+            style={[styles.choiceButton, styles.skipButton, isSubmittingChoice && styles.choiceButtonDisabled]}
+            disabled={isSubmittingChoice}
             onPress={() => handleChoice('skipped')}
           >
             <Text style={styles.choiceButtonIcon}>🌟</Text>
@@ -300,7 +302,8 @@ export default function ResultScreen({ navigation, route }: Props) {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.choiceButton, styles.eatButton]}
+            style={[styles.choiceButton, styles.eatButton, isSubmittingChoice && styles.choiceButtonDisabled]}
+            disabled={isSubmittingChoice}
             onPress={() => handleChoice('ate')}
           >
             <Text style={styles.choiceButtonIcon}>🍽️</Text>
@@ -354,22 +357,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.xl,
-  },
-  errorIcon: {
-    fontSize: 80,
-    marginBottom: Spacing.lg,
-  },
-  errorTitle: {
-    ...Typography.h3,
-    color: Colors.text,
-    marginBottom: Spacing.md,
-    textAlign: 'center',
-  },
-  errorText: {
-    ...Typography.body,
-    color: Colors.textLight,
-    marginBottom: Spacing.xl,
-    textAlign: 'center',
   },
   photoPreview: {
     width: '100%',
@@ -534,6 +521,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
+  choiceButtonDisabled: {
+    opacity: 0.6,
+  },
   skipButton: {
     backgroundColor: Colors.secondary,
   },
@@ -554,29 +544,6 @@ const styles = StyleSheet.create({
     color: Colors.surface,
     opacity: 0.9,
   },
-  retryButton: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.xl,
-    marginBottom: Spacing.md,
-  },
-  retryButtonText: {
-    ...Typography.button,
-    color: Colors.surface,
-    textAlign: 'center',
-  },
-  backButton: {
-    backgroundColor: Colors.textLight,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.xl,
-  },
-  backButtonText: {
-    ...Typography.button,
-    color: Colors.surface,
-    textAlign: 'center',
-  },
   retakeButton: {
     margin: Spacing.lg,
     padding: Spacing.md,
@@ -590,3 +557,4 @@ const styles = StyleSheet.create({
     color: Colors.textLight,
   },
 });
+

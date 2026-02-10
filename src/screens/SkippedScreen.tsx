@@ -4,10 +4,10 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
-  ScrollView,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Colors, Typography, Spacing, BorderRadius } from '../constants';
@@ -264,3 +264,4 @@ const styles = StyleSheet.create({
     color: Colors.surface,
   },
 });
+

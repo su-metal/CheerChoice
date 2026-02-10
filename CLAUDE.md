@@ -355,6 +355,10 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 - **RLS**: `app_id = 'cheerchoice' AND user_id = auth.uid()` で行アクセス制御
 - **インデックス**: `(app_id, user_id, ...)` の複合インデックス
 - **移行戦略**: AsyncStorage → Supabase の段階的移行（読み取り優先）
+- **移行実装状況（2026-02-10）**:
+  - 初回起動時の AsyncStorage → Supabase バックフィル実装済み（`src/services/migrationService.ts`）
+  - 検証SQLで参照整合チェック完了（`orphan_* = 0`）
+  - 重複チェック完了（No rows returned）
 - **MCP接続**: `~/.claude/config.json` に Supabase MCP サーバー設定済み
 - **匿名認証運用**:
   - 開発・検証では Supabase Anonymous Sign-In を利用
@@ -434,4 +438,4 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 ---
 
 ## 最終更新日
-2026-02-10 - Phase 11 DB設計完了（Supabase統合版: cc_プレフィックス + app_id）
+2026-02-10 - Phase 11 初回移行実装 + 整合性検証完了（orphan 0 / 重複なし）

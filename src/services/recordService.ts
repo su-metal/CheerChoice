@@ -163,8 +163,12 @@ function isSameLocalDay(a: Date, b: Date): boolean {
 export async function getMealRecords(): Promise<MealRecord[]> {
   const supabaseRecords = await readMealsFromSupabase();
   if (supabaseRecords) {
-    await writeRecords(MEAL_RECORDS_KEY, supabaseRecords);
-    return sortByTimestampDesc(supabaseRecords);
+    const localRecords = await readRecords<MealRecord>(MEAL_RECORDS_KEY);
+    if (supabaseRecords.length > 0 || localRecords.length === 0) {
+      await writeRecords(MEAL_RECORDS_KEY, supabaseRecords);
+      return sortByTimestampDesc(supabaseRecords);
+    }
+    return sortByTimestampDesc(localRecords);
   }
 
   const records = await readRecords<MealRecord>(MEAL_RECORDS_KEY);
@@ -174,8 +178,12 @@ export async function getMealRecords(): Promise<MealRecord[]> {
 export async function getExerciseRecords(): Promise<ExerciseRecord[]> {
   const supabaseRecords = await readExercisesFromSupabase();
   if (supabaseRecords) {
-    await writeRecords(EXERCISE_RECORDS_KEY, supabaseRecords);
-    return sortByTimestampDesc(supabaseRecords);
+    const localRecords = await readRecords<ExerciseRecord>(EXERCISE_RECORDS_KEY);
+    if (supabaseRecords.length > 0 || localRecords.length === 0) {
+      await writeRecords(EXERCISE_RECORDS_KEY, supabaseRecords);
+      return sortByTimestampDesc(supabaseRecords);
+    }
+    return sortByTimestampDesc(localRecords);
   }
 
   const records = await readRecords<ExerciseRecord>(EXERCISE_RECORDS_KEY);

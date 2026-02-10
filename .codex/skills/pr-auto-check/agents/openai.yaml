@@ -1,0 +1,4 @@
+interface:
+  display_name: "PR Auto Check"
+  short_description: "Set up GitHub PR code checks"
+  default_prompt: "Set up or update automatic PR checks with GitHub Actions."

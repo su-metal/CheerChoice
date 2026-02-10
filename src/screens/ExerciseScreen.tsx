@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { useCameraPermissions } from 'expo-camera';
+import * as Speech from 'expo-speech';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Colors, Typography, Spacing, BorderRadius } from '../constants';
@@ -31,8 +32,6 @@ import {
   saveExerciseSessionEvent,
 } from '../services/recoveryService';
 import ErrorCard from '../components/ErrorCard';
-// expo-speech: 再ビルド後に有効化
-// import * as Speech from 'expo-speech';
 
 type ExerciseScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -76,6 +75,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
   const autoRetryCountRef = useRef(0);
   const autoMotionStartedRef = useRef(false);
   const restorePausedRef = useRef(false);
+  const lastAnnouncedCountRef = useRef(0);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
   const exercise = EXERCISES[exerciseType];
@@ -332,6 +332,40 @@ export default function ExerciseScreen({ navigation, route }: Props) {
     }
   }, [count, scaleAnim]);
 
+  useEffect(() => {
+    if (!settingsLoaded || !voiceFeedbackEnabled || isPaused) {
+      return;
+    }
+    if (count <= 0) {
+      return;
+    }
+    if (count <= lastAnnouncedCountRef.current) {
+      lastAnnouncedCountRef.current = count;
+      return;
+    }
+
+    Speech.stop();
+    Speech.speak(String(count), {
+      language: 'en-US',
+      pitch: 1.2,
+      rate: 1.0,
+    });
+    lastAnnouncedCountRef.current = count;
+  }, [count, isPaused, settingsLoaded, voiceFeedbackEnabled]);
+
+  useEffect(() => {
+    if (voiceFeedbackEnabled) {
+      return;
+    }
+    Speech.stop();
+  }, [voiceFeedbackEnabled]);
+
+  useEffect(() => {
+    return () => {
+      Speech.stop();
+    };
+  }, []);
+
   // WebViewからのメッセージ処理
   const handleMessage = useCallback((event: { nativeEvent: { data: string } }) => {
     try {
@@ -348,7 +382,6 @@ export default function ExerciseScreen({ navigation, route }: Props) {
               return;
             }
             setCount(data.count);
-            // TODO: 再ビルド後に expo-speech で音声カウント有効化
           }
           break;
         case 'error':
@@ -409,8 +442,9 @@ export default function ExerciseScreen({ navigation, route }: Props) {
   };
 
   const progressPercentage = Math.min(Math.round((count / targetReps) * 100), 100);
+  const centerBottomOffset = inputMode === 'tap' ? (isPaused ? 260 : 220) : 140;
 
-  const htmlContent = getPoseDetectorHtml(exerciseType, targetReps, voiceFeedbackEnabled);
+  const htmlContent = getPoseDetectorHtml(exerciseType, targetReps, false);
 
   const switchInputMode = (nextMode: InputMode) => {
     if (isPaused) {
@@ -592,7 +626,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
       </SafeAreaView>
 
       {/* Center overlay: count + progress */}
-      <View style={styles.centerOverlay}>
+      <View style={[styles.centerOverlay, { bottom: centerBottomOffset }]}>
         <Animated.View style={[styles.countContainer, { transform: [{ scale: scaleAnim }] }]}>
           <Text style={styles.countText}>{count}</Text>
         </Animated.View>
@@ -611,7 +645,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
         </View>
         <Text style={styles.progressText}>{progressPercentage}%</Text>
 
-        {inputMode === 'tap' && (
+        {inputMode === 'tap' && !isPaused && (
           <View style={styles.tapControls}>
             <TouchableOpacity style={styles.tapMinusButton} onPress={decrementByTap}>
               <Text style={styles.tapButtonText}>-1</Text>
@@ -739,7 +773,6 @@ const styles = StyleSheet.create({
   // Center overlay
   centerOverlay: {
     position: 'absolute',
-    bottom: 120,
     left: 0,
     right: 0,
     alignItems: 'center',
@@ -802,6 +835,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.sm,
     marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   tapPlusButton: {
     backgroundColor: Colors.secondary,

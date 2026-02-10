@@ -33,8 +33,11 @@
 - **i18n-js** - 翻訳キー管理（英語/日本語）
 - 詳細: `.steering/20260209-i18n-localization/`
 
-### 今後実装予定
-- **Supabase** - 認証＆データベース（Phase 7-10後に移行予定）
+### バックエンド（Phase 11〜）
+- **Supabase** (`wzinimxikcihdqqdvppa`) - 認証＆データベース（PostgreSQL）
+- **@supabase/supabase-js** - Supabaseクライアント
+- **マルチアプリ統合**: 既存プロジェクトに `app_id = 'cheerchoice'` で統合
+- **テーブル名**: `cc_` プレフィックス（例: `cc_meal_records`）
 
 ---
 
@@ -341,15 +344,19 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 
 ## 次の実装予定
 
-### Phase 10: 仕上げ・品質改善
-- ✅ **OnboardingScreen.tsx**: 初回起動時の3ページガイド（「15回無料AI体験」を訴求）
-- ✅ エラーハンドリング統一（Camera/Result/Exercise を共通エラーカード化）
-- ✅ ローディング状態の改善（Log/Stats にスピナー + プレースホルダー）
-- ✅ アプリアイコン・スプラッシュスクリーン（`assets/*` + `app.json` 反映）
-- ✅ 主要バグ修正（`CameraView` の children 警告解消、SafeAreaView 非推奨警告解消）
-- ✅ 主要バグ修正（連打による二重遷移/二重保存ガードを Camera/Result/ExerciseSelect に追加）
-- ✅ 全画面バグ修正（主要実機フロー確認済み）
-- 詳細: `.steering/20260209-phase10-polish/`
+### Phase 11: Supabase移行（DB設計完了、実装進行中）
+- **Supabaseプロジェクト**: `wzinimxikcihdqqdvppa`（MisePo等と共用）
+- **統合方式**: 既存マルチアプリ環境に `app_id = 'cheerchoice'` で統合
+- **テーブル**: 7テーブル（`cc_` プレフィックス）
+  - `cc_meal_records`, `cc_exercise_records`, `cc_exercise_obligations`
+  - `cc_exercise_session_events`, `cc_recovery_ledger`
+  - `cc_user_settings`, `cc_usage_tracking`
+- **課金管理**: 既存 `entitlements` テーブルを再利用（`is_premium` は usage_tracking に持たない）
+- **RLS**: `app_id = 'cheerchoice' AND user_id = auth.uid()` で行アクセス制御
+- **インデックス**: `(app_id, user_id, ...)` の複合インデックス
+- **移行戦略**: AsyncStorage → Supabase の段階的移行（読み取り優先）
+- **MCP接続**: `~/.claude/config.json` に Supabase MCP サーバー設定済み
+- 詳細: `.steering/20260210-phase11-supabase-migration/`
 
 ---
 
@@ -421,4 +428,4 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 ---
 
 ## 最終更新日
-2026-02-10 - Phase 10完了反映（最終バグ修正、手動入力ルートのカメラ競合解消）
+2026-02-10 - Phase 11 DB設計完了（Supabase統合版: cc_プレフィックス + app_id）

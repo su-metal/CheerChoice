@@ -971,20 +971,20 @@ interface Statistics {
 - ✅ Phase 5: 「食べる」選択フロー（ExerciseSelectScreen、運動提案）
 - ✅ Phase 6: 骨格判定＆運動カウント（MediaPipe Pose、WebView統合）
 
-### Phase 7: ログ・履歴機能（次のステップ）
+### ✅ Phase 7: ログ・履歴機能（完了）
 - 食事記録・運動記録の個別保存（AsyncStorage）
 - LogScreen: 履歴一覧画面
 - HomeScreen: Recent Activity に直近3件表示
 - 詳細: `.steering/20260209-phase7-log-history/`
 
-### Phase 8: 統計・可視化
+### ✅ Phase 8: 統計・可視化（完了）
 - StatsScreen: グラフ・チャート画面
 - 週間カロリー節制の棒グラフ
 - 食べた vs 食べなかった比率
 - 運動種目別の実施回数
 - 詳細: `.steering/20260209-phase8-statistics/`
 
-### Phase 9: 設定・UX改善
+### ✅ Phase 9: 設定・UX改善（完了）
 - SettingsScreen: 設定画面
 - 日別カロリー目標設定
 - 音声フィードバックON/OFF
@@ -992,12 +992,18 @@ interface Statistics {
 - 今週リカバリー表示（週次リセット文言を含む）
 - 詳細: `.steering/20260209-phase9-settings-ux/`
 
-### Phase 10: 仕上げ・品質改善
+### Phase 10: 仕上げ・品質改善（保留）
 - OnboardingScreen: 初回起動ガイド
 - エラーハンドリング統一
 - アプリアイコン・スプラッシュスクリーン
 - 全画面バグ修正
 - 詳細: `.steering/20260209-phase10-polish/`
+
+### Phase 11: Supabase移行（進行中）
+- 既存 Supabase プロジェクトへの統合（`app_id = 'cheerchoice'`）
+- `cc_` プレフィックスの7テーブル設計・段階移行
+- RLS + 複合インデックスでマルチアプリ分離
+- 詳細: `.steering/20260210-phase11-supabase-migration/`
 
 ---
 

@@ -48,7 +48,8 @@ export async function ensureSupabaseAnonymousAuth(): Promise<string | null> {
 
   if (anonymousAuthDisabled) {
     logAnonymousAuthDisabledOnce();
-    return getLastKnownSupabaseUserId();
+    // Retry sign-in in case project settings were changed after app start.
+    anonymousAuthDisabled = false;
   }
 
   const { data, error } = await supabase.auth.signInAnonymously();

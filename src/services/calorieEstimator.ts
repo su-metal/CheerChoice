@@ -1,11 +1,129 @@
-import OpenAI from 'openai';
 import { CalorieEstimationResult } from '../types';
 import { processImageForAI } from '../utils/imageProcessor';
+import { ensureSupabaseAnonymousAuth } from './authService';
+import { getSupabaseClient } from './supabaseClient';
 
-// OpenAI クライアントの初期化
-const openai = new OpenAI({
-  apiKey: process.env.EXPO_PUBLIC_OPENAI_API_KEY,
-});
+const CALORIE_ESTIMATION_FUNCTION = 'calorie-estimation-v2';
+
+type EdgeFunctionResponse = {
+  result: CalorieEstimationResult;
+};
+
+function getEnv(name: 'EXPO_PUBLIC_SUPABASE_URL' | 'EXPO_PUBLIC_SUPABASE_ANON_KEY'): string {
+  const value = process.env[name];
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function getLegacyAnonJwt(): string {
+  const value = process.env.EXPO_PUBLIC_SUPABASE_LEGACY_ANON_JWT;
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function getFunctionEndpoint(): string {
+  const baseUrl = getEnv('EXPO_PUBLIC_SUPABASE_URL');
+  if (!baseUrl) {
+    throw new Error('Supabase URL is missing');
+  }
+  return `${baseUrl}/functions/v1/${CALORIE_ESTIMATION_FUNCTION}`;
+}
+
+async function invokeCalorieEstimationFunction(
+  accessToken: string,
+  imageBase64: string
+): Promise<CalorieEstimationResult> {
+  const apikey = getEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY');
+  if (!apikey) {
+    throw new Error('Supabase key is missing');
+  }
+
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const response = await fetch(getFunctionEndpoint(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        apikey,
+      },
+      body: JSON.stringify({ imageBase64 }),
+    });
+
+    const bodyText = await response.text();
+    if (!response.ok) {
+      const isRetriableJsonError =
+        response.status === 502 && bodyText.includes('AI response is not valid JSON');
+      if (isRetriableJsonError && attempt < 2) {
+        continue;
+      }
+      throw new Error(`Edge Function HTTP ${response.status}: ${bodyText}`);
+    }
+
+    let parsed: EdgeFunctionResponse | null = null;
+    try {
+      parsed = JSON.parse(bodyText) as EdgeFunctionResponse;
+    } catch {
+      if (attempt < 2) {
+        continue;
+      }
+      throw new Error('Edge Function returned invalid JSON');
+    }
+
+    const result = parsed?.result;
+    if (
+      !result ||
+      !result.foodName ||
+      typeof result.estimatedCalories !== 'number' ||
+      typeof result.confidence !== 'number'
+    ) {
+      if (attempt < 2) {
+        continue;
+      }
+      throw new Error('Invalid response format from Edge Function');
+    }
+
+    return result;
+  }
+
+  throw new Error('Edge Function returned invalid response');
+}
+
+async function getAccessTokenForEstimation(
+  supabase: NonNullable<ReturnType<typeof getSupabaseClient>>
+): Promise<string> {
+  const legacyAnonJwt = getLegacyAnonJwt();
+  if (legacyAnonJwt) {
+    return legacyAnonJwt;
+  }
+
+  const readAndValidateToken = async (): Promise<string | null> => {
+    const userId = await ensureSupabaseAnonymousAuth();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!userId || !session?.access_token) {
+      return null;
+    }
+
+    const { data, error } = await supabase.auth.getUser(session.access_token);
+    if (error || !data?.user?.id) {
+      return null;
+    }
+    return session.access_token;
+  };
+
+  const firstToken = await readAndValidateToken();
+  if (firstToken) {
+    return firstToken;
+  }
+
+  // Recover from stale/invalid cached auth by rebuilding session once.
+  await supabase.auth.signOut();
+  const secondToken = await readAndValidateToken();
+  if (secondToken) {
+    return secondToken;
+  }
+
+  throw new Error('Authentication is required for calorie estimation');
+}
 
 /**
  * 食べ物の写真からカロリーを推定
@@ -14,75 +132,43 @@ export async function estimateCalories(
   imageUri: string
 ): Promise<CalorieEstimationResult> {
   try {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase is not configured');
+    }
+
+    let accessToken = await getAccessTokenForEstimation(supabase);
+
     // 画像を処理（リサイズ + Base64変換）
     const base64Image = await processImageForAI(imageUri);
-
-    // OpenAI API呼び出し
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `You are a nutritionist AI. Analyze this food photo and return ONLY a JSON object with the following structure (no other text):
-{
-  "foodName": "food name in English",
-  "estimatedCalories": estimated_calorie_number,
-  "calorieRange": {"min": minimum_estimate, "max": maximum_estimate},
-  "confidence": confidence_0_to_100,
-  "portionSize": "portion size description"
-}
-
-Important:
-- estimatedCalories should be a realistic estimate
-- confidence: 0-100, where 100 = very confident, 0 = not confident
-- If you cannot identify food clearly, set confidence below 50
-- Return ONLY valid JSON, no markdown, no explanation`,
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:image/jpeg;base64,${base64Image}`,
-              },
-            },
-          ],
-        },
-      ],
-      max_tokens: 300,
-      temperature: 0.3, // 低めに設定して一貫性を保つ
-    });
-
-    const content = response.choices[0].message.content;
-    if (!content) {
-      throw new Error('No response from OpenAI');
+    try {
+      return await invokeCalorieEstimationFunction(accessToken, base64Image);
+    } catch (invokeError) {
+      if (invokeError instanceof Error && invokeError.message.includes('HTTP 401')) {
+        await supabase.auth.signOut();
+        accessToken = await getAccessTokenForEstimation(supabase);
+        return await invokeCalorieEstimationFunction(accessToken, base64Image);
+      }
+      throw invokeError;
     }
-
-    // JSONをパース
-    const result = JSON.parse(content) as CalorieEstimationResult;
-
-    // バリデーション
-    if (
-      !result.foodName ||
-      typeof result.estimatedCalories !== 'number' ||
-      typeof result.confidence !== 'number'
-    ) {
-      throw new Error('Invalid response format from OpenAI');
-    }
-
-    return result;
   } catch (error) {
     console.error('Error estimating calories:', error);
 
-    // エラーの種類に応じたメッセージ
     if (error instanceof Error) {
-      if (error.message.includes('API key')) {
-        throw new Error('OpenAI API key is not configured correctly');
-      } else if (error.message.includes('quota')) {
-        throw new Error('OpenAI API quota exceeded. Please check your billing.');
-      } else if (error.message.includes('JSON')) {
-        throw new Error('Failed to parse AI response. Please try again.');
+      if (error.message.includes('Authentication')) {
+        throw new Error('Supabase認証が必要です。Anonymous Sign-insを有効化してください。');
+      }
+      if (error.message.includes('not configured')) {
+        throw new Error('Supabase is not configured correctly.');
+      }
+      if (error.message.includes('Failed to send a request')) {
+        throw new Error('Network error while calling AI service.');
+      }
+      if (error.message.includes('HTTP 401') || error.message.includes('401')) {
+        throw new Error('認証エラーです。SupabaseのAnonymous Sign-ins設定を確認してください。');
+      }
+      if (error.message.includes('HTTP 500') || error.message.includes('OPENAI_API_KEY')) {
+        throw new Error('サーバー設定エラーです。OPENAI_API_KEYの設定を確認してください。');
       }
     }
 
@@ -95,12 +181,18 @@ Important:
  */
 export async function testOpenAIConnection(): Promise<boolean> {
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: 'Hello' }],
-      max_tokens: 5,
-    });
-    return response.choices.length > 0;
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      return false;
+    }
+
+    const accessToken = await getAccessTokenForEstimation(supabase);
+
+    const tinyBase64Png =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AApMBgQpD6UQAAAAASUVORK5CYII=';
+
+    const result = await invokeCalorieEstimationFunction(accessToken, tinyBase64Png);
+    return Boolean(result.estimatedCalories);
   } catch (error) {
     console.error('OpenAI connection test failed:', error);
     return false;

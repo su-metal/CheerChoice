@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { useCameraPermissions } from 'expo-camera';
+import * as Speech from 'expo-speech';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Colors, Typography, Spacing, BorderRadius } from '../constants';
@@ -20,8 +21,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { getRandomCompletionMessage, getRandomPartialMessage } from '../utils/exerciseMessages';
 import { EXERCISES } from '../constants/Exercises';
 import { getPoseDetectorHtml } from '../utils/poseDetectorHtml';
-import { updateTodayExerciseSummary } from '../services/storageService';
-import { t } from '../i18n';
+import { resolveLocale, t } from '../i18n';
 import { saveExerciseRecord } from '../services/recordService';
 import { getSettings } from '../services/settingsService';
 import {
@@ -31,8 +31,6 @@ import {
   saveExerciseSessionEvent,
 } from '../services/recoveryService';
 import ErrorCard from '../components/ErrorCard';
-// expo-speech: 再ビルド後に有効化
-// import * as Speech from 'expo-speech';
 
 type ExerciseScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -65,6 +63,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [voiceFeedbackEnabled, setVoiceFeedbackEnabled] = useState(true);
+  const [speechLanguage, setSpeechLanguage] = useState<'en' | 'ja'>('en');
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [motionBootReady, setMotionBootReady] = useState(false);
   const [scaleAnim] = useState(new Animated.Value(1));
@@ -76,10 +75,121 @@ export default function ExerciseScreen({ navigation, route }: Props) {
   const autoRetryCountRef = useRef(0);
   const autoMotionStartedRef = useRef(false);
   const restorePausedRef = useRef(false);
+  const lastAnnouncedCountRef = useRef(0);
+  const lastCountSpokenAtRef = useRef(0);
+  const preferredVoiceIdRef = useRef<string | undefined>(undefined);
+  const hasReadyVoicePlayedRef = useRef(false);
+  const hasCompleteVoicePlayedRef = useRef(false);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
   const exercise = EXERCISES[exerciseType];
   const exerciseName = t(`exercise.types.${exerciseType}.name`);
+  const speakFeedback = useCallback(
+    (
+      text: string,
+      options?: {
+        force?: boolean;
+        interrupt?: boolean;
+      }
+    ) => {
+      if (!settingsLoaded || !voiceFeedbackEnabled || (!options?.force && isPaused)) {
+        return;
+      }
+      if (options?.interrupt !== false) {
+        Speech.stop();
+      }
+      Speech.speak(text, {
+        language: speechLanguage === 'ja' ? 'ja-JP' : 'en-US',
+        pitch: 1.2,
+        rate: 1.0,
+        voice: preferredVoiceIdRef.current,
+      });
+    },
+    [isPaused, settingsLoaded, speechLanguage, voiceFeedbackEnabled]
+  );
+
+  const announceCount = useCallback(
+    (nextCount: number) => {
+      if (!settingsLoaded || !voiceFeedbackEnabled || isPaused || nextCount <= 0) {
+        return;
+      }
+      if (nextCount === lastAnnouncedCountRef.current) {
+        return;
+      }
+
+      const now = Date.now();
+      // If counts come in rapid succession, flush pending utterance to avoid delayed queue playback.
+      if (now - lastCountSpokenAtRef.current < 350) {
+        Speech.stop();
+      }
+
+      Speech.speak(String(nextCount), {
+        language: speechLanguage === 'ja' ? 'ja-JP' : 'en-US',
+        pitch: 1.2,
+        rate: 1.0,
+        voice: preferredVoiceIdRef.current,
+      });
+      lastAnnouncedCountRef.current = nextCount;
+      lastCountSpokenAtRef.current = now;
+    },
+    [isPaused, settingsLoaded, speechLanguage, voiceFeedbackEnabled]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    Speech.getAvailableVoicesAsync()
+      .then((voices) => {
+        if (cancelled || !voices || voices.length === 0) {
+          return;
+        }
+
+        const femaleHints = [
+          'female',
+          'samantha',
+          'victoria',
+          'karen',
+          'moira',
+          'fiona',
+          'tessa',
+          'zira',
+          'ava',
+          'siri',
+          'kyoko',
+          'haruka',
+          'nanami',
+          'mei',
+        ];
+        const preferredLanguageVoices = voices.filter((voice) =>
+          (voice.language || '').toLowerCase().startsWith(speechLanguage)
+        );
+        const pickFemaleVoice = (
+          list: Array<{ identifier?: string; name?: string; quality?: string }>
+        ) =>
+          list.find((voice) => {
+            const name = (voice.name || '').toLowerCase();
+            return femaleHints.some((hint) => name.includes(hint));
+          });
+        const pickEnhancedVoice = (list: Array<{ identifier?: string; quality?: string }>) =>
+          list.find((voice) => (voice.quality || '').toLowerCase() === 'enhanced');
+
+        const picked =
+          pickFemaleVoice(preferredLanguageVoices) ||
+          pickEnhancedVoice(preferredLanguageVoices) ||
+          preferredLanguageVoices[0] ||
+          pickFemaleVoice(voices) ||
+          pickEnhancedVoice(voices) ||
+          voices[0];
+
+        preferredVoiceIdRef.current = picked?.identifier;
+      })
+      .catch(() => {
+        // Fallback: use default voice.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [speechLanguage]);
 
   useEffect(() => {
     let isMounted = true;
@@ -87,6 +197,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
       .then((settings) => {
         if (isMounted) {
           setVoiceFeedbackEnabled(settings.voiceFeedbackEnabled);
+          setSpeechLanguage(resolveLocale(settings.language));
           setSettingsLoaded(true);
         }
       })
@@ -133,6 +244,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
     setInputMode('motion');
     setMotionBootReady(false);
     setIsLoading(true);
+    hasReadyVoicePlayedRef.current = false;
 
     if (delayMs > 0) {
       setTimeout(() => {
@@ -279,7 +391,6 @@ export default function ExerciseScreen({ navigation, route }: Props) {
       };
 
       await Promise.all([
-        updateTodayExerciseSummary(),
         saveExerciseRecord({
           mealRecordId,
           timestamp: new Date().toISOString(),
@@ -332,6 +443,32 @@ export default function ExerciseScreen({ navigation, route }: Props) {
     }
   }, [count, scaleAnim]);
 
+  useEffect(() => {
+    if (!isComplete || hasCompleteVoicePlayedRef.current) {
+      return;
+    }
+    hasCompleteVoicePlayedRef.current = true;
+    speakFeedback(
+      speechLanguage === 'ja'
+        ? 'ミッションクリア。よく頑張ったね。'
+        : 'Mission complete. Great job!',
+      { force: true }
+    );
+  }, [isComplete, speakFeedback, speechLanguage]);
+
+  useEffect(() => {
+    if (voiceFeedbackEnabled) {
+      return;
+    }
+    Speech.stop();
+  }, [voiceFeedbackEnabled]);
+
+  useEffect(() => {
+    return () => {
+      Speech.stop();
+    };
+  }, []);
+
   // WebViewからのメッセージ処理
   const handleMessage = useCallback((event: { nativeEvent: { data: string } }) => {
     try {
@@ -341,14 +478,22 @@ export default function ExerciseScreen({ navigation, route }: Props) {
         case 'ready':
           setIsLoading(false);
           autoRetryCountRef.current = 0;
+          if (!hasReadyVoicePlayedRef.current) {
+            hasReadyVoicePlayedRef.current = true;
+            speakFeedback(
+              speechLanguage === 'ja' ? '準備オーケー。スタート。' : 'Get ready. Let us begin.',
+              { force: true }
+            );
+          }
           break;
         case 'count':
           if (data.count !== undefined) {
             if (isPaused) {
               return;
             }
-            setCount(data.count);
-            // TODO: 再ビルド後に expo-speech で音声カウント有効化
+            const cappedCount = Math.min(data.count, targetReps);
+            announceCount(cappedCount);
+            setCount((prev) => (prev >= targetReps ? prev : cappedCount));
           }
           break;
         case 'error':
@@ -360,7 +505,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
     } catch {
       // ignore parse errors
     }
-  }, [isPaused]);
+  }, [announceCount, isPaused, speakFeedback, speechLanguage, targetReps]);
 
   // 完了処理
   const handleFinish = () => {
@@ -409,8 +554,9 @@ export default function ExerciseScreen({ navigation, route }: Props) {
   };
 
   const progressPercentage = Math.min(Math.round((count / targetReps) * 100), 100);
+  const centerBottomOffset = inputMode === 'tap' ? (isPaused ? 260 : 220) : 140;
 
-  const htmlContent = getPoseDetectorHtml(exerciseType, targetReps, voiceFeedbackEnabled);
+  const htmlContent = getPoseDetectorHtml(exerciseType, targetReps, false);
 
   const switchInputMode = (nextMode: InputMode) => {
     if (isPaused) {
@@ -434,7 +580,14 @@ export default function ExerciseScreen({ navigation, route }: Props) {
     if (isPaused) {
       return;
     }
-    setCount((prev) => prev + 1);
+    setCount((prev) => {
+      if (prev >= targetReps) {
+        return prev;
+      }
+      const next = prev + 1;
+      announceCount(next);
+      return next;
+    });
   };
 
   const decrementByTap = () => {
@@ -592,7 +745,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
       </SafeAreaView>
 
       {/* Center overlay: count + progress */}
-      <View style={styles.centerOverlay}>
+      <View style={[styles.centerOverlay, { bottom: centerBottomOffset }]}>
         <Animated.View style={[styles.countContainer, { transform: [{ scale: scaleAnim }] }]}>
           <Text style={styles.countText}>{count}</Text>
         </Animated.View>
@@ -611,7 +764,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
         </View>
         <Text style={styles.progressText}>{progressPercentage}%</Text>
 
-        {inputMode === 'tap' && (
+        {inputMode === 'tap' && !isPaused && (
           <View style={styles.tapControls}>
             <TouchableOpacity style={styles.tapMinusButton} onPress={decrementByTap}>
               <Text style={styles.tapButtonText}>-1</Text>
@@ -739,7 +892,6 @@ const styles = StyleSheet.create({
   // Center overlay
   centerOverlay: {
     position: 'absolute',
-    bottom: 120,
     left: 0,
     right: 0,
     alignItems: 'center',
@@ -802,6 +954,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.sm,
     marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   tapPlusButton: {
     backgroundColor: Colors.secondary,

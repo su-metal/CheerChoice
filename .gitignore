@@ -43,3 +43,7 @@ ated native folders
 # Documentation and project files
 .steering/
 .claude/
+
+# Temp schema dump
+.tmp_schema.json
+*.tmp_schema.json

@@ -1,5 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UsageData } from '../types';
+import { APP_ID } from '../constants/app';
+import { ensureSupabaseAnonymousAuth, getCurrentSupabaseUserId } from './authService';
+import { getSupabaseClient } from './supabaseClient';
 
 const USAGE_KEY = '@CheerChoice:usageData';
 const USAGE_RESET_MARKER_KEY = '@CheerChoice:usageResetMarker';
@@ -26,23 +29,93 @@ function normalizeUsageData(data: UsageData): UsageData {
   return data;
 }
 
+type UsageRow = {
+  ai_photos_used: number;
+  ai_photos_today: number;
+  last_reset_date: string;
+};
+
+async function readUsageFromSupabase(): Promise<UsageData | null> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return null;
+  }
+
+  const userId = (await getCurrentSupabaseUserId()) ?? (await ensureSupabaseAnonymousAuth());
+  if (!userId) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from('cc_usage_tracking')
+    .select('ai_photos_used, ai_photos_today, last_reset_date')
+    .eq('app_id', APP_ID)
+    .eq('user_id', userId)
+    .maybeSingle<UsageRow>();
+
+  if (error) {
+    console.error('Error reading usage from Supabase:', error.message);
+    return null;
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return {
+    aiPhotosUsed: Number(data.ai_photos_used) || 0,
+    aiPhotosToday: Number(data.ai_photos_today) || 0,
+    lastResetDate: data.last_reset_date || getTodayIso(),
+  };
+}
+
+async function writeUsageToSupabase(data: UsageData): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return;
+  }
+
+  const userId = (await getCurrentSupabaseUserId()) ?? (await ensureSupabaseAnonymousAuth());
+  if (!userId) {
+    return;
+  }
+
+  const payload = {
+    app_id: APP_ID,
+    user_id: userId,
+    ai_photos_used: data.aiPhotosUsed,
+    ai_photos_today: data.aiPhotosToday,
+    last_reset_date: data.lastResetDate,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error } = await supabase.from('cc_usage_tracking').upsert(payload, {
+    onConflict: 'user_id',
+  });
+  if (error) {
+    console.error('Error writing usage to Supabase:', error.message);
+  }
+}
+
 export async function getUsageData(): Promise<UsageData> {
   try {
-    const raw = await AsyncStorage.getItem(USAGE_KEY);
-    if (!raw) {
-      return defaultUsageData;
-    }
-
-    const parsed = JSON.parse(raw) as UsageData;
-    const normalized = normalizeUsageData(parsed);
-
-    if (
-      normalized.aiPhotosToday !== parsed.aiPhotosToday ||
-      normalized.lastResetDate !== parsed.lastResetDate
-    ) {
+    const supabaseData = await readUsageFromSupabase();
+    if (supabaseData) {
+      const normalized = normalizeUsageData(supabaseData);
       await AsyncStorage.setItem(USAGE_KEY, JSON.stringify(normalized));
+      if (
+        normalized.aiPhotosToday !== supabaseData.aiPhotosToday ||
+        normalized.lastResetDate !== supabaseData.lastResetDate
+      ) {
+        await writeUsageToSupabase(normalized);
+      }
+      return normalized;
     }
 
+    const raw = await AsyncStorage.getItem(USAGE_KEY);
+    const localData = raw ? (JSON.parse(raw) as UsageData) : defaultUsageData;
+    const normalized = normalizeUsageData(localData);
+    await AsyncStorage.setItem(USAGE_KEY, JSON.stringify(normalized));
     return normalized;
   } catch (error) {
     console.error('Error reading usage data:', error);
@@ -75,11 +148,13 @@ export async function incrementAIUsage(): Promise<UsageData> {
     lastResetDate: getTodayIso(),
   };
   await AsyncStorage.setItem(USAGE_KEY, JSON.stringify(updated));
+  await writeUsageToSupabase(updated);
   return updated;
 }
 
 export async function resetAIUsage(): Promise<void> {
   await AsyncStorage.setItem(USAGE_KEY, JSON.stringify(defaultUsageData));
+  await writeUsageToSupabase(defaultUsageData);
 }
 
 export async function resetAIUsageOnce(marker: string): Promise<boolean> {

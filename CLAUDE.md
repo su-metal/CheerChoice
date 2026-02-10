@@ -33,8 +33,11 @@
 - **i18n-js** - 翻訳キー管理（英語/日本語）
 - 詳細: `.steering/20260209-i18n-localization/`
 
-### 今後実装予定
-- **Supabase** - 認証＆データベース（Phase 7-10後に移行予定）
+### バックエンド（Phase 11〜）
+- **Supabase** (`wzinimxikcihdqqdvppa`) - 認証＆データベース（PostgreSQL）
+- **@supabase/supabase-js** - Supabaseクライアント
+- **マルチアプリ統合**: 既存プロジェクトに `app_id = 'cheerchoice'` で統合
+- **テーブル名**: `cc_` プレフィックス（例: `cc_meal_records`）
 
 ---
 
@@ -339,17 +342,69 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 
 ---
 
-## 次の実装予定
+## 実装済み機能（Phase 11）
 
-### Phase 10: 仕上げ・品質改善
-- ✅ **OnboardingScreen.tsx**: 初回起動時の3ページガイド（「15回無料AI体験」を訴求）
-- ✅ エラーハンドリング統一（Camera/Result/Exercise を共通エラーカード化）
-- ✅ ローディング状態の改善（Log/Stats にスピナー + プレースホルダー）
-- ✅ アプリアイコン・スプラッシュスクリーン（`assets/*` + `app.json` 反映）
-- ✅ 主要バグ修正（`CameraView` の children 警告解消、SafeAreaView 非推奨警告解消）
-- ✅ 主要バグ修正（連打による二重遷移/二重保存ガードを Camera/Result/ExerciseSelect に追加）
-- ✅ 全画面バグ修正（主要実機フロー確認済み）
-- 詳細: `.steering/20260209-phase10-polish/`
+### ✅ Phase 11: Supabase移行（完了）
+- **Supabaseプロジェクト**: `wzinimxikcihdqqdvppa`（MisePo等と共用）
+- **統合方式**: 既存マルチアプリ環境に `app_id = 'cheerchoice'` で統合
+- **テーブル**: 7テーブル（`cc_` プレフィックス）
+- **デュアルライト方式**: AsyncStorage（即時） + Supabase（fire-and-forget）
+- **初回マイグレーション**: AsyncStorage → Supabase バックフィル実装済み
+- **検証完了**: 参照整合（orphan 0）、重複なし
+- **共有プロジェクト安全化**: 既存テーブルのRLS有効化済み
+- 詳細: `.steering/20260210-phase11-supabase-migration/`
+
+---
+
+## 次の実装予定（リリースロードマップ）
+
+### Phase 12: リリース基盤整備
+- `console.log` 削除、`storageService` レガシーパス整理
+- Sentry導入（クラッシュレポート）
+- プライバシーポリシー・利用規約作成（GitHub Pages）
+- アプリアイコン・スプラッシュ最終化
+- **リリース判定ゲート（Phase 12 exit criteria）**:
+  - 重大クラッシュ（起動不能/保存不能/課金不能）0件
+  - 主要導線（撮影→判定→運動→保存→履歴表示）を実機で通過
+  - 既知Highバグ 0件、Mediumバグは回避策付きで管理
+- 詳細: `.steering/20260210-phase12-release-prep/`
+
+### Phase 13: APIセキュリティ（Supabase Edge Function）
+- OpenAI APIキーをサーバー側に隠蔽（Edge Function で中継）
+- `EXPO_PUBLIC_OPENAI_API_KEY` をクライアントから除去
+- サーバーサイドでのレート制限・使用回数検証
+- `openai` npm パッケージの削除
+- **セキュリティ必須要件**:
+  - Edge Function でJWT検証（未認証リクエスト拒否）
+  - ユーザー単位のレート制限（短期/日次）
+  - タイムアウトと失敗時リトライ上限の設定
+  - 監査ログ（user_id, endpoint, status, latency）の記録
+- 詳細: `.steering/20260210-phase13-api-security/`
+
+### Phase 14: 課金実装（RevenueCat）
+- `react-native-purchases` 導入
+- Google Play サブスクリプション（$4.99/月）
+- `IS_PREMIUM` ハードコード → RevenueCat `CustomerInfo` 動的判定
+- Paywall画面、購入復元、RevenueCat Webhook → `entitlements` 連携
+- **失敗系テスト（必須）**:
+  - 購入失敗時のリカバリー導線表示
+  - 購入復元失敗時の再試行導線表示
+  - 解約/期限切れ反映遅延時のガード（短時間キャッシュ + 再検証）
+  - オフライン時のPremium判定フォールバック確認
+- 詳細: `.steering/20260210-phase14-iap-revenueCat/`
+
+### Phase 15: Google Play ストア提出
+- ストアリスティング（英語/日本語）、スクリーンショット
+- Data Safety / コンテンツレーティング
+- EAS Submit 設定、本番ビルド
+- 内部テスト → クローズドテスト → 段階的ロールアウト
+- 詳細: `.steering/20260210-phase15-store-submission/`
+
+### リリース後の予定
+- 広告SDK導入（AdMob）
+- Google/Apple認証（匿名認証からの移行）
+- iOS App Store リリース
+- アナリティクス導入
 
 ---
 
@@ -421,4 +476,4 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 ---
 
 ## 最終更新日
-2026-02-10 - Phase 10完了反映（最終バグ修正、手動入力ルートのカメラ競合解消）
+2026-02-10 - Phase 11完了、Phase 12-15 リリースロードマップ策定

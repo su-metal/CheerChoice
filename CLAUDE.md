@@ -342,31 +342,55 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 
 ---
 
-## 次の実装予定
+## 実装済み機能（Phase 11）
 
-### Phase 11: Supabase移行（DB設計完了、実装進行中）
+### ✅ Phase 11: Supabase移行（完了）
 - **Supabaseプロジェクト**: `wzinimxikcihdqqdvppa`（MisePo等と共用）
 - **統合方式**: 既存マルチアプリ環境に `app_id = 'cheerchoice'` で統合
 - **テーブル**: 7テーブル（`cc_` プレフィックス）
-  - `cc_meal_records`, `cc_exercise_records`, `cc_exercise_obligations`
-  - `cc_exercise_session_events`, `cc_recovery_ledger`
-  - `cc_user_settings`, `cc_usage_tracking`
-- **課金管理**: 既存 `entitlements` テーブルを再利用（`is_premium` は usage_tracking に持たない）
-- **RLS**: `app_id = 'cheerchoice' AND user_id = auth.uid()` で行アクセス制御
-- **インデックス**: `(app_id, user_id, ...)` の複合インデックス
-- **移行戦略**: AsyncStorage → Supabase の段階的移行（読み取り優先）
-- **移行実装状況（2026-02-10）**:
-  - 初回起動時の AsyncStorage → Supabase バックフィル実装済み（`src/services/migrationService.ts`）
-  - 検証SQLで参照整合チェック完了（`orphan_* = 0`）
-  - 重複チェック完了（No rows returned）
-- **MCP接続**: `~/.claude/config.json` に Supabase MCP サーバー設定済み
-- **匿名認証運用**:
-  - 開発・検証では Supabase Anonymous Sign-In を利用
-  - 本番リリース前に `Anonymous` を無効化するか、通常認証（Google/Apple等）へ移行
-- **共有プロジェクト安全化（実施済み）**:
-  - `apps`, `profiles`, `stripe_events`, `usage_events`, `user_presets_backup_20260114` を RLS 有効化
-  - `stripe_events` / `user_presets_backup_20260114` はクライアント（anon/authenticated）拒否ポリシー
+- **デュアルライト方式**: AsyncStorage（即時） + Supabase（fire-and-forget）
+- **初回マイグレーション**: AsyncStorage → Supabase バックフィル実装済み
+- **検証完了**: 参照整合（orphan 0）、重複なし
+- **共有プロジェクト安全化**: 既存テーブルのRLS有効化済み
 - 詳細: `.steering/20260210-phase11-supabase-migration/`
+
+---
+
+## 次の実装予定（リリースロードマップ）
+
+### Phase 12: リリース基盤整備
+- `console.log` 削除、`storageService` レガシーパス整理
+- Sentry導入（クラッシュレポート）
+- プライバシーポリシー・利用規約作成（GitHub Pages）
+- アプリアイコン・スプラッシュ最終化
+- 詳細: `.steering/20260210-phase12-release-prep/`
+
+### Phase 13: APIセキュリティ（Supabase Edge Function）
+- OpenAI APIキーをサーバー側に隠蔽（Edge Function で中継）
+- `EXPO_PUBLIC_OPENAI_API_KEY` をクライアントから除去
+- サーバーサイドでのレート制限・使用回数検証
+- `openai` npm パッケージの削除
+- 詳細: `.steering/20260210-phase13-api-security/`
+
+### Phase 14: 課金実装（RevenueCat）
+- `react-native-purchases` 導入
+- Google Play サブスクリプション（$4.99/月）
+- `IS_PREMIUM` ハードコード → RevenueCat `CustomerInfo` 動的判定
+- Paywall画面、購入復元、RevenueCat Webhook → `entitlements` 連携
+- 詳細: `.steering/20260210-phase14-iap-revenueCat/`
+
+### Phase 15: Google Play ストア提出
+- ストアリスティング（英語/日本語）、スクリーンショット
+- Data Safety / コンテンツレーティング
+- EAS Submit 設定、本番ビルド
+- 内部テスト → クローズドテスト → 段階的ロールアウト
+- 詳細: `.steering/20260210-phase15-store-submission/`
+
+### リリース後の予定
+- 広告SDK導入（AdMob）
+- Google/Apple認証（匿名認証からの移行）
+- iOS App Store リリース
+- アナリティクス導入
 
 ---
 
@@ -438,4 +462,4 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 ---
 
 ## 最終更新日
-2026-02-10 - Phase 11 初回移行実装 + 整合性検証完了（orphan 0 / 重複なし）
+2026-02-10 - Phase 11完了、Phase 12-15 リリースロードマップ策定

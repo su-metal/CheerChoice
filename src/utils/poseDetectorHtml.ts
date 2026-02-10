@@ -67,8 +67,8 @@ export function getPoseDetectorHtml(
     @keyframes spin { to { transform: rotate(360deg); } }
     #guide {
       position: absolute;
-      bottom: 60px; left: 50%;
-      transform: translateX(-50%);
+      top: 48%; left: 50%;
+      transform: translate(-50%, -50%);
       color: #fff;
       font-size: 16px;
       font-family: sans-serif;
@@ -124,6 +124,7 @@ export function getPoseDetectorHtml(
     const state = {
       count: 0,
       isDown: false,
+      isCountPosture: false,
       pushupBaseline: null,
       situpBaseline: null,
       calibrationBuffer: [],
@@ -242,6 +243,7 @@ export function getPoseDetectorHtml(
     function handleSquatDetection(lm) {
       const leftAngle = calculateAngle(lm[23], lm[25], lm[27]);
       const rightAngle = calculateAngle(lm[24], lm[26], lm[28]);
+      state.isCountPosture = leftAngle < 105 && rightAngle < 105;
 
       // Wait 2 seconds for user to get ready
       if (Date.now() - state.startTime < 2000) return;
@@ -285,6 +287,7 @@ export function getPoseDetectorHtml(
       const thresholdDown = 0.12;
       const thresholdUp = 0.05;
       const diff = Math.abs(shoulderY - state.pushupBaseline);
+      state.isCountPosture = diff > thresholdDown;
 
       if (!state.isDown && diff > thresholdDown) {
         state.isDown = true;
@@ -326,6 +329,7 @@ export function getPoseDetectorHtml(
       const thresholdDown = 0.18;
       const thresholdUp = 0.07;
       const diff = Math.abs(currentY - state.situpBaseline);
+      state.isCountPosture = diff > thresholdDown;
 
       if (!state.isDown && diff > thresholdDown) {
         state.isDown = true;
@@ -335,6 +339,9 @@ export function getPoseDetectorHtml(
     }
 
     function countRep() {
+      if (state.count >= TARGET_REPS) {
+        return;
+      }
       state.isDown = false;
       state.count++;
       speakCount(state.count);
@@ -345,8 +352,10 @@ export function getPoseDetectorHtml(
     // ============================================
     // Drawing
     // ============================================
-    function drawPose(lm, w, h) {
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    function drawPose(lm, w, h, isCountPosture) {
+      var strokeColor = isCountPosture ? 'rgba(123, 232, 151, 0.95)' : 'rgba(255, 255, 255, 0.8)';
+      var dotColor = isCountPosture ? 'rgba(123, 232, 151, 0.95)' : 'rgba(162, 143, 219, 0.9)';
+      ctx.strokeStyle = strokeColor;
       ctx.lineWidth = 3;
       var connections = [[11,13],[13,15],[12,14],[14,16],[11,12],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28]];
       connections.forEach(function(pair) {
@@ -358,7 +367,7 @@ export function getPoseDetectorHtml(
       });
 
       // Draw joint dots
-      ctx.fillStyle = 'rgba(162, 143, 219, 0.9)';
+      ctx.fillStyle = dotColor;
       [11,12,13,14,15,16,23,24,25,26,27,28].forEach(function(idx) {
         ctx.beginPath();
         ctx.arc(lm[idx].x * w, lm[idx].y * h, 5, 0, 2 * Math.PI);
@@ -385,6 +394,7 @@ export function getPoseDetectorHtml(
       ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
 
       if (!results.poseLandmarks) {
+        state.isCountPosture = false;
         showGuide('NO PERSON DETECTED');
         // Reset baselines if no person for 2+ seconds
         if (state._lastPersonTs && Date.now() - state._lastPersonTs > 2000) {
@@ -418,13 +428,12 @@ export function getPoseDetectorHtml(
       });
 
       if (!isVisible) {
+        state.isCountPosture = false;
         showGuide(visibilityMsg);
         return;
       }
 
       hideGuide();
-      drawPose(lm, canvasEl.width, canvasEl.height);
-
       if (EXERCISE_TYPE === 'SQUAT') {
         handleSquatDetection(lm);
       } else if (EXERCISE_TYPE === 'PUSHUP') {
@@ -432,6 +441,7 @@ export function getPoseDetectorHtml(
       } else if (EXERCISE_TYPE === 'SITUP') {
         handleSitupDetection(lm);
       }
+      drawPose(lm, canvasEl.width, canvasEl.height, state.isCountPosture);
     }
 
     // ============================================

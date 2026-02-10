@@ -8,9 +8,12 @@
 EXPO_PUBLIC_SUPABASE_URL=...
 EXPO_PUBLIC_SUPABASE_ANON_KEY=...
 EXPO_PUBLIC_SENTRY_DSN=...
+EXPO_PUBLIC_SENTRY_TEST_EVENT=false
 EXPO_PUBLIC_PRIVACY_POLICY_URL=...
 EXPO_PUBLIC_TERMS_URL=...
 ```
+
+`EXPO_PUBLIC_SENTRY_TEST_EVENT` は開発時のみ `true` にし、本番ビルド前は `false` にしてください。
 
 `EXPO_PUBLIC_PRIVACY_POLICY_URL` / `EXPO_PUBLIC_TERMS_URL` は「公開済みの法的ページURL」です。
 このリポジトリには公開用HTMLを用意済みです:
@@ -32,6 +35,32 @@ GitHub Pages を使う場合:
 EXPO_PUBLIC_PRIVACY_POLICY_URL=https://<github-username>.github.io/<repo-name>/legal/privacy-policy.ja.html
 EXPO_PUBLIC_TERMS_URL=https://<github-username>.github.io/<repo-name>/legal/terms-of-service.ja.html
 ```
+
+## Android Release Notes
+
+詳細チェックリスト: `docs/release-checklist-android.md`
+
+### Build前チェック（Phase 12）
+
+1. `.env` の本番値を確認（`SENTRY_TEST_EVENT=false`）
+2. 法的リンク2本が実機で開くことを確認
+3. 主要導線を実機で確認
+   - 撮影 -> 判定 -> 運動 -> 保存 -> 履歴表示
+4. 既知バグの棚卸し（High=0、Mediumは回避策付き）
+
+### EAS Build（Windows）
+
+```powershell
+npm run prebuild:eas:win
+eas build --platform android --profile development --clear-cache
+```
+
+### Freeプラン上限に当たった場合
+
+- EAS FreeのAndroidビルド上限に達すると、クラウドビルドは月次リセットまで停止します。
+- 代替:
+  - リセット日までローカル検証を進める
+  - 有料プランへアップグレード
 
 ## Troubleshooting
 

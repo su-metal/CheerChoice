@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors, Typography, Spacing, BorderRadius } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -24,6 +24,7 @@ export default function CameraScreen({ navigation }: Props) {
   const [remaining, setRemaining] = useState(0);
   const [isUsingPhoto, setIsUsingPhoto] = useState(false);
   const cameraRef = useRef<CameraView>(null);
+  const isFocused = useIsFocused();
 
   useFocusEffect(
     React.useCallback(() => {
@@ -146,7 +147,11 @@ export default function CameraScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.cameraContainer}>
-        <CameraView style={styles.camera} facing={facing} ref={cameraRef} />
+        {isFocused ? (
+          <CameraView style={styles.camera} facing={facing} ref={cameraRef} />
+        ) : (
+          <View style={styles.camera} />
+        )}
         <View style={styles.cameraOverlay} pointerEvents="box-none">
           {/* Header with flip button */}
           <View style={styles.header}>

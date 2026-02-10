@@ -348,7 +348,7 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 - ✅ アプリアイコン・スプラッシュスクリーン（`assets/*` + `app.json` 反映）
 - ✅ 主要バグ修正（`CameraView` の children 警告解消、SafeAreaView 非推奨警告解消）
 - ✅ 主要バグ修正（連打による二重遷移/二重保存ガードを Camera/Result/ExerciseSelect に追加）
-- 全画面バグ修正（最終実機チェック残）
+- ✅ 全画面バグ修正（主要実機フロー確認済み）
 - 詳細: `.steering/20260209-phase10-polish/`
 
 ---
@@ -399,6 +399,10 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 **原因**: Metro起動中だが、端末アプリが未接続（またはポート不一致）
 **解決**: 端末でDev Client/Expo Goからプロジェクトに接続してから `r`。必要なら `--port 8081` で再起動
 
+### エラー7: 手動入力ルートで `NotReadableError: Could not start video source`
+**原因**: `CameraScreen` がバックスタックで生きたまま `CameraView` を保持し、手動入力→運動モードで WebView カメラと競合していた（前面カメラの排他競合）。
+**解決**: `CameraScreen` で `useIsFocused()` を使い、フォーカス外では `CameraView` を描画しないように変更。これにより遷移時にカメラセッションが解放され、手動入力ルートでも運動モードが起動するようになった。
+
 ---
 
 ## コミット・プルリクエストの方針
@@ -417,4 +421,4 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 ---
 
 ## 最終更新日
-2026-02-09 - Phase 10進捗更新（オンボーディング、エラーUI統一、ローディング改善、アイコン/スプラッシュ反映、主要警告修正）
+2026-02-10 - Phase 10完了反映（最終バグ修正、手動入力ルートのカメラ競合解消）

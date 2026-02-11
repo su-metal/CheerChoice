@@ -77,7 +77,7 @@ f:\App_dev\CheerChoice/
 │       └── index.ts
 ├── docs/                  # ドキュメント
 │   └── requirements.md    # 要件定義書 v2.0
-├── .env                   # 環境変数（EXPO_PUBLIC_OPENAI_API_KEY）
+├── .env                   # 環境変数（Supabase/Sentry/Legal URL）
 ├── App.tsx                # ルートコンポーネント
 └── CLAUDE.md              # このファイル
 ```
@@ -251,11 +251,16 @@ npm install                 # 依存関係の再インストール
 
 `.env` ファイル（Gitにコミットしない）:
 ```
-EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
+EXPO_PUBLIC_SUPABASE_URL=...
+EXPO_PUBLIC_SUPABASE_ANON_KEY=...
+EXPO_PUBLIC_SENTRY_DSN=...
+EXPO_PUBLIC_SENTRY_TEST_EVENT=false
+EXPO_PUBLIC_PRIVACY_POLICY_URL=...
+EXPO_PUBLIC_TERMS_URL=...
 ```
 
 - `EXPO_PUBLIC_` プレフィックスは必須（Expoの仕様）
-- コード内では `process.env.EXPO_PUBLIC_OPENAI_API_KEY` でアクセス
+- OpenAI APIキーはクライアントに置かず、Supabase Edge FunctionのSecret（`OPENAI_API_KEY`）で管理
 
 ---
 
@@ -329,7 +334,7 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 ## 課金モデル設計
 
 ### フリートライアル + サブスクリプション方式
-- **無料**: AI撮影15回（lifetime上限）+ 手動入力は無制限 + 基本統計 + 広告あり
+- **無料**: AI撮影7回（lifetime上限）+ 手動入力は無制限 + 基本統計 + 広告あり
 - **プレミアム ($4.99/月)**: AI撮影20回/日 + 全統計 + 広告なし
 - **原則**: API コストはトライアル消化後、課金ユーザーのみに発生
 - 詳細: `.steering/20260209-monetization-model/requirements.md`
@@ -379,6 +384,10 @@ EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
 - `EXPO_PUBLIC_OPENAI_API_KEY` をクライアントから除去
 - サーバーサイドでのレート制限・使用回数検証
 - `openai` npm パッケージの削除
+- 実装済み:
+  - `supabase/functions/calorie-estimation` を追加
+  - Supabaseプロジェクト `wzinimxikcihdqqdvppa` に Edge Function デプロイ済み（`verify_jwt=true`）
+  - クライアント `estimateCalories` を `supabase.functions.invoke('calorie-estimation')` に切替
 - **セキュリティ必須要件**:
   - Edge Function でJWT検証（未認証リクエスト拒否）
   - ユーザー単位のレート制限（短期/日次）

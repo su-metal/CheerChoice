@@ -24,4 +24,8 @@ export function setAppLocale(language: 'auto' | 'en' | 'ja') {
   i18n.locale = resolveLocale(language);
 }
 
+export function getCurrentLocale(): 'en' | 'ja' {
+  return i18n.locale?.startsWith('ja') ? 'ja' : 'en';
+}
+
 export default i18n;

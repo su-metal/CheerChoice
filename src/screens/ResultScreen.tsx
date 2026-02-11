@@ -17,7 +17,7 @@ import { Colors, Typography, Spacing, BorderRadius } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { CalorieEstimationResult } from '../types';
 import { estimateCalories } from '../services/calorieEstimator';
-import { t } from '../i18n';
+import { getCurrentLocale, t } from '../i18n';
 import { incrementAIUsage } from '../services/usageService';
 import { saveMealRecord } from '../services/recordService';
 import { EXERCISES } from '../constants/Exercises';
@@ -42,6 +42,7 @@ export default function ResultScreen({ navigation, route }: Props) {
   const [editedFoodName, setEditedFoodName] = useState('');
   const [editedCalories, setEditedCalories] = useState('');
   const [isSubmittingChoice, setIsSubmittingChoice] = useState(false);
+  const [isIdentifyingProduct, setIsIdentifyingProduct] = useState(false);
   const isManualEntry = Boolean(manualInput);
 
   // コンポーネントマウント時にカロリー推定を実行
@@ -76,7 +77,10 @@ export default function ResultScreen({ navigation, route }: Props) {
     try {
       setLoading(true);
       setError(null);
-      const estimation = await estimateCalories(photoUri);
+      const estimation = await estimateCalories(photoUri, {
+        mode: 'basic',
+        locale: getCurrentLocale(),
+      });
       setResult(estimation);
       setEditedFoodName(estimation.foodName);
       setEditedCalories(String(estimation.estimatedCalories));
@@ -86,6 +90,28 @@ export default function ResultScreen({ navigation, route }: Props) {
       setError(t('result.analysisFailed'));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleIdentifyProduct() {
+    if (!photoUri || isIdentifyingProduct) {
+      return;
+    }
+
+    try {
+      setIsIdentifyingProduct(true);
+      const detailed = await estimateCalories(photoUri, {
+        mode: 'detailed',
+        locale: getCurrentLocale(),
+      });
+      setResult(detailed);
+      setEditedFoodName(detailed.foodName);
+      setEditedCalories(String(detailed.estimatedCalories));
+    } catch (identifyError) {
+      console.error('Error identifying product:', identifyError);
+      Alert.alert(t('common.oops'), t('result.identifyProductFailed'));
+    } finally {
+      setIsIdentifyingProduct(false);
     }
   }
 
@@ -275,6 +301,19 @@ export default function ResultScreen({ navigation, route }: Props) {
               <TouchableOpacity style={styles.editButton} onPress={startEdit}>
                 <Text style={styles.editButtonText}>{t('result.editEstimate')}</Text>
               </TouchableOpacity>
+              {!isManualEntry && (
+                <TouchableOpacity
+                  style={styles.identifyButton}
+                  onPress={handleIdentifyProduct}
+                  disabled={isIdentifyingProduct}
+                >
+                  {isIdentifyingProduct ? (
+                    <ActivityIndicator size="small" color={Colors.surface} />
+                  ) : (
+                    <Text style={styles.identifyButtonText}>{t('result.identifyProduct')}</Text>
+                  )}
+                </TouchableOpacity>
+              )}
             </>
           )}
 
@@ -456,6 +495,18 @@ const styles = StyleSheet.create({
     ...Typography.bodySmall,
     color: Colors.accent,
     fontWeight: '600',
+  },
+  identifyButton: {
+    marginTop: Spacing.sm,
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+  },
+  identifyButtonText: {
+    ...Typography.bodySmall,
+    color: Colors.surface,
+    fontWeight: '700',
   },
   inputLabel: {
     ...Typography.bodySmall,

@@ -7,6 +7,7 @@
 ```env
 EXPO_PUBLIC_SUPABASE_URL=...
 EXPO_PUBLIC_SUPABASE_ANON_KEY=...
+EXPO_PUBLIC_SUPABASE_LEGACY_ANON_JWT=...
 EXPO_PUBLIC_SENTRY_DSN=...
 EXPO_PUBLIC_SENTRY_TEST_EVENT=false
 EXPO_PUBLIC_PRIVACY_POLICY_URL=...
@@ -14,6 +15,16 @@ EXPO_PUBLIC_TERMS_URL=...
 ```
 
 `EXPO_PUBLIC_SENTRY_TEST_EVENT` は開発時のみ `true` にし、本番ビルド前は `false` にしてください。
+`EXPO_PUBLIC_SUPABASE_LEGACY_ANON_JWT` は Edge Function が `Invalid JWT` を返す環境向けの暫定回避値です（未使用なら空で可）。
+
+## Phase 13 (Edge Function)
+
+AI推定は `supabase/functions/calorie-estimation` を経由します。  
+OpenAIキーはクライアント `.env` ではなく、Supabase Edge Function Secret に設定してください:
+
+```bash
+supabase secrets set OPENAI_API_KEY=sk-... --project-ref wzinimxikcihdqqdvppa
+```
 
 `EXPO_PUBLIC_PRIVACY_POLICY_URL` / `EXPO_PUBLIC_TERMS_URL` は「公開済みの法的ページURL」です。
 このリポジトリには公開用HTMLを用意済みです:

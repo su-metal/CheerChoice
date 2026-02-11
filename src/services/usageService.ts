@@ -6,7 +6,7 @@ import { getSupabaseClient } from './supabaseClient';
 
 const USAGE_KEY = '@CheerChoice:usageData';
 const USAGE_RESET_MARKER_KEY = '@CheerChoice:usageResetMarker';
-const FREE_TIER_LIFETIME_LIMIT = 15;
+const FREE_TIER_LIFETIME_LIMIT = 7;
 const PREMIUM_DAILY_LIMIT = 20;
 
 const getTodayIso = () => new Date().toISOString().split('T')[0];

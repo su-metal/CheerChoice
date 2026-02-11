@@ -8,8 +8,9 @@ import { Colors, Typography, Spacing, BorderRadius } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { t } from '../i18n';
 import { canUseAI, getRemainingAIUses } from '../services/usageService';
-import { IS_PREMIUM, PREMIUM_PRICE_USD } from '../config/appConfig';
+import { PREMIUM_PRICE_USD } from '../config/appConfig';
 import { trackEvent } from '../services/analyticsService';
+import { refreshPremiumStatus } from '../services/subscriptionService';
 import ErrorCard from '../components/ErrorCard';
 
 type CameraScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Camera'>;
@@ -24,13 +25,14 @@ export default function CameraScreen({ navigation }: Props) {
   const [photo, setPhoto] = useState<string | null>(null);
   const [remaining, setRemaining] = useState(0);
   const [isUsingPhoto, setIsUsingPhoto] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
   const cameraRef = useRef<CameraView>(null);
   const isFocused = useIsFocused();
 
   function showUpgradePaywall() {
     trackEvent('free_limit_reached', {
       screen: 'camera',
-      plan: IS_PREMIUM ? 'premium' : 'free',
+      plan: isPremium ? 'premium' : 'free',
     });
     trackEvent('paywall_view', {
       screen: 'camera',
@@ -81,7 +83,12 @@ export default function CameraScreen({ navigation }: Props) {
     React.useCallback(() => {
       let active = true;
       async function loadRemaining() {
-        const count = await getRemainingAIUses(IS_PREMIUM);
+        const premium = await refreshPremiumStatus();
+        if (!active) {
+          return;
+        }
+        setIsPremium(premium);
+        const count = await getRemainingAIUses(premium);
         if (active) {
           setRemaining(count);
         }
@@ -156,7 +163,9 @@ export default function CameraScreen({ navigation }: Props) {
                   return;
                 }
                 setIsUsingPhoto(true);
-                const allowed = await canUseAI(IS_PREMIUM);
+                const premium = await refreshPremiumStatus();
+                setIsPremium(premium);
+                const allowed = await canUseAI(premium);
                 if (!allowed) {
                   setIsUsingPhoto(false);
                   showUpgradePaywall();

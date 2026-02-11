@@ -23,6 +23,9 @@ import { saveMealRecord } from '../services/recordService';
 import { EXERCISES } from '../constants/Exercises';
 import { calculateRecommendedReps } from '../utils/exerciseCalculator';
 import { createExerciseObligation } from '../services/recoveryService';
+import { PREMIUM_PRICE_USD } from '../config/appConfig';
+import { trackEvent } from '../services/analyticsService';
+import { refreshPremiumStatus } from '../services/subscriptionService';
 import ErrorCard from '../components/ErrorCard';
 
 type ResultScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Result'>;
@@ -43,6 +46,7 @@ export default function ResultScreen({ navigation, route }: Props) {
   const [editedCalories, setEditedCalories] = useState('');
   const [isSubmittingChoice, setIsSubmittingChoice] = useState(false);
   const [isIdentifyingProduct, setIsIdentifyingProduct] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
   const isManualEntry = Boolean(manualInput);
 
   // コンポーネントマウント時にカロリー推定を実行
@@ -66,6 +70,59 @@ export default function ResultScreen({ navigation, route }: Props) {
 
     analyzePhoto();
   }, [manualInput]);
+
+  useEffect(() => {
+    let active = true;
+    refreshPremiumStatus()
+      .then((premium) => {
+        if (active) {
+          setIsPremium(premium);
+        }
+      })
+      .catch((premiumError) => {
+        console.error('Error loading premium status:', premiumError);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function showDetailedIdentifyPaywall() {
+    trackEvent('paywall_view', {
+      screen: 'result',
+      entry_point: 'identify_product',
+      price_usd: PREMIUM_PRICE_USD,
+    });
+
+    Alert.alert(
+      t('result.identifyProductPremiumTitle'),
+      t('result.identifyProductPremiumMessage', { price: PREMIUM_PRICE_USD.toFixed(2) }),
+      [
+        {
+          text: t('result.identifyProductPremiumLater'),
+          style: 'cancel',
+          onPress: () => {
+            trackEvent('paywall_close', {
+              screen: 'result',
+              reason: 'later',
+              entry_point: 'identify_product',
+            });
+          },
+        },
+        {
+          text: t('result.identifyProductPremiumUpgrade'),
+          onPress: () => {
+            trackEvent('paywall_subscribe_tap', {
+              screen: 'result',
+              entry_point: 'identify_product',
+              price_usd: PREMIUM_PRICE_USD,
+            });
+            navigation.navigate('Settings');
+          },
+        },
+      ]
+    );
+  }
 
   async function analyzePhoto() {
     if (!photoUri) {
@@ -95,6 +152,13 @@ export default function ResultScreen({ navigation, route }: Props) {
 
   async function handleIdentifyProduct() {
     if (!photoUri || isIdentifyingProduct) {
+      return;
+    }
+
+    const premium = await refreshPremiumStatus();
+    setIsPremium(premium);
+    if (!premium) {
+      showDetailedIdentifyPaywall();
       return;
     }
 
@@ -303,14 +367,16 @@ export default function ResultScreen({ navigation, route }: Props) {
               </TouchableOpacity>
               {!isManualEntry && (
                 <TouchableOpacity
-                  style={styles.identifyButton}
+                  style={[styles.identifyButton, !isPremium && styles.identifyButtonLocked]}
                   onPress={handleIdentifyProduct}
                   disabled={isIdentifyingProduct}
                 >
                   {isIdentifyingProduct ? (
                     <ActivityIndicator size="small" color={Colors.surface} />
                   ) : (
-                    <Text style={styles.identifyButtonText}>{t('result.identifyProduct')}</Text>
+                    <Text style={styles.identifyButtonText}>
+                      {isPremium ? t('result.identifyProduct') : t('result.identifyProductPremium')}
+                    </Text>
                   )}
                 </TouchableOpacity>
               )}
@@ -502,6 +568,9 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.sm,
     alignItems: 'center',
+  },
+  identifyButtonLocked: {
+    backgroundColor: Colors.textExtraLight,
   },
   identifyButtonText: {
     ...Typography.bodySmall,

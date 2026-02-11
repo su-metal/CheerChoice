@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BorderRadius, Colors, Spacing, Typography } from '../constants';
 import { getExerciseRecords, getMealRecords } from '../services/recordService';
 import { t } from '../i18n';
@@ -17,10 +18,11 @@ import {
   StatsData,
   StatsPeriod,
 } from '../utils/statsCalculator';
-import { IS_PREMIUM } from '../config/appConfig';
+import { RootStackParamList } from '../navigation/AppNavigator';
 import { getWeeklyRecoveryStatus } from '../services/recoveryService';
+import { refreshPremiumStatus } from '../services/subscriptionService';
 
-const isPremium = IS_PREMIUM;
+type Props = NativeStackScreenProps<RootStackParamList, 'Stats'>;
 
 const defaultStats: StatsData = {
   dailyCalories: [],
@@ -184,10 +186,11 @@ function ExerciseTypeRow({
   );
 }
 
-export default function StatsScreen() {
+export default function StatsScreen({ navigation }: Props) {
   const [period, setPeriod] = useState<StatsPeriod>('week');
   const [stats, setStats] = useState<StatsData>(defaultStats);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
   const [weeklyRecovery, setWeeklyRecovery] = useState({
     generatedCount: 0,
     resolvedCount: 0,
@@ -202,7 +205,9 @@ export default function StatsScreen() {
         getExerciseRecords(),
         getWeeklyRecoveryStatus(),
       ]);
+      const premium = await refreshPremiumStatus();
       setStats(calculateStats(meals, exercises, period));
+      setIsPremium(premium);
       setWeeklyRecovery({
         generatedCount: recovery.generatedCount,
         resolvedCount: recovery.resolvedCount,
@@ -343,7 +348,10 @@ export default function StatsScreen() {
               <View style={[styles.previewBar, { height: 18 }]} />
               <View style={[styles.previewBar, { height: 36 }]} />
             </View>
-            <TouchableOpacity style={styles.upgradeButton}>
+            <TouchableOpacity
+              style={styles.upgradeButton}
+              onPress={() => navigation.navigate('Settings')}
+            >
               <Text style={styles.upgradeButtonText}>{t('stats.upgradeButton')}</Text>
             </TouchableOpacity>
           </View>

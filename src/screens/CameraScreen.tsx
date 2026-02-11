@@ -8,7 +8,8 @@ import { Colors, Typography, Spacing, BorderRadius } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { t } from '../i18n';
 import { canUseAI, getRemainingAIUses } from '../services/usageService';
-import { IS_PREMIUM } from '../config/appConfig';
+import { IS_PREMIUM, PREMIUM_PRICE_USD } from '../config/appConfig';
+import { trackEvent } from '../services/analyticsService';
 import ErrorCard from '../components/ErrorCard';
 
 type CameraScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Camera'>;
@@ -25,6 +26,56 @@ export default function CameraScreen({ navigation }: Props) {
   const [isUsingPhoto, setIsUsingPhoto] = useState(false);
   const cameraRef = useRef<CameraView>(null);
   const isFocused = useIsFocused();
+
+  function showUpgradePaywall() {
+    trackEvent('free_limit_reached', {
+      screen: 'camera',
+      plan: IS_PREMIUM ? 'premium' : 'free',
+    });
+    trackEvent('paywall_view', {
+      screen: 'camera',
+      entry_point: 'use_photo',
+      price_usd: PREMIUM_PRICE_USD,
+    });
+
+    Alert.alert(
+      t('camera.paywallTitle'),
+      t('camera.paywallMessage', { price: PREMIUM_PRICE_USD.toFixed(2) }),
+      [
+        {
+          text: t('camera.paywallLater'),
+          style: 'cancel',
+          onPress: () => {
+            trackEvent('paywall_close', {
+              screen: 'camera',
+              reason: 'later',
+            });
+          },
+        },
+        {
+          text: t('camera.manualEntry'),
+          onPress: () => {
+            trackEvent('paywall_close', {
+              screen: 'camera',
+              reason: 'manual_entry',
+            });
+            navigation.navigate('ManualEntry');
+          },
+        },
+        {
+          text: t('camera.paywallUpgrade'),
+          onPress: () => {
+            trackEvent('paywall_subscribe_tap', {
+              screen: 'camera',
+              entry_point: 'use_photo',
+              price_usd: PREMIUM_PRICE_USD,
+            });
+            navigation.navigate('Settings');
+          },
+        },
+      ]
+    );
+  }
 
   useFocusEffect(
     React.useCallback(() => {
@@ -90,7 +141,10 @@ export default function CameraScreen({ navigation }: Props) {
           <View style={styles.previewActions}>
             <TouchableOpacity
               style={[styles.previewButton, styles.retakeButton]}
-              onPress={() => setPhoto(null)}
+              onPress={() => {
+                setIsUsingPhoto(false);
+                setPhoto(null);
+              }}
             >
               <Text style={styles.previewButtonText}>{t('camera.retake')}</Text>
             </TouchableOpacity>
@@ -104,12 +158,12 @@ export default function CameraScreen({ navigation }: Props) {
                 setIsUsingPhoto(true);
                 const allowed = await canUseAI(IS_PREMIUM);
                 if (!allowed) {
-                  Alert.alert(t('camera.limitTitle'), t('camera.limitMessage'));
-                  navigation.navigate('ManualEntry');
                   setIsUsingPhoto(false);
+                  showUpgradePaywall();
                   return;
                 }
                 navigation.navigate('Result', { photoUri: photo ?? undefined });
+                setIsUsingPhoto(false);
               }}
             >
               <Text style={styles.previewButtonText}>{t('camera.usePhoto')}</Text>
@@ -134,6 +188,7 @@ export default function CameraScreen({ navigation }: Props) {
           base64: false,
         });
         if (photo) {
+          setIsUsingPhoto(false);
           setPhoto(photo.uri);
         }
       } catch (error) {

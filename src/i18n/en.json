@@ -61,6 +61,10 @@
     "manualEntry": "Enter manually",
     "limitTitle": "AI limit reached",
     "limitMessage": "You used all AI analyses. Please enter manually.",
+    "paywallTitle": "Free analyses used up",
+    "paywallMessage": "Continue with Premium ($%{price}/month) or use manual entry.",
+    "paywallLater": "Later",
+    "paywallUpgrade": "View Premium",
     "guideText": "Center your food in the frame",
     "errorTakePhoto": "Failed to take picture. Please try again."
   },
@@ -78,6 +82,8 @@
     "eatSubtext": "Balance with exercise",
     "manualLabel": "Manual Entry",
     "editEstimate": "Edit estimation",
+    "identifyProduct": "Identify Product Name",
+    "identifyProductFailed": "Failed to identify product name. Please try again.",
     "saveEdit": "Save changes",
     "foodNameLabel": "Food name",
     "caloriesLabel": "Estimated calories",
@@ -156,7 +162,7 @@
     "page2Title": "Eat or Skip, Both Great",
     "page2Body": "Skip it to save calories, or eat it and enjoy a short move. Every choice counts.",
     "page3Title": "No Guilt, Ever!",
-    "page3Body": "Your choices are always valid. Start with 15 free AI photo analyses."
+    "page3Body": "Your choices are always valid. Start with 7 free AI photo analyses."
   },
   "log": {
     "ate": "Ate",
@@ -223,6 +229,9 @@
     "planPremium": "Premium",
     "aiUsageFree": "AI Photos Used: %{used} / %{limit}",
     "aiUsagePremium": "AI Photos Today: %{used} / %{limit}",
+    "resetAiUsage": "Reset AI usage",
+    "aiUsageResetDone": "AI usage has been reset.",
+    "aiUsageResetFailed": "Failed to reset AI usage.",
     "loadingUsage": "Loading usage...",
     "upgradeTitle": "Premium coming soon",
     "upgradeBody": "Upgrade flow is coming soon.",

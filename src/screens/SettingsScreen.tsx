@@ -16,7 +16,7 @@ import { BorderRadius, Colors, Spacing, Typography } from '../constants';
 import { setAppLocale, t } from '../i18n';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { IS_PREMIUM, PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '../config/appConfig';
-import { getUsageData } from '../services/usageService';
+import { getUsageData, resetAIUsage } from '../services/usageService';
 import { UsageData } from '../types';
 import {
   clearAllData,
@@ -122,6 +122,18 @@ export default function SettingsScreen({ navigation }: Props) {
         },
       ]
     );
+  };
+
+  const handleResetAIUsage = async () => {
+    try {
+      await resetAIUsage();
+      const usage = await getUsageData();
+      setUsageData(usage);
+      Alert.alert(t('common.done'), t('settings.aiUsageResetDone'));
+    } catch (error) {
+      console.error('Error resetting AI usage:', error);
+      Alert.alert(t('common.oops'), t('settings.aiUsageResetFailed'));
+    }
   };
 
   const openExternalUrl = async (url: string) => {
@@ -238,9 +250,12 @@ export default function SettingsScreen({ navigation }: Props) {
               {usageData
                 ? (IS_PREMIUM
                     ? t('settings.aiUsagePremium', { used: usageData.aiPhotosToday, limit: 20 })
-                    : t('settings.aiUsageFree', { used: usageData.aiPhotosUsed, limit: 15 }))
+                    : t('settings.aiUsageFree', { used: usageData.aiPhotosUsed, limit: 7 }))
                 : t('settings.loadingUsage')}
             </Text>
+            <TouchableOpacity style={styles.actionButton} onPress={handleResetAIUsage}>
+              <Text style={styles.actionButtonText}>{t('settings.resetAiUsage')}</Text>
+            </TouchableOpacity>
             {!IS_PREMIUM && (
               <TouchableOpacity
                 style={styles.actionButton}

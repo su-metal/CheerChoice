@@ -3,10 +3,18 @@ import { processImageForAI } from '../utils/imageProcessor';
 import { ensureSupabaseAnonymousAuth } from './authService';
 import { getSupabaseClient } from './supabaseClient';
 
-const CALORIE_ESTIMATION_FUNCTION = 'calorie-estimation-v2';
+const CALORIE_ESTIMATION_FUNCTION = 'calorie-estimation-ocr';
 
 type EdgeFunctionResponse = {
   result: CalorieEstimationResult;
+};
+
+export type EstimationMode = 'basic' | 'detailed';
+export type EstimationLocale = 'en' | 'ja';
+
+type EstimateCaloriesOptions = {
+  mode?: EstimationMode;
+  locale?: EstimationLocale;
 };
 
 function getEnv(name: 'EXPO_PUBLIC_SUPABASE_URL' | 'EXPO_PUBLIC_SUPABASE_ANON_KEY'): string {
@@ -29,7 +37,9 @@ function getFunctionEndpoint(): string {
 
 async function invokeCalorieEstimationFunction(
   accessToken: string,
-  imageBase64: string
+  imageBase64: string,
+  mode: EstimationMode,
+  locale: EstimationLocale
 ): Promise<CalorieEstimationResult> {
   const apikey = getEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY');
   if (!apikey) {
@@ -44,7 +54,7 @@ async function invokeCalorieEstimationFunction(
         Authorization: `Bearer ${accessToken}`,
         apikey,
       },
-      body: JSON.stringify({ imageBase64 }),
+      body: JSON.stringify({ imageBase64, mode, locale }),
     });
 
     const bodyText = await response.text();
@@ -129,7 +139,8 @@ async function getAccessTokenForEstimation(
  * 食べ物の写真からカロリーを推定
  */
 export async function estimateCalories(
-  imageUri: string
+  imageUri: string,
+  options: EstimateCaloriesOptions = {}
 ): Promise<CalorieEstimationResult> {
   try {
     const supabase = getSupabaseClient();
@@ -138,16 +149,18 @@ export async function estimateCalories(
     }
 
     let accessToken = await getAccessTokenForEstimation(supabase);
+    const mode = options.mode ?? 'basic';
+    const locale = options.locale ?? 'en';
 
     // 画像を処理（リサイズ + Base64変換）
     const base64Image = await processImageForAI(imageUri);
     try {
-      return await invokeCalorieEstimationFunction(accessToken, base64Image);
+      return await invokeCalorieEstimationFunction(accessToken, base64Image, mode, locale);
     } catch (invokeError) {
       if (invokeError instanceof Error && invokeError.message.includes('HTTP 401')) {
         await supabase.auth.signOut();
         accessToken = await getAccessTokenForEstimation(supabase);
-        return await invokeCalorieEstimationFunction(accessToken, base64Image);
+        return await invokeCalorieEstimationFunction(accessToken, base64Image, mode, locale);
       }
       throw invokeError;
     }
@@ -191,7 +204,7 @@ export async function testOpenAIConnection(): Promise<boolean> {
     const tinyBase64Png =
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AApMBgQpD6UQAAAAASUVORK5CYII=';
 
-    const result = await invokeCalorieEstimationFunction(accessToken, tinyBase64Png);
+    const result = await invokeCalorieEstimationFunction(accessToken, tinyBase64Png, 'basic', 'en');
     return Boolean(result.estimatedCalories);
   } catch (error) {
     console.error('OpenAI connection test failed:', error);

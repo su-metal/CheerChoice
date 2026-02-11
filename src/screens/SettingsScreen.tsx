@@ -15,8 +15,14 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BorderRadius, Colors, Spacing, Typography } from '../constants';
 import { setAppLocale, t } from '../i18n';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { IS_PREMIUM, PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '../config/appConfig';
+import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '../config/appConfig';
 import { getUsageData, resetAIUsage } from '../services/usageService';
+import { trackEvent } from '../services/analyticsService';
+import {
+  purchasePremium,
+  refreshPremiumStatus,
+  restorePremiumPurchases,
+} from '../services/subscriptionService';
 import { UsageData } from '../types';
 import {
   clearAllData,
@@ -27,18 +33,29 @@ import {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
+function isPurchaseCancelledError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const candidate = error as { code?: string | number; userCancelled?: boolean | null };
+  return candidate.userCancelled === true || String(candidate.code) === '1';
+}
+
 export default function SettingsScreen({ navigation }: Props) {
   const [dailyGoal, setDailyGoal] = useState(300);
   const [voiceFeedbackEnabled, setVoiceFeedbackEnabled] = useState(true);
   const [language, setLanguage] = useState<'auto' | 'en' | 'ja'>('auto');
   const [usageData, setUsageData] = useState<UsageData | null>(null);
+  const [isPremium, setIsPremium] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isProcessingPurchase, setIsProcessingPurchase] = useState(false);
   const initializedRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
-    Promise.all([getSettings(), getUsageData()])
-      .then(([settings, usage]) => {
+    Promise.all([getSettings(), getUsageData(), refreshPremiumStatus()])
+      .then(([settings, usage, premium]) => {
         if (!isMounted) {
           return;
         }
@@ -46,6 +63,7 @@ export default function SettingsScreen({ navigation }: Props) {
         setVoiceFeedbackEnabled(settings.voiceFeedbackEnabled);
         setLanguage(settings.language);
         setUsageData(usage);
+        setIsPremium(premium);
         initializedRef.current = true;
       })
       .catch((error) => {
@@ -133,6 +151,50 @@ export default function SettingsScreen({ navigation }: Props) {
     } catch (error) {
       console.error('Error resetting AI usage:', error);
       Alert.alert(t('common.oops'), t('settings.aiUsageResetFailed'));
+    }
+  };
+
+  const handlePurchasePremium = async () => {
+    if (isProcessingPurchase) {
+      return;
+    }
+
+    try {
+      setIsProcessingPurchase(true);
+      trackEvent('purchase_start', { screen: 'settings' });
+      const premium = await purchasePremium();
+      setIsPremium(premium);
+      trackEvent('purchase_success', { screen: 'settings' });
+      Alert.alert(t('common.done'), t('settings.purchaseSuccess'));
+    } catch (error) {
+      console.error('Error purchasing premium:', error);
+      if (isPurchaseCancelledError(error)) {
+        trackEvent('purchase_cancel', { screen: 'settings' });
+        Alert.alert(t('common.done'), t('settings.purchaseCancelled'));
+        return;
+      }
+      trackEvent('purchase_error', { screen: 'settings' });
+      Alert.alert(t('common.oops'), t('settings.purchaseFailed'));
+    } finally {
+      setIsProcessingPurchase(false);
+    }
+  };
+
+  const handleRestorePurchases = async () => {
+    if (isProcessingPurchase) {
+      return;
+    }
+
+    try {
+      setIsProcessingPurchase(true);
+      const premium = await restorePremiumPurchases();
+      setIsPremium(premium);
+      Alert.alert(t('common.done'), premium ? t('settings.restoreSuccess') : t('settings.restoreNoPurchase'));
+    } catch (error) {
+      console.error('Error restoring purchases:', error);
+      Alert.alert(t('common.oops'), t('settings.restoreFailed'));
+    } finally {
+      setIsProcessingPurchase(false);
     }
   };
 
@@ -244,11 +306,11 @@ export default function SettingsScreen({ navigation }: Props) {
           <Text style={styles.sectionTitle}>{t('settings.subscription')}</Text>
           <View style={styles.card}>
             <Text style={styles.itemTitle}>
-              {t('settings.plan', { value: IS_PREMIUM ? t('settings.planPremium') : t('settings.planFree') })}
+              {t('settings.plan', { value: isPremium ? t('settings.planPremium') : t('settings.planFree') })}
             </Text>
             <Text style={styles.itemSubtext}>
               {usageData
-                ? (IS_PREMIUM
+                ? (isPremium
                     ? t('settings.aiUsagePremium', { used: usageData.aiPhotosToday, limit: 20 })
                     : t('settings.aiUsageFree', { used: usageData.aiPhotosUsed, limit: 7 }))
                 : t('settings.loadingUsage')}
@@ -256,14 +318,24 @@ export default function SettingsScreen({ navigation }: Props) {
             <TouchableOpacity style={styles.actionButton} onPress={handleResetAIUsage}>
               <Text style={styles.actionButtonText}>{t('settings.resetAiUsage')}</Text>
             </TouchableOpacity>
-            {!IS_PREMIUM && (
+            {!isPremium && (
               <TouchableOpacity
                 style={styles.actionButton}
-                onPress={() => Alert.alert(t('settings.upgradeTitle'), t('settings.upgradeBody'))}
+                onPress={handlePurchasePremium}
+                disabled={isProcessingPurchase}
               >
-                <Text style={styles.actionButtonText}>{t('stats.upgradeButton')}</Text>
+                <Text style={styles.actionButtonText}>
+                  {isProcessingPurchase ? t('settings.purchaseInProgress') : t('stats.upgradeButton')}
+                </Text>
               </TouchableOpacity>
             )}
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleRestorePurchases}
+              disabled={isProcessingPurchase}
+            >
+              <Text style={styles.actionButtonText}>{t('settings.restorePurchases')}</Text>
+            </TouchableOpacity>
           </View>
         </View>
 

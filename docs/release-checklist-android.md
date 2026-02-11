@@ -1,6 +1,6 @@
 # CheerChoice Android Release Checklist
 
-最終更新日: 2026-02-10
+最終更新日: 2026-02-11
 
 ## 1. 環境変数
 
@@ -26,11 +26,14 @@ EXPO_PUBLIC_TERMS_URL=https://su-metal.github.io/CheerChoice/legal/terms-of-serv
 - 撮影 -> 判定 -> 食べる/食べない -> 保存 -> 履歴表示
 - 運動画面（モーション/タップ）でカウントと保存が動く
 - アプリ再起動後に履歴が残る
+- `商品名を詳しく判定` は無料ユーザーでPaywall表示、Premiumユーザーで実行できる
 
 ## 4. クラッシュ監視
 
 - Sentry DSN接続済み
 - 本番前は `EXPO_PUBLIC_SENTRY_TEST_EVENT=false`
+- 課金導線イベント確認:
+  - `paywall_subscribe_tap` -> `purchase_success` / `purchase_cancel` / `purchase_error`
 
 ## 5. Androidビルド
 
@@ -59,7 +62,7 @@ eas build --platform android --profile development --clear-cache
 - Medium: 0件（現時点）
 - 備考: なし
 
-## 8. 実施ログ（2026-02-10）
+## 8. 実施ログ（2026-02-11）
 
 - [OK] `.env` 本番値を設定済み（Supabase / Sentry DSN / Legal URL）
 - [OK] `Settings > 法的情報` から Privacy/Terms のリンクが開くことを確認
@@ -67,6 +70,8 @@ eas build --platform android --profile development --clear-cache
   - 撮影 -> 判定 -> 食べる/食べない -> 保存 -> 履歴表示
   - アプリ再起動後に履歴が残ることを確認
 - [OK] PR自動チェック（`pr-check.yml`）がGitHub PRで実行され、`checks` 成功を確認
+- [OK] `Result` の `商品名を詳しく判定` をPremium限定化（無料時はPaywall誘導）
+- [OK] Sentryで課金導線イベント（`paywall_subscribe_tap` -> `purchase_*`）の連続記録を確認
 
 ## 9. main反映手順（PRマージ）
 

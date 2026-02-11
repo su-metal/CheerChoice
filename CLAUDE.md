@@ -400,6 +400,11 @@ EXPO_PUBLIC_TERMS_URL=...
 - Google Play サブスクリプション（$4.99/月）
 - `IS_PREMIUM` ハードコード → RevenueCat `CustomerInfo` 動的判定
 - Paywall画面、購入復元、RevenueCat Webhook → `entitlements` 連携
+- 実装済み（進行中）:
+  - `Settings` に購入/復元導線を実装
+  - `Result` の `商品名を詳しく判定` をPremium限定化（無料時はPaywallへ誘導）
+  - `purchase_cancel` / `paywall_*` などの課金イベントをSentryへ送信
+  - Sentryで `purchase_start -> purchase_success / purchase_cancel` の導線確認を完了
 - **失敗系テスト（必須）**:
   - 購入失敗時のリカバリー導線表示
   - 購入復元失敗時の再試行導線表示

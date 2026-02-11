@@ -7,6 +7,7 @@ import AppErrorBoundary from './src/components/AppErrorBoundary';
 import { getSettings } from './src/services/settingsService';
 import { setAppLocale } from './src/i18n';
 import { bootstrapSupabase } from './src/services/migrationService';
+import { configureRevenueCat, refreshPremiumStatus } from './src/services/subscriptionService';
 
 const sentryDsn = (process.env.EXPO_PUBLIC_SENTRY_DSN || '').trim();
 const isSentryEnabled = sentryDsn.length > 0;
@@ -35,6 +36,19 @@ function App() {
     bootstrapSupabase().catch((error) => {
       console.error('Supabase bootstrap failed:', error);
     });
+  }, []);
+
+  useEffect(() => {
+    configureRevenueCat()
+      .then((configured) => {
+        if (!configured) {
+          return;
+        }
+        return refreshPremiumStatus();
+      })
+      .catch((error) => {
+        console.error('RevenueCat bootstrap failed:', error);
+      });
   }, []);
 
   useEffect(() => {

@@ -38,6 +38,10 @@ export const Colors = {
   warning: '#f59e0b',
   info: '#3b82f6',
 
+  // Whites
+  white: '#FFFFFF',
+  whiteTransparent: 'rgba(255, 255, 255, 0.2)',
+
   // Special Colors
   overlay: 'rgba(15, 23, 42, 0.6)',
   border: '#f1f5f9',

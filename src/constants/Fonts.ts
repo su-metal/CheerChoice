@@ -58,65 +58,75 @@ export const Fonts = {
 export const Typography = {
   // Headings
   h1: {
-    fontSize: Fonts.size['5xl'],
-    fontWeight: Fonts.weight.bold,
-    lineHeight: Fonts.size['5xl'] * Fonts.lineHeight.tight,
+    fontSize: Fonts.size['6xl'],
+    fontWeight: Fonts.weight.extrabold,
+    lineHeight: 64,
+    letterSpacing: -1.2,
   },
   h2: {
     fontSize: Fonts.size['4xl'],
-    fontWeight: Fonts.weight.bold,
-    lineHeight: Fonts.size['4xl'] * Fonts.lineHeight.tight,
+    fontWeight: Fonts.weight.extrabold,
+    lineHeight: 40,
+    letterSpacing: -0.8,
   },
   h3: {
     fontSize: Fonts.size['3xl'],
-    fontWeight: Fonts.weight.semibold,
-    lineHeight: Fonts.size['3xl'] * Fonts.lineHeight.normal,
+    fontWeight: Fonts.weight.bold,
+    lineHeight: 34,
+    letterSpacing: -0.5,
   },
   h4: {
     fontSize: Fonts.size['2xl'],
-    fontWeight: Fonts.weight.semibold,
-    lineHeight: Fonts.size['2xl'] * Fonts.lineHeight.normal,
+    fontWeight: Fonts.weight.bold,
+    lineHeight: 30,
+    letterSpacing: -0.3,
   },
   h5: {
     fontSize: Fonts.size.xl,
-    fontWeight: Fonts.weight.medium,
-    lineHeight: Fonts.size.xl * Fonts.lineHeight.normal,
+    fontWeight: Fonts.weight.semibold,
+    lineHeight: 26,
   },
 
   // Body Text
   bodyLarge: {
     fontSize: Fonts.size.lg,
     fontWeight: Fonts.weight.regular,
-    lineHeight: Fonts.size.lg * Fonts.lineHeight.relaxed,
+    lineHeight: 26,
   },
   body: {
     fontSize: Fonts.size.md,
     fontWeight: Fonts.weight.regular,
-    lineHeight: Fonts.size.md * Fonts.lineHeight.relaxed,
+    lineHeight: 22,
   },
   bodySmall: {
     fontSize: Fonts.size.sm,
-    fontWeight: Fonts.weight.regular,
-    lineHeight: Fonts.size.sm * Fonts.lineHeight.normal,
+    fontWeight: Fonts.weight.medium,
+    lineHeight: 20,
   },
 
   // Special
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: Fonts.weight.bold,
+    lineHeight: 14,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase' as const,
+  },
   caption: {
     fontSize: Fonts.size.xs,
-    fontWeight: Fonts.weight.regular,
-    lineHeight: Fonts.size.xs * Fonts.lineHeight.normal,
+    fontWeight: Fonts.weight.medium,
+    lineHeight: 16,
   },
   button: {
     fontSize: Fonts.size.md,
-    fontWeight: Fonts.weight.semibold,
-    lineHeight: Fonts.size.md * Fonts.lineHeight.tight,
-    textTransform: 'uppercase' as const,
-    letterSpacing: Fonts.letterSpacing.wide,
+    fontWeight: Fonts.weight.extrabold,
+    lineHeight: 22,
+    letterSpacing: -0.2,
   },
   label: {
     fontSize: Fonts.size.sm,
-    fontWeight: Fonts.weight.medium,
-    lineHeight: Fonts.size.sm * Fonts.lineHeight.normal,
+    fontWeight: Fonts.weight.semibold,
+    lineHeight: 20,
   },
 } as const;
 

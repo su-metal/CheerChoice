@@ -16,7 +16,8 @@ import { useCameraPermissions } from 'expo-camera';
 import * as Speech from 'expo-speech';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { Colors, Typography, Spacing, BorderRadius } from '../constants';
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants';
+import SafeLinearGradient from '../components/SafeLinearGradient';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getRandomCompletionMessage, getRandomPartialMessage } from '../utils/exerciseMessages';
 import { EXERCISES } from '../constants/Exercises';
@@ -719,57 +720,67 @@ export default function ExerciseScreen({ navigation, route }: Props) {
       ) : null}
 
       {/* Top bar overlay */}
-      <SafeAreaView style={styles.topBarSafe}>
-        <View style={styles.topBar}>
-          <Text style={styles.exerciseName}>{exercise.icon} {exerciseName}</Text>
-          <Text style={styles.targetText}>{t('exercise.targetLabel', { targetReps })}</Text>
-          <View style={styles.modeSwitch}>
-            <TouchableOpacity
-              style={[styles.modeButton, inputMode === 'motion' && styles.modeButtonActive]}
-              onPress={() => switchInputMode('motion')}
-            >
-              <Text style={[styles.modeButtonText, inputMode === 'motion' && styles.modeButtonTextActive]}>
-                {t('exercise.motionMode')}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modeButton, inputMode === 'tap' && styles.modeButtonActive]}
-              onPress={() => switchInputMode('tap')}
-            >
-              <Text style={[styles.modeButtonText, inputMode === 'tap' && styles.modeButtonTextActive]}>
-                {t('exercise.tapMode')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </SafeAreaView>
+      <View style={styles.topBarSafe}>
+        <SafeLinearGradient
+          colors={['rgba(0,0,0,0.8)', 'transparent']}
+          style={styles.topBar}
+        >
+          <SafeAreaView edges={['top']}>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={styles.exerciseName}>{exercise.icon} {exerciseName}</Text>
+              <Text style={styles.targetText}>{t('exercise.targetLabel', { targetReps })}</Text>
+              <View style={styles.modeSwitch}>
+                <TouchableOpacity
+                  style={[styles.modeButton, inputMode === 'motion' && styles.modeButtonActive]}
+                  onPress={() => switchInputMode('motion')}
+                >
+                  <Text style={[styles.modeButtonText, inputMode === 'motion' && styles.modeButtonTextActive]}>
+                    {t('exercise.motionMode')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modeButton, inputMode === 'tap' && styles.modeButtonActive]}
+                  onPress={() => switchInputMode('tap')}
+                >
+                  <Text style={[styles.modeButtonText, inputMode === 'tap' && styles.modeButtonTextActive]}>
+                    {t('exercise.tapMode')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </SafeAreaView>
+        </SafeLinearGradient>
+      </View>
 
       {/* Center overlay: count + progress */}
       <View style={[styles.centerOverlay, { bottom: centerBottomOffset }]}>
         <Animated.View style={[styles.countContainer, { transform: [{ scale: scaleAnim }] }]}>
+          {isPaused && (
+            <View style={styles.pausedBadge}>
+              <Text style={styles.pausedBadgeText}>{t('exercise.pausedTitle')}</Text>
+            </View>
+          )}
           <Text style={styles.countText}>{count}</Text>
         </Animated.View>
-        {isPaused && (
-          <View style={styles.pausedBadge}>
-            <Text style={styles.pausedBadgeText}>{t('exercise.pausedTitle')}</Text>
-          </View>
-        )}
+
         {showRestoreHint && (
           <Text style={styles.restoreHintText}>{t('exercise.restoreHint')}</Text>
         )}
 
         {/* Progress bar */}
-        <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
+        <View style={styles.progressBarContainer}>
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
+          </View>
+          <Text style={styles.progressText}>{progressPercentage}% completed</Text>
         </View>
-        <Text style={styles.progressText}>{progressPercentage}%</Text>
 
         {inputMode === 'tap' && !isPaused && (
           <View style={styles.tapControls}>
             <TouchableOpacity style={styles.tapMinusButton} onPress={decrementByTap}>
               <Text style={styles.tapButtonText}>-1</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.tapPlusButton} onPress={incrementByTap}>
+            <TouchableOpacity style={styles.tapPlusButton} onPress={incrementByTap} activeOpacity={0.7}>
               <Text style={styles.tapButtonText}>{t('exercise.tapToCount')}</Text>
             </TouchableOpacity>
           </View>
@@ -777,30 +788,35 @@ export default function ExerciseScreen({ navigation, route }: Props) {
       </View>
 
       {/* Bottom bar overlay */}
-      <SafeAreaView style={styles.bottomBarSafe}>
-        <View style={styles.bottomBar}>
-          <View style={styles.bottomActionRow}>
-            {isPaused ? (
-              <TouchableOpacity style={styles.resumeButton} onPress={handleResume}>
-                <Text style={styles.resumeButtonText}>{t('exercise.resume')}</Text>
+      <View style={styles.bottomBarSafe}>
+        <SafeLinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.8)']}
+          style={styles.bottomBar}
+        >
+          <SafeAreaView edges={['bottom']} style={{ width: '100%', alignItems: 'center' }}>
+            <View style={styles.bottomActionRow}>
+              {isPaused ? (
+                <TouchableOpacity style={styles.resumeButton} onPress={handleResume}>
+                  <Text style={styles.resumeButtonText}>{t('exercise.resume')}</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.pauseButton} onPress={handlePause}>
+                  <Text style={styles.pauseButtonText}>{t('exercise.pause')}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {isComplete ? (
+              <TouchableOpacity style={styles.finishButton} onPress={handleFinish}>
+                <Text style={styles.finishButtonText}>{t('exercise.finish')} 🎉</Text>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity style={styles.pauseButton} onPress={handlePause}>
-                <Text style={styles.pauseButtonText}>{t('exercise.pause')}</Text>
+              <TouchableOpacity style={styles.stopButton} onPress={handleStop}>
+                <Text style={styles.stopButtonText}>{t('common.stop')}</Text>
               </TouchableOpacity>
             )}
-          </View>
-          {isComplete ? (
-            <TouchableOpacity style={styles.finishButton} onPress={handleFinish}>
-              <Text style={styles.finishButtonText}>{t('exercise.finish')} 🎉</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.stopButton} onPress={handleStop}>
-              <Text style={styles.stopButtonText}>{t('common.stop')}</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </SafeAreaView>
+          </SafeAreaView>
+        </SafeLinearGradient>
+      </View>
     </View>
   );
 }
@@ -818,14 +834,14 @@ const styles = StyleSheet.create({
   // Loading
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.8)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 20,
   },
   loadingText: {
+    ...Typography.body,
     color: Colors.surface,
-    fontSize: 16,
     marginTop: Spacing.md,
   },
 
@@ -835,7 +851,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 5,
+    zIndex: 25,
   },
 
   // Top bar
@@ -847,46 +863,50 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   topBar: {
-    backgroundColor: 'rgba(162, 143, 219, 0.85)',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.lg,
     alignItems: 'center',
-    borderBottomLeftRadius: BorderRadius.lg,
-    borderBottomRightRadius: BorderRadius.lg,
-    marginHorizontal: Spacing.md,
   },
   exerciseName: {
-    ...Typography.h4,
+    ...Typography.h3,
     color: Colors.surface,
-    marginBottom: 2,
+    marginBottom: 4,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   targetText: {
     ...Typography.bodySmall,
     color: Colors.surface,
     opacity: 0.9,
+    fontWeight: '700',
   },
   modeSwitch: {
-    marginTop: Spacing.sm,
+    marginTop: Spacing.md,
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    borderRadius: BorderRadius.md,
-    padding: 3,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: BorderRadius.full,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   modeButton: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
   },
   modeButtonActive: {
     backgroundColor: Colors.surface,
+    ...Shadows.sm,
   },
   modeButtonText: {
     ...Typography.caption,
     color: Colors.surface,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   modeButtonTextActive: {
-    color: Colors.accent,
+    color: Colors.primary,
   },
 
   // Center overlay
@@ -898,81 +918,105 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   countContainer: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 60,
-    width: 120,
-    height: 120,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 75,
+    width: 150,
+    height: 150,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.xl,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+    ...Shadows.lg,
   },
   countText: {
-    fontSize: 56,
-    fontWeight: '700',
+    ...Typography.h1,
+    fontSize: 80,
+    lineHeight: 88,
     color: '#fff',
+    fontWeight: '900',
+  },
+  progressBarContainer: {
+    width: '80%',
+    alignItems: 'center',
   },
   progressBar: {
-    width: '60%',
-    height: 8,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: BorderRadius.sm,
+    width: '100%',
+    height: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 6,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: Colors.accent,
-    borderRadius: BorderRadius.sm,
+    backgroundColor: '#00c6ff',
+    borderRadius: 6,
   },
   progressText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmall,
+    fontWeight: '800',
     color: '#fff',
-    marginTop: 4,
+    marginTop: 8,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   pausedBadge: {
-    marginTop: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    position: 'absolute',
+    top: -40,
+    paddingHorizontal: Spacing.lg,
     paddingVertical: 6,
-    borderRadius: BorderRadius.md,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.error,
+    ...Shadows.md,
   },
   pausedBadgeText: {
-    ...Typography.bodySmall,
+    ...Typography.caption,
     color: Colors.surface,
-    fontWeight: '600',
+    fontWeight: '900',
+    textTransform: 'uppercase',
   },
   restoreHintText: {
     ...Typography.caption,
     color: Colors.surface,
-    marginTop: Spacing.xs,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.sm,
+    marginTop: Spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
   },
   tapControls: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
+    gap: Spacing.md,
+    marginTop: Spacing.xl,
+    width: '100%',
+    justifyContent: 'center',
   },
   tapPlusButton: {
-    backgroundColor: Colors.secondary,
-    borderRadius: BorderRadius.xl,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
+    backgroundColor: 'rgba(0, 198, 255, 0.9)',
+    borderRadius: BorderRadius['2xl'],
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    minWidth: 160,
     alignItems: 'center',
+    ...Shadows.md,
   },
   tapMinusButton: {
-    backgroundColor: 'rgba(99, 110, 114, 0.9)',
-    borderRadius: BorderRadius.xl,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: BorderRadius['2xl'],
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   tapButtonText: {
     ...Typography.button,
     color: Colors.surface,
+    fontWeight: '800',
   },
 
   // Bottom bar
@@ -984,62 +1028,70 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   bottomBar: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.xl,
     alignItems: 'center',
   },
   bottomActionRow: {
-    marginBottom: Spacing.sm,
-    width: '70%',
+    marginBottom: Spacing.lg,
+    width: '100%',
   },
   pauseButton: {
-    backgroundColor: 'rgba(45, 52, 54, 0.85)',
-    paddingVertical: Spacing.sm,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    height: 56,
     borderRadius: BorderRadius.xl,
+    justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   pauseButtonText: {
     ...Typography.button,
     color: Colors.surface,
+    fontWeight: '700',
   },
   resumeButton: {
-    backgroundColor: Colors.accent,
-    paddingVertical: Spacing.sm,
+    backgroundColor: '#00c6ff',
+    height: 56,
     borderRadius: BorderRadius.xl,
+    justifyContent: 'center',
     alignItems: 'center',
+    ...Shadows.md,
   },
   resumeButtonText: {
     ...Typography.button,
     color: Colors.surface,
+    fontWeight: '800',
   },
   finishButton: {
     backgroundColor: Colors.secondary,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl * 2,
-    borderRadius: BorderRadius.xl,
-    shadowColor: Colors.secondary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 5,
-    minWidth: '70%',
+    height: 72,
+    borderRadius: BorderRadius['2xl'],
+    ...Shadows.xl,
+    width: '100%',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   finishButtonText: {
-    ...Typography.h5,
+    ...Typography.h4,
     color: Colors.surface,
+    fontWeight: '900',
   },
   stopButton: {
-    backgroundColor: 'rgba(99, 110, 114, 0.8)',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl * 2,
+    backgroundColor: 'rgba(255, 59, 48, 0.8)',
+    height: 64,
     borderRadius: BorderRadius.xl,
-    minWidth: '70%',
+    width: '100%',
+    justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   stopButtonText: {
     ...Typography.button,
     color: Colors.surface,
+    fontWeight: '800',
   },
 });
+
 

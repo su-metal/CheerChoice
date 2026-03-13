@@ -155,6 +155,7 @@ function MainTabs() {
         component={CameraScreen}
         options={{
           tabBarIcon: ({ focused }) => <CameraTabButton focused={focused} />,
+          tabBarStyle: { display: 'none' },
         }}
       />
       <Tab.Screen

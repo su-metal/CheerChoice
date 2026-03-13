@@ -9,13 +9,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { Colors, Typography, Spacing, BorderRadius } from '../constants';
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { EXERCISE_LIST, ExerciseDefinition } from '../constants/Exercises';
 import { calculateRecommendedReps, isTooManyReps, calculateSets } from '../utils/exerciseCalculator';
-import { getRandomAteMessage } from '../utils/messages';
 import { t } from '../i18n';
 import { updateExerciseObligationTarget } from '../services/recoveryService';
+import SafeLinearGradient from '../components/SafeLinearGradient';
 
 type ExerciseSelectScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -26,6 +26,13 @@ type ExerciseSelectScreenRouteProp = RouteProp<RootStackParamList, 'ExerciseSele
 type Props = {
   navigation: ExerciseSelectScreenNavigationProp;
   route: ExerciseSelectScreenRouteProp;
+};
+
+// 運動ごとのテーマカラー
+const EXERCISE_THEMES: Record<string, { colors: [string, string, ...string[]] }> = {
+  squat: { colors: ['#4DA1FF', '#4D6AFF'] },
+  situp: { colors: ['#9D62FF', '#623AA2'] },
+  pushup: { colors: ['#FF5E62', '#FF9966'] },
 };
 
 export default function ExerciseSelectScreen({ navigation, route }: Props) {
@@ -70,9 +77,9 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* ヘッダーメッセージ */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>{getRandomAteMessage()}</Text>
+          <Text style={styles.headerTitle}>Nice meal!{'\n'}Now pick your mission.</Text>
           <Text style={styles.headerSubtitle}>
-            {t('exerciseSelect.subtitle', { foodName, calories })} 💜
+            You just had {foodName}.{'\n'}Let's burn {calories} calories together! 💜
           </Text>
         </View>
 
@@ -82,49 +89,59 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
             const recommendedReps = calculateRecommendedReps(calories, exercise);
             const tooMany = isTooManyReps(recommendedReps);
             const sets = calculateSets(recommendedReps);
+            const theme = EXERCISE_THEMES[exercise.id] || { colors: [Colors.primary, Colors.secondary] };
 
             return (
               <TouchableOpacity
                 key={exercise.id}
-                style={[styles.exerciseCard, isNavigating && styles.exerciseCardDisabled]}
                 onPress={() => handleExerciseSelect(exercise)}
                 disabled={isNavigating}
-                activeOpacity={0.7}
+                activeOpacity={0.8}
+                style={styles.cardContainer}
               >
-                <View style={styles.exerciseIcon}>
-                  <Text style={styles.iconText}>{exercise.icon}</Text>
-                </View>
+                <SafeLinearGradient
+                  colors={theme.colors}
+                  style={[styles.exerciseCard, isNavigating && styles.exerciseCardDisabled]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <View style={styles.exerciseIcon}>
+                    <Text style={styles.iconText}>{exercise.icon}</Text>
+                  </View>
 
-                <View style={styles.exerciseInfo}>
-                  <Text style={styles.exerciseName}>{t(`exercise.types.${exercise.id}.name`)}</Text>
-                  <Text style={styles.exerciseDescription}>{t(`exercise.types.${exercise.id}.description`)}</Text>
-                </View>
+                  <View style={styles.exerciseInfo}>
+                    <Text style={styles.exerciseName}>{t(`exercise.types.${exercise.id}.name`)}</Text>
+                    <Text style={styles.exerciseDescription}>{t(`exercise.types.${exercise.id}.description`)}</Text>
+                  </View>
 
-                <View style={styles.exerciseReps}>
-                  <Text style={styles.repsValue}>{recommendedReps}</Text>
-                  <Text style={styles.repsLabel}>{t('exerciseSelect.reps')}</Text>
-                  {tooMany && (
-                    <Text style={styles.setsHint}>{t('exerciseSelect.setsHint', { sets })}</Text>
-                  )}
-                </View>
+                  <View style={styles.exerciseReps}>
+                    <Text style={styles.repsValue}>{recommendedReps}</Text>
+                    <Text style={styles.repsLabel}>{t('exerciseSelect.reps')}</Text>
+                    {tooMany && (
+                      <Text style={styles.setsHint}>{t('exerciseSelect.setsHint', { sets })}</Text>
+                    )}
+                  </View>
+                </SafeLinearGradient>
               </TouchableOpacity>
             );
           })}
         </View>
 
         {/* Maybe Laterボタン */}
-        <TouchableOpacity
-          style={[styles.maybeLaterButton, isNavigating && styles.exerciseCardDisabled]}
-          onPress={handleMaybeLater}
-          disabled={isNavigating}
-        >
-          <Text style={styles.maybeLaterText}>{t('exerciseSelect.maybeLater')}</Text>
-        </TouchableOpacity>
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[styles.maybeLaterButton, isNavigating && styles.buttonDisabled]}
+            onPress={handleMaybeLater}
+            disabled={isNavigating}
+          >
+            <Text style={styles.maybeLaterText}>{t('exerciseSelect.maybeLater')}</Text>
+          </TouchableOpacity>
 
-        {/* 励ましメッセージ */}
-        <Text style={styles.footerText}>
-          {t('exerciseSelect.footer')} 🌟
-        </Text>
+          {/* 励ましメッセージ */}
+          <Text style={styles.footerText}>
+            Every step counts towards your goal! 🌟
+          </Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -143,99 +160,113 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   header: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: Spacing.xl,
+    paddingHorizontal: Spacing.xs,
   },
   headerTitle: {
-    ...Typography.h3,
-    color: Colors.text,
-    marginBottom: Spacing.sm,
-    textAlign: 'center',
+    ...Typography.h2,
+    color: '#623AA2',
+    fontWeight: '900',
+    marginBottom: Spacing.md,
+    lineHeight: 34,
   },
   headerSubtitle: {
-    ...Typography.body,
+    ...Typography.bodyLarge,
     color: Colors.textLight,
-    textAlign: 'center',
+    lineHeight: 22,
   },
   exerciseList: {
     marginBottom: Spacing.xl,
   },
+  cardContainer: {
+    marginBottom: Spacing.md,
+    ...Shadows.md,
+  },
   exerciseCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.accent,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
-    shadowColor: Colors.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    borderRadius: BorderRadius['5xl'],
+    padding: Spacing.xl,
   },
   exerciseCardDisabled: {
     opacity: 0.6,
   },
   exerciseIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.md,
+    marginRight: Spacing.lg,
   },
   iconText: {
-    fontSize: 32,
+    fontSize: 36,
   },
   exerciseInfo: {
     flex: 1,
   },
   exerciseName: {
-    ...Typography.h5,
-    color: Colors.surface,
-    marginBottom: Spacing.xs,
+    ...Typography.h4,
+    color: Colors.white,
+    fontWeight: '800',
+    marginBottom: 4,
   },
   exerciseDescription: {
     ...Typography.bodySmall,
-    color: Colors.surface,
-    opacity: 0.9,
+    color: Colors.white,
+    opacity: 0.85,
   },
   exerciseReps: {
-    alignItems: 'flex-end',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.xl,
+    minWidth: 70,
   },
   repsValue: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: Colors.surface,
+    ...Typography.h3,
+    color: Colors.white,
+    fontWeight: '900',
   },
   repsLabel: {
     ...Typography.caption,
-    color: Colors.surface,
-    opacity: 0.8,
+    color: Colors.white,
+    fontWeight: '700',
+    marginTop: -2,
   },
   setsHint: {
     ...Typography.caption,
-    color: Colors.surface,
-    opacity: 0.7,
-    marginTop: Spacing.xs,
+    color: Colors.white,
+    opacity: 0.8,
+    marginTop: 2,
+    fontSize: 10,
+  },
+  footer: {
+    marginTop: 'auto',
+    paddingBottom: Spacing.lg,
   },
   maybeLaterButton: {
-    backgroundColor: Colors.textLight,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.xl,
+    backgroundColor: '#F0F0F0',
+    paddingVertical: Spacing.lg,
+    borderRadius: BorderRadius['4xl'],
     alignItems: 'center',
     marginBottom: Spacing.md,
   },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
   maybeLaterText: {
     ...Typography.button,
-    color: Colors.surface,
+    color: Colors.textLight,
+    fontWeight: '800',
   },
   footerText: {
     ...Typography.bodySmall,
-    color: Colors.textLight,
+    color: Colors.textExtraLight,
     textAlign: 'center',
-    marginTop: Spacing.sm,
+    fontWeight: '600',
   },
 });
-

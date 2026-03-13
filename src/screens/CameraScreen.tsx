@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Colors, Typography, Spacing, BorderRadius } from '../constants';
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { t } from '../i18n';
 import { canUseAI, getRemainingAIUses } from '../services/usageService';
@@ -209,35 +209,70 @@ export default function CameraScreen({ navigation }: Props) {
 
   // カメラプレビュー
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.cameraContainer}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <View style={styles.cameraFrame}>
         {isFocused ? (
           <CameraView style={styles.camera} facing={facing} ref={cameraRef} />
         ) : (
           <View style={styles.camera} />
         )}
+        
+        {/* Meal Frame Overlay */}
+        <View style={styles.frameOverlay} pointerEvents="none">
+          <View style={styles.cornerTopLeft} />
+          <View style={styles.cornerTopRight} />
+          <View style={styles.cornerBottomLeft} />
+          <View style={styles.cornerBottomRight} />
+        </View>
+
         <View style={styles.cameraOverlay} pointerEvents="box-none">
-          {/* Header with flip button */}
+          {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity style={styles.flipButton} onPress={toggleCameraFacing}>
-              <Text style={styles.flipButtonText}>🔄 {t('camera.flip')}</Text>
+            <TouchableOpacity style={styles.iconButton} onPress={() => navigation.goBack()}>
+              <Text style={styles.iconText}>✕</Text>
             </TouchableOpacity>
+            <View style={styles.aiBadge}>
+              <View style={styles.aiPulse} />
+              <Text style={styles.aiBadgeText}>{t('camera.aiAnalysisActive')}</Text>
+            </View>
+            <View style={styles.topActions}>
+              <TouchableOpacity style={styles.iconButton} onPress={() => {}}>
+                <Text style={styles.iconText}>⚡</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.iconButton} onPress={toggleCameraFacing}>
+                <Text style={styles.iconText}>🔄</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Bottom controls */}
-          <View style={styles.controls}>
-            <View style={styles.badgeRow}>
-              <View style={styles.remainingBadge}>
-                <Text style={styles.remainingText}>{t('camera.remaining', { count: remaining })}</Text>
-              </View>
-              <TouchableOpacity onPress={() => navigation.navigate('ManualEntry')}>
-                <Text style={styles.manualLink}>{t('camera.manualEntry')}</Text>
+          <View style={styles.bottomControls}>
+            <Text style={styles.scanGuide}>{t('camera.scanGuide')}</Text>
+            
+            <View style={styles.mainControls}>
+              <TouchableOpacity 
+                style={styles.sideButton} 
+                onPress={() => navigation.navigate('ManualEntry')}
+              >
+                <View style={[styles.glassIcon, { backgroundColor: 'rgba(255,140,66,0.15)' }]}>
+                  <Text style={styles.sideIcon}>⌨️</Text>
+                </View>
+                <Text style={styles.sideLabel}>{t('camera.manualEntry')}</Text>
               </TouchableOpacity>
+
+              <TouchableOpacity style={styles.shutterContainer} onPress={takePicture}>
+                <View style={styles.shutterOuter}>
+                  <View style={styles.shutterInner} />
+                </View>
+              </TouchableOpacity>
+
+              <View style={styles.sideButton}>
+                <View style={styles.glassIcon}>
+                  <Text style={styles.sideIcon}>💎</Text>
+                </View>
+                <Text style={styles.sideLabel}>{t('camera.remaining', { count: remaining })}</Text>
+              </View>
             </View>
-            <Text style={styles.guideText}>{t('camera.guideText')}</Text>
-            <TouchableOpacity style={styles.shutterButton} onPress={takePicture}>
-              <View style={styles.shutterInner} />
-            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -248,102 +283,205 @@ export default function CameraScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#000',
   },
-  cameraContainer: {
+  cameraFrame: {
     flex: 1,
+    margin: Spacing.sm,
+    borderRadius: BorderRadius['2xl'],
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'rgba(244, 37, 175, 0.3)',
+  },
+  camera: {
+    flex: 1,
+  },
+  frameOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    padding: Spacing.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cornerTopLeft: {
+    position: 'absolute',
+    top: 40,
+    left: 40,
+    width: 40,
+    height: 40,
+    borderTopWidth: 4,
+    borderLeftWidth: 4,
+    borderColor: Colors.primary,
+    borderTopLeftRadius: BorderRadius.lg,
+  },
+  cornerTopRight: {
+    position: 'absolute',
+    top: 40,
+    right: 40,
+    width: 40,
+    height: 40,
+    borderTopWidth: 4,
+    borderRightWidth: 4,
+    borderColor: Colors.primary,
+    borderTopRightRadius: BorderRadius.lg,
+  },
+  cornerBottomLeft: {
+    position: 'absolute',
+    bottom: 40,
+    left: 40,
+    width: 40,
+    height: 40,
+    borderBottomWidth: 4,
+    borderLeftWidth: 4,
+    borderColor: Colors.primary,
+    borderBottomLeftRadius: BorderRadius.lg,
+  },
+  cornerBottomRight: {
+    position: 'absolute',
+    bottom: 40,
+    right: 40,
+    width: 40,
+    height: 40,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
+    borderColor: Colors.primary,
+    borderBottomRightRadius: BorderRadius.lg,
+  },
+  cameraOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'space-between',
+    padding: Spacing.lg,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: Spacing.md,
+  },
+  aiBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+    ...Shadows.md,
+  },
+  aiPulse: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.surface,
+    marginRight: Spacing.xs,
+  },
+  aiBadgeText: {
+    ...Typography.caption,
+    fontWeight: '700',
+    color: Colors.surface,
+    letterSpacing: 1,
+  },
+  topActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  iconText: {
+    fontSize: 20,
+  },
+  bottomControls: {
+    paddingBottom: Spacing.xl,
+    alignItems: 'center',
+  },
+  scanGuide: {
+    ...Typography.bodySmall,
+    color: Colors.surface,
+    textAlign: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+    marginBottom: Spacing.xl,
+  },
+  mainControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    justifyContent: 'space-around',
+    paddingHorizontal: Spacing.md,
+  },
+  sideButton: {
+    alignItems: 'center',
+    width: 100,
+  },
+  glassIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    marginBottom: Spacing.xs,
+  },
+  sideIcon: {
+    fontSize: 20,
+  },
+  sideLabel: {
+    ...Typography.caption,
+    color: Colors.surface,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  shutterContainer: {
+    padding: 4,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  shutterOuter: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.surface,
+    padding: 6,
+    ...Shadows.lg,
+  },
+  shutterInner: {
+    flex: 1,
+    borderRadius: 40,
+    borderWidth: 4,
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary,
   },
   loadingContainer: {
     flex: 1,
+    backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
     ...Typography.body,
-    color: Colors.textLight,
+    color: Colors.surface,
   },
   permissionContainer: {
     flex: 1,
+    backgroundColor: Colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.xl,
-  },
-  camera: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  cameraOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    padding: Spacing.md,
-    marginTop: Spacing.md,
-  },
-  flipButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.lg,
-  },
-  flipButtonText: {
-    ...Typography.body,
-    color: Colors.surface,
-  },
-  controls: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: Spacing.xl,
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-  },
-  badgeRow: {
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  remainingBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: BorderRadius.lg,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
-  },
-  remainingText: {
-    ...Typography.caption,
-    color: Colors.surface,
-  },
-  manualLink: {
-    ...Typography.caption,
-    color: Colors.surface,
-    textDecorationLine: 'underline',
-  },
-  guideText: {
-    ...Typography.bodySmall,
-    color: Colors.surface,
-    marginBottom: Spacing.lg,
-  },
-  shutterButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 4,
-    borderColor: Colors.primary,
-  },
-  shutterInner: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: Colors.primary,
   },
   previewContainer: {
     flex: 1,
+    backgroundColor: '#000',
   },
   previewImage: {
     flex: 1,
@@ -353,19 +491,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: Spacing.lg,
     gap: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    borderTopWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   previewButton: {
     flex: 1,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.xl,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   previewButtonDisabled: {
     opacity: 0.6,
   },
   retakeButton: {
-    backgroundColor: Colors.textLight,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   usePhotoButton: {
     backgroundColor: Colors.primary,
@@ -373,5 +515,6 @@ const styles = StyleSheet.create({
   previewButtonText: {
     ...Typography.button,
     color: Colors.surface,
+    fontWeight: '700',
   },
 });

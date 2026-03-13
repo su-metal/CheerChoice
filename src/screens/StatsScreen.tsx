@@ -10,7 +10,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { BorderRadius, Colors, Spacing, Typography } from '../constants';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import SafeLinearGradient from '../components/SafeLinearGradient';
+import { BorderRadius, Colors, Shadows, Spacing, Typography } from '../constants';
 import { getExerciseRecords, getMealRecords } from '../services/recordService';
 import { t } from '../i18n';
 import {
@@ -22,7 +24,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { getWeeklyRecoveryStatus } from '../services/recoveryService';
 import { refreshPremiumStatus } from '../services/subscriptionService';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Stats'>;
+type Props = any;
 
 const defaultStats: StatsData = {
   dailyCalories: [],
@@ -45,10 +47,10 @@ function BarChart({ data }: { data: StatsData['dailyCalories'] }) {
   const maxValue = Math.max(1, ...data.map((item) => item.calories));
 
   return (
-    <View>
+    <View style={styles.chartContainer}>
       <View style={styles.barRow}>
         {data.map((item) => {
-          const barHeight = item.calories <= 0 ? 0 : Math.max(8, (item.calories / maxValue) * 90);
+          const barHeight = item.calories <= 0 ? 0 : Math.max(8, (item.calories / maxValue) * 120);
 
           return (
             <View key={item.dateKey} style={styles.barItem}>
@@ -109,7 +111,7 @@ function MonthCalendar({ data }: { data: StatsData['dailyCalories'] }) {
   }
 
   return (
-    <View>
+    <View style={styles.calendarContainer}>
       <View style={styles.calendarWeekHeader}>
         {weekdayLabels.map((label, index) => (
           <Text key={`${label}-${index}`} style={styles.calendarWeekHeaderText}>
@@ -132,17 +134,27 @@ function MonthCalendar({ data }: { data: StatsData['dailyCalories'] }) {
                 style={[
                   styles.calendarDot,
                   isActive
-                    ? { backgroundColor: `rgba(107, 203, 119, ${0.25 + intensity * 0.75})` }
+                    ? { backgroundColor: `rgba(107, 133, 255, ${0.15 + intensity * 0.85})` }
                     : styles.calendarDotEmpty,
                 ]}
               >
-                <Text style={styles.calendarDayText}>{cell.day}</Text>
+                <Text
+                  style={[
+                    styles.calendarDayText,
+                    isActive && intensity > 0.5 && { color: Colors.surface },
+                  ]}
+                >
+                  {cell.day}
+                </Text>
               </View>
             </View>
           );
         })}
       </View>
-      <Text style={styles.calendarLegend}>● {t('stats.calendarLegend')}</Text>
+      <Text style={styles.calendarLegend}>
+        <MaterialCommunityIcons name="information-outline" size={14} color={Colors.textLight} />{' '}
+        {t('stats.calendarLegend')}
+      </Text>
     </View>
   );
 }
@@ -155,9 +167,21 @@ function ChoiceRatioBar({
   atePercent: number;
 }) {
   return (
-    <View style={styles.choiceBar}>
-      <View style={[styles.choiceBarSkipped, { flex: skippedPercent || 1 }]} />
-      <View style={[styles.choiceBarAte, { flex: atePercent || 1 }]} />
+    <View style={styles.choiceBarContainer}>
+      <View style={styles.choiceBar}>
+        <View style={[styles.choiceBarSkipped, { flex: skippedPercent || 1 }]} />
+        <View style={[styles.choiceBarAte, { flex: atePercent || 1 }]} />
+      </View>
+      <View style={styles.choiceLegend}>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: Colors.secondary }]} />
+          <Text style={styles.legendText}>{t('stats.skipped')}</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: Colors.accent }]} />
+          <Text style={styles.legendText}>{t('stats.ate')}</Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -175,9 +199,12 @@ function ExerciseTypeRow({
 }) {
   return (
     <View style={styles.exerciseRow}>
-      <Text style={styles.exerciseLabel}>
-        {emoji} {label}
-      </Text>
+      <View style={styles.exerciseLabelContainer}>
+        <Text style={styles.exerciseEmoji}>{emoji}</Text>
+        <Text style={styles.exerciseLabel} numberOfLines={1}>
+          {label}
+        </Text>
+      </View>
       <View style={styles.exerciseTrack}>
         <View style={[styles.exerciseFill, { width: `${Math.max(6, widthPercent)}%` }]} />
       </View>
@@ -257,7 +284,14 @@ export default function StatsScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>{t('stats.title')}</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
+          <MaterialCommunityIcons name="cog-outline" size={24} color={Colors.text} />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.periodToggle}>
           <TouchableOpacity
             style={[styles.toggleButton, period === 'week' && styles.toggleButtonActive]}
@@ -277,141 +311,137 @@ export default function StatsScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.summaryGrid}>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>{t('stats.savedCalories')}</Text>
-            <Text style={styles.summaryValue}>
-              {stats.totalSavedCalories} {t('common.kcal')}
-            </Text>
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
           </View>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>{t('stats.totalMeals')}</Text>
-            <Text style={styles.summaryValue}>{stats.choiceRatio.total}</Text>
-          </View>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>{t('stats.exerciseSessions')}</Text>
-            <Text style={styles.summaryValue}>{stats.exerciseSummary.totalSessions}</Text>
-          </View>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>{t('stats.recoverySummary')}</Text>
-            <Text style={styles.summaryValueSmall}>
-              {t('stats.recoveryResolvedShort', {
-                resolved: weeklyRecovery.resolvedCount,
-                generated: weeklyRecovery.generatedCount,
-              })}
-            </Text>
-            <Text style={styles.summaryValueHint}>
-              {t('stats.recoveryRemainingShort', { count: weeklyRecovery.remainingCount })}
-            </Text>
-          </View>
-        </View>
-
-        {isLoading && (
+        ) : (
           <>
-            <View style={styles.loadingHeader}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-              <Text style={styles.loadingText}>{t('stats.loading')}</Text>
-            </View>
             <View style={styles.summaryGrid}>
-              {[0, 1, 2, 3].map((index) => (
-                <View key={`summary-skeleton-${index}`} style={styles.summaryCard}>
-                  <View style={styles.skeletonLabel} />
-                  <View style={styles.skeletonValue} />
+              <View style={[styles.summaryCard, { backgroundColor: '#EBF2FF' }]}>
+                <View style={styles.summaryIconContainer}>
+                  <MaterialCommunityIcons name="fire" size={20} color={Colors.secondary} />
                 </View>
-              ))}
-            </View>
-            <View style={styles.card}>
-              <View style={styles.skeletonTitle} />
-              <View style={styles.previewChart}>
-                <View style={[styles.previewBar, { height: 20 }]} />
-                <View style={[styles.previewBar, { height: 34 }]} />
-                <View style={[styles.previewBar, { height: 14 }]} />
-                <View style={[styles.previewBar, { height: 42 }]} />
-                <View style={[styles.previewBar, { height: 28 }]} />
-                <View style={[styles.previewBar, { height: 18 }]} />
-                <View style={[styles.previewBar, { height: 36 }]} />
+                <Text style={styles.summaryLabel}>{t('stats.savedCalories')}</Text>
+                <Text style={styles.summaryValue}>
+                  {stats.totalSavedCalories}
+                  <Text style={styles.unitText}> kcal</Text>
+                </Text>
+              </View>
+              <View style={[styles.summaryCard, { backgroundColor: '#F0EFFF' }]}>
+                <View style={styles.summaryIconContainer}>
+                  <MaterialCommunityIcons name="dumbbell" size={20} color={Colors.primary} />
+                </View>
+                <Text style={styles.summaryLabel}>{t('stats.exerciseSessions')}</Text>
+                <Text style={styles.summaryValue}>{stats.exerciseSummary.totalSessions}</Text>
+              </View>
+              <View style={[styles.summaryCard, { backgroundColor: '#EFFFFA' }]}>
+                <View style={styles.summaryIconContainer}>
+                  <MaterialCommunityIcons name="check-decagram" size={20} color={Colors.accent} />
+                </View>
+                <Text style={styles.summaryLabel}>{t('stats.recoverySummary')}</Text>
+                <Text style={styles.summaryValue}>
+                  {weeklyRecovery.resolvedCount}/{weeklyRecovery.generatedCount}
+                </Text>
               </View>
             </View>
-          </>
-        )}
 
-        {!isLoading && !isPremium && (
-          <View style={styles.upgradeCard}>
-            <Text style={styles.upgradeTitle}>{t('stats.unlockTitle')}</Text>
-            <Text style={styles.upgradeBody}>{t('stats.unlockBody')}</Text>
-            <View style={styles.previewChart}>
-              <View style={[styles.previewBar, { height: 20 }]} />
-              <View style={[styles.previewBar, { height: 34 }]} />
-              <View style={[styles.previewBar, { height: 14 }]} />
-              <View style={[styles.previewBar, { height: 42 }]} />
-              <View style={[styles.previewBar, { height: 28 }]} />
-              <View style={[styles.previewBar, { height: 18 }]} />
-              <View style={[styles.previewBar, { height: 36 }]} />
-            </View>
-            <TouchableOpacity
-              style={styles.upgradeButton}
-              onPress={() => navigation.navigate('Settings')}
-            >
-              <Text style={styles.upgradeButtonText}>{t('stats.upgradeButton')}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {!isLoading && isPremium && (
-          <>
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>{t('stats.savedCalories')}</Text>
-              <Text style={styles.cardSubtitle}>
-                {stats.totalSavedCalories} {t('common.kcal')}
+            <View style={styles.aiInsightCard}>
+              <View style={styles.aiHeader}>
+                <View style={styles.aiAvatar}>
+                  <MaterialCommunityIcons name="robot" size={24} color={Colors.surface} />
+                </View>
+                <Text style={styles.aiTitle}>{t('stats.aiInsightTitle')}</Text>
+              </View>
+              <Text style={styles.aiBody}>
+                {stats.totalSavedCalories > 500
+                  ? t('stats.aiInsightHigh')
+                  : t('stats.aiInsightNeutral')}
               </Text>
-              {period === 'week' ? (
-                <BarChart data={stats.dailyCalories} />
-              ) : (
-                <MonthCalendar data={stats.dailyCalories} />
-              )}
+              <TouchableOpacity style={styles.aiMoreButton}>
+                <Text style={styles.aiMoreText}>{t('stats.aiInsightMore')}</Text>
+                <MaterialCommunityIcons name="chevron-right" size={16} color={Colors.primary} />
+              </TouchableOpacity>
             </View>
 
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>{t('stats.choiceRatio')}</Text>
-              <ChoiceRatioBar skippedPercent={skippedPercent} atePercent={atePercent} />
-              <Text style={styles.ratioText}>
-                {t('stats.skippedLabel', {
-                  count: stats.choiceRatio.skippedCount,
-                  percent: skippedPercent,
-                })}
-              </Text>
-              <Text style={styles.ratioText}>
-                {t('stats.ateLabel', { count: stats.choiceRatio.ateCount, percent: atePercent })}
-              </Text>
-            </View>
+            {!isPremium ? (
+              <View style={styles.upgradeCard}>
+                <SafeLinearGradient
+                  colors={[Colors.primary, '#8095FF']}
+                  style={styles.upgradeGradient}
+                >
+                  <View style={styles.upgradeContent}>
+                    <View style={styles.upgradeTextContainer}>
+                      <Text style={styles.upgradeTitleText}>{t('stats.unlockTitle')}</Text>
+                      <Text style={styles.upgradeBodyText}>{t('stats.unlockBody')}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.upgradeButton}
+                      onPress={() => navigation.navigate('Settings')}
+                    >
+                      <Text style={styles.upgradeButtonText}>{t('stats.upgradeButton')}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </SafeLinearGradient>
+              </View>
+            ) : (
+              <>
+                <View style={[styles.card, Shadows.md]}>
+                  <Text style={styles.cardTitle}>{t('stats.caloriesHistory')}</Text>
+                  {period === 'week' ? (
+                    <BarChart data={stats.dailyCalories} />
+                  ) : (
+                    <MonthCalendar data={stats.dailyCalories} />
+                  )}
+                </View>
 
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>{t('stats.exerciseBreakdown')}</Text>
-              <ExerciseTypeRow
-                emoji="🏋️"
-                label={t('exercise.types.squat.name')}
-                sessions={stats.exerciseSummary.byType.squat}
-                widthPercent={(stats.exerciseSummary.byType.squat / maxExerciseSessions) * 100}
-              />
-              <ExerciseTypeRow
-                emoji="🤸"
-                label={t('exercise.types.situp.name')}
-                sessions={stats.exerciseSummary.byType.situp}
-                widthPercent={(stats.exerciseSummary.byType.situp / maxExerciseSessions) * 100}
-              />
-              <ExerciseTypeRow
-                emoji="💪"
-                label={t('exercise.types.pushup.name')}
-                sessions={stats.exerciseSummary.byType.pushup}
-                widthPercent={(stats.exerciseSummary.byType.pushup / maxExerciseSessions) * 100}
-              />
-              <Text style={styles.ratioText}>
-                {t('stats.totalReps', { count: stats.exerciseSummary.totalReps })}
-              </Text>
-              <Text style={styles.ratioText}>
-                {t('stats.totalBurned', { count: stats.exerciseSummary.totalCaloriesBurned })}
-              </Text>
-            </View>
+                <View style={[styles.card, Shadows.md]}>
+                  <Text style={styles.cardTitle}>{t('stats.nutritionalBalance')}</Text>
+                  <ChoiceRatioBar skippedPercent={skippedPercent} atePercent={atePercent} />
+                  <View style={styles.ratioDetails}>
+                    <Text style={styles.ratioDetailText}>
+                      {t('stats.skippedShort', { percent: skippedPercent })}
+                    </Text>
+                    <Text style={styles.ratioDetailText}>
+                      {t('stats.ateShort', { percent: atePercent })}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={[styles.card, Shadows.md]}>
+                  <Text style={styles.cardTitle}>{t('stats.exerciseBreakdown')}</Text>
+                  <View style={styles.exerciseList}>
+                    <ExerciseTypeRow
+                      emoji="🏋️"
+                      label={t('exercise.types.squat.name')}
+                      sessions={stats.exerciseSummary.byType.squat}
+                      widthPercent={(stats.exerciseSummary.byType.squat / maxExerciseSessions) * 100}
+                    />
+                    <ExerciseTypeRow
+                      emoji="🤸"
+                      label={t('exercise.types.situp.name')}
+                      sessions={stats.exerciseSummary.byType.situp}
+                      widthPercent={(stats.exerciseSummary.byType.situp / maxExerciseSessions) * 100}
+                    />
+                    <ExerciseTypeRow
+                      emoji="💪"
+                      label={t('exercise.types.pushup.name')}
+                      sessions={stats.exerciseSummary.byType.pushup}
+                      widthPercent={(stats.exerciseSummary.byType.pushup / maxExerciseSessions) * 100}
+                    />
+                  </View>
+                  <View style={styles.exerciseFooter}>
+                    <Text style={styles.exerciseFooterText}>
+                      {t('stats.totalReps', { count: stats.exerciseSummary.totalReps })}
+                    </Text>
+                    <View style={styles.footerSeparator} />
+                    <Text style={styles.exerciseFooterText}>
+                      {t('stats.totalBurned', { count: stats.exerciseSummary.totalCaloriesBurned })}
+                    </Text>
+                  </View>
+                </View>
+              </>
+            )}
           </>
         )}
       </ScrollView>
@@ -424,19 +454,37 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  headerTitle: {
+    ...Typography.h3,
+    color: Colors.text,
+  },
   content: {
     padding: Spacing.lg,
-    gap: Spacing.md,
+    paddingBottom: Spacing.xl * 2,
+    gap: Spacing.lg,
+  },
+  loadingContainer: {
+    height: 300,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   periodToggle: {
     flexDirection: 'row',
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
-    padding: 4,
+    borderRadius: BorderRadius['4xl'],
+    padding: 6,
+    ...Shadows.sm,
   },
   toggleButton: {
     flex: 1,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
     paddingVertical: Spacing.sm,
     alignItems: 'center',
   },
@@ -446,196 +494,216 @@ const styles = StyleSheet.create({
   toggleText: {
     ...Typography.bodySmall,
     color: Colors.textLight,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   toggleTextActive: {
     color: Colors.surface,
   },
   summaryGrid: {
-    gap: Spacing.sm,
-  },
-  loadingHeader: {
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  loadingText: {
-    ...Typography.bodySmall,
-    color: Colors.textLight,
+    flexDirection: 'row',
+    gap: Spacing.md,
   },
   summaryCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    flex: 1,
+    borderRadius: BorderRadius.xl,
     padding: Spacing.md,
+    gap: Spacing.xs,
+  },
+  summaryIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.xs,
   },
   summaryLabel: {
     ...Typography.caption,
     color: Colors.textLight,
-    marginBottom: Spacing.xs,
-  },
-  summaryValue: {
-    ...Typography.h4,
-    color: Colors.text,
-  },
-  summaryValueSmall: {
-    ...Typography.body,
-    color: Colors.text,
     fontWeight: '600',
   },
-  summaryValueHint: {
-    ...Typography.caption,
-    color: Colors.textLight,
-    marginTop: 2,
-  },
-  skeletonLabel: {
-    width: '38%',
-    height: 10,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.divider,
-    marginBottom: Spacing.sm,
-  },
-  skeletonValue: {
-    width: '54%',
-    height: 18,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.divider,
-  },
-  skeletonTitle: {
-    width: '42%',
-    height: 18,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.divider,
-    marginBottom: Spacing.sm,
-  },
-  upgradeCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-  },
-  upgradeTitle: {
+  summaryValue: {
     ...Typography.h5,
     color: Colors.text,
-    marginBottom: Spacing.xs,
   },
-  upgradeBody: {
-    ...Typography.bodySmall,
+  unitText: {
+    ...Typography.caption,
     color: Colors.textLight,
-    marginBottom: Spacing.md,
   },
-  previewChart: {
+  aiInsightCard: {
+    backgroundColor: '#E8F5FF',
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  aiHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    height: 52,
-    opacity: 0.35,
-    marginBottom: Spacing.md,
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
-  previewBar: {
-    width: 18,
-    backgroundColor: Colors.secondary,
-    borderRadius: BorderRadius.sm,
+  aiAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiTitle: {
+    ...Typography.h5,
+    color: Colors.text,
+  },
+  aiBody: {
+    ...Typography.bodySmall,
+    color: Colors.text,
+    lineHeight: 20,
+  },
+  aiMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.xs,
+  },
+  aiMoreText: {
+    ...Typography.label,
+    color: Colors.primary,
+    fontWeight: '700',
+    marginRight: 4,
+  },
+  upgradeCard: {
+    borderRadius: BorderRadius['5xl'],
+    overflow: 'hidden',
+    ...Shadows.lg,
+  },
+  upgradeGradient: {
+    padding: Spacing.lg,
+  },
+  upgradeContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+  },
+  upgradeTextContainer: {
+    flex: 1,
+  },
+  upgradeTitleText: {
+    ...Typography.h5,
+    color: Colors.surface,
+    marginBottom: 4,
+  },
+  upgradeBodyText: {
+    ...Typography.caption,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   upgradeButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
-    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
   },
   upgradeButtonText: {
-    ...Typography.button,
-    color: Colors.surface,
+    ...Typography.label,
+    color: Colors.primary,
+    fontWeight: '800',
   },
   card: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius['4xl'],
     padding: Spacing.lg,
-    gap: Spacing.xs,
+    gap: Spacing.md,
   },
   cardTitle: {
     ...Typography.h5,
     color: Colors.text,
   },
-  cardSubtitle: {
-    ...Typography.bodySmall,
-    color: Colors.textLight,
-    marginBottom: Spacing.sm,
+  chartContainer: {
+    paddingTop: Spacing.md,
   },
   barRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
-    minHeight: 120,
+    height: 140,
   },
   barItem: {
-    flex: 1,
+    width: 32,
     alignItems: 'center',
   },
   barTrack: {
-    height: 90,
-    width: 14,
+    height: 120,
+    width: 12,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 6,
     justifyContent: 'flex-end',
   },
   barFill: {
     width: '100%',
     backgroundColor: Colors.secondary,
-    borderRadius: BorderRadius.sm,
+    borderRadius: 6,
   },
   barLabel: {
     ...Typography.caption,
     color: Colors.textLight,
-    marginTop: Spacing.xs,
+    marginTop: Spacing.sm,
+    fontWeight: '600',
+  },
+  calendarContainer: {
+    marginTop: Spacing.sm,
   },
   calendarWeekHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.md,
   },
   calendarWeekHeaderText: {
     ...Typography.caption,
     color: Colors.textLight,
     width: `${100 / 7}%`,
     textAlign: 'center',
+    fontWeight: '600',
   },
   calendarGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: 0,
   },
   calendarCell: {
     width: `${100 / 7}%`,
+    aspectRatio: 1,
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: Spacing.xs,
   },
   calendarDot: {
-    width: 34,
-    height: 34,
-    borderRadius: 8,
+    width: '85%',
+    height: '85%',
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   calendarDotEmpty: {
-    backgroundColor: '#EEF4EF',
+    backgroundColor: '#F8F8F8',
   },
   calendarDayText: {
     ...Typography.caption,
     color: Colors.text,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   calendarLegend: {
     ...Typography.caption,
     color: Colors.textLight,
-    marginTop: Spacing.xs,
+    marginTop: Spacing.md,
+    textAlign: 'center',
   },
-  ratioText: {
-    ...Typography.body,
-    color: Colors.text,
-    marginTop: Spacing.xs,
+  choiceBarContainer: {
+    gap: Spacing.md,
   },
   choiceBar: {
-    height: 12,
-    borderRadius: BorderRadius.sm,
+    height: 16,
+    borderRadius: 8,
     overflow: 'hidden',
     flexDirection: 'row',
-    marginTop: Spacing.xs,
-    marginBottom: Spacing.xs,
     backgroundColor: Colors.divider,
   },
   choiceBarSkipped: {
@@ -644,34 +712,92 @@ const styles = StyleSheet.create({
   choiceBarAte: {
     backgroundColor: Colors.accent,
   },
+  choiceLegend: {
+    flexDirection: 'row',
+    gap: Spacing.lg,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  legendText: {
+    ...Typography.caption,
+    color: Colors.textLight,
+    fontWeight: '600',
+  },
+  ratioDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: -Spacing.xs,
+  },
+  ratioDetailText: {
+    ...Typography.caption,
+    color: Colors.textLight,
+  },
+  exerciseList: {
+    gap: Spacing.sm,
+  },
   exerciseRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.xs,
+    gap: Spacing.sm,
+  },
+  exerciseLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: 110,
+    gap: 6,
+  },
+  exerciseEmoji: {
+    fontSize: 18,
   },
   exerciseLabel: {
     ...Typography.bodySmall,
     color: Colors.text,
-    width: 90,
+    fontWeight: '600',
+    flex: 1,
   },
   exerciseTrack: {
     flex: 1,
-    height: 8,
-    backgroundColor: Colors.divider,
-    borderRadius: BorderRadius.sm,
-    marginHorizontal: Spacing.sm,
+    height: 10,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 5,
     overflow: 'hidden',
   },
   exerciseFill: {
     height: '100%',
-    backgroundColor: Colors.secondary,
-    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.primary,
+    borderRadius: 5,
   },
   exerciseValue: {
     ...Typography.caption,
-    color: Colors.textLight,
-    width: 24,
+    color: Colors.text,
+    fontWeight: '700',
+    width: 30,
     textAlign: 'right',
+  },
+  exerciseFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.md,
+    gap: Spacing.md,
+  },
+  exerciseFooterText: {
+    ...Typography.caption,
+    color: Colors.textLight,
+    fontWeight: '600',
+  },
+  footerSeparator: {
+    width: 1,
+    height: 12,
+    backgroundColor: Colors.divider,
   },
 });
 

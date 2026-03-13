@@ -1,19 +1,21 @@
 import React, { useCallback, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
   FlatList,
+  Image,
   Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
-import { Colors, Typography, Spacing, BorderRadius } from '../constants';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import SafeLinearGradient from '../components/SafeLinearGradient';
+import { BorderRadius, Colors, Spacing } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { t } from '../i18n';
 import {
   getMealRecords,
   getRecentMealRecords,
@@ -21,18 +23,23 @@ import {
   TodayRecordSummary,
 } from '../services/recordService';
 import { MealRecord } from '../types';
-import {
-  getTodayObligationStatus,
-  getTodayOpenObligations,
-  getWeeklyRecoveryStatus,
-  runRecoveryMaintenance,
-} from '../services/recoveryService';
+import { getTodayOpenObligations, runRecoveryMaintenance } from '../services/recoveryService';
 import { getSettings } from '../services/settingsService';
 
-type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
+type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Main'>;
 
 type Props = {
   navigation: HomeScreenNavigationProp;
+};
+
+type MoveOption = {
+  obligationId: string;
+  exerciseType: 'squat' | 'situp' | 'pushup';
+  remainingCount: number;
+  foodName: string;
+  calories: number;
+  mealRecordId?: string;
+  photoUri?: string;
 };
 
 export default function HomeScreen({ navigation }: Props) {
@@ -43,53 +50,9 @@ export default function HomeScreen({ navigation }: Props) {
     lastUpdated: new Date().toISOString(),
   });
   const [recentRecords, setRecentRecords] = useState<MealRecord[]>([]);
-  const [weeklyRecoveryRemaining, setWeeklyRecoveryRemaining] = useState(0);
   const [dailyGoal, setDailyGoal] = useState(300);
-  const [todayObligationRemaining, setTodayObligationRemaining] = useState(0);
-  const [todayObligationCount, setTodayObligationCount] = useState(0);
+  const [todayMoveOptions, setTodayMoveOptions] = useState<MoveOption[]>([]);
   const [showMovePicker, setShowMovePicker] = useState(false);
-  const [todayMoveOptions, setTodayMoveOptions] = useState<Array<{
-    obligationId: string;
-    exerciseType: 'squat' | 'situp' | 'pushup';
-    remainingCount: number;
-    foodName: string;
-    calories: number;
-    mealRecordId?: string;
-  }>>([]);
-
-  const navigateToMove = (move: {
-    obligationId: string;
-    exerciseType: 'squat' | 'situp' | 'pushup';
-    remainingCount: number;
-    foodName: string;
-    calories: number;
-    mealRecordId?: string;
-  }) => {
-    navigation.navigate('Exercise', {
-      exerciseType: move.exerciseType,
-      targetReps: move.remainingCount,
-      calories: move.calories,
-      foodName: move.foodName,
-      mealRecordId: move.mealRecordId,
-      obligationId: move.obligationId,
-    });
-  };
-
-  const getRelativeTime = (timestamp: string) => {
-    const minutes = Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000);
-    if (minutes < 1) {
-      return t('home.justNow');
-    }
-    if (minutes < 60) {
-      return t('home.minutesAgo', { count: minutes });
-    }
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) {
-      return t('home.hoursAgo', { count: hours });
-    }
-    const days = Math.floor(hours / 24);
-    return t('home.daysAgo', { count: days });
-  };
 
   useFocusEffect(
     useCallback(() => {
@@ -99,12 +62,11 @@ export default function HomeScreen({ navigation }: Props) {
         try {
           await runRecoveryMaintenance();
           const todaySummary = await getTodayRecordSummary();
-          const latestRecords = await getRecentMealRecords(3);
+          const latestRecords = await getRecentMealRecords(2);
           const allMeals = await getMealRecords();
-          const recovery = await getWeeklyRecoveryStatus();
           const settings = await getSettings();
-          const todayObligation = await getTodayObligationStatus();
           const todayOpenObligations = await getTodayOpenObligations();
+
           const moveOptions = todayOpenObligations.map((item) => {
             const linkedMeal = allMeals.find((meal) => meal.id === item.mealRecordId);
             return {
@@ -114,17 +76,18 @@ export default function HomeScreen({ navigation }: Props) {
               foodName: linkedMeal?.foodName ?? 'Meal',
               calories: linkedMeal?.estimatedCalories ?? 0,
               mealRecordId: item.mealRecordId,
+              photoUri: linkedMeal?.photoUri,
             };
           });
-          if (isMounted) {
-            setSummary(todaySummary);
-            setRecentRecords(latestRecords);
-            setWeeklyRecoveryRemaining(recovery.remainingCount);
-            setDailyGoal(settings.dailyCalorieGoal);
-            setTodayObligationRemaining(todayObligation.remainingCount);
-            setTodayObligationCount(todayObligation.openObligationCount);
-            setTodayMoveOptions(moveOptions);
+
+          if (!isMounted) {
+            return;
           }
+
+          setSummary(todaySummary);
+          setRecentRecords(latestRecords);
+          setDailyGoal(settings.dailyCalorieGoal);
+          setTodayMoveOptions(moveOptions);
         } catch (error) {
           console.error('Error loading home summary:', error);
         }
@@ -138,219 +101,265 @@ export default function HomeScreen({ navigation }: Props) {
     }, [])
   );
 
+  const remainingGoal = Math.max(0, dailyGoal - summary.savedCalories);
+  const goalProgress = Math.min(100, Math.round((summary.savedCalories / Math.max(1, dailyGoal)) * 100));
+
+  const navigateToMove = (move: MoveOption) => {
+    navigation.navigate('Exercise', {
+      exerciseType: move.exerciseType,
+      targetReps: move.remainingCount,
+      calories: move.calories,
+      foodName: move.foodName,
+      mealRecordId: move.mealRecordId,
+      obligationId: move.obligationId,
+    });
+  };
+
+  const getRelativeLabel = (record: MealRecord) => {
+    const date = new Date(record.timestamp);
+    const timeLabel = date.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+    const mealLabel = record.choice === 'ate' ? 'Snack' : 'Breakfast';
+    return `${mealLabel} • ${timeLabel}`;
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
-        style={styles.scrollView}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerTopRow}>
-            <View />
-            <TouchableOpacity
-              style={styles.settingsButton}
-              onPress={() => navigation.navigate('Settings')}
+          <View style={styles.brandRow}>
+            <SafeLinearGradient
+              colors={Colors.gradientAccent as [string, string]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.brandMark}
             >
-              <Text style={styles.settingsButtonText}>⚙️</Text>
-            </TouchableOpacity>
+              <MaterialCommunityIcons name="lightning-bolt" size={22} color="#fff" />
+            </SafeLinearGradient>
+            <Text style={styles.brandName}>Diet Hero</Text>
           </View>
-          <Text style={styles.title}>CheerChoice</Text>
-          <Text style={styles.subtitle}>{t('home.subtitle')} 💪</Text>
+
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('Settings')}
+            style={styles.settingsButton}
+          >
+            <MaterialCommunityIcons name="cog" size={20} color={Colors.primary} />
+          </TouchableOpacity>
         </View>
 
-        {/* Main Action Button */}
         <TouchableOpacity
-          style={styles.mainButton}
-          activeOpacity={0.8}
+          activeOpacity={0.94}
           onPress={() => navigation.navigate('Camera')}
         >
-          <Text style={styles.mainButtonIcon}>📸</Text>
-          <Text style={styles.mainButtonText}>{t('home.mainButton')}</Text>
-          <Text style={styles.mainButtonSubtext}>{t('home.mainButtonSubtext')}</Text>
+          <SafeLinearGradient
+            colors={Colors.gradientAccent as [string, string]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroCard}
+          >
+            <View style={styles.heroIconShell}>
+              <MaterialCommunityIcons name="camera" size={34} color="#fff" />
+            </View>
+            <Text style={styles.heroTitle}>📸 Log Meal</Text>
+          </SafeLinearGradient>
         </TouchableOpacity>
 
-        <View style={styles.goalCard}>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => navigation.navigate('Stats')}
+          style={styles.goalCard}
+        >
           <View style={styles.goalHeader}>
-            <Text style={styles.goalTitle}>{t('home.goalProgressTitle')}</Text>
-            <Text style={styles.goalValue}>
-              {summary.savedCalories} / {dailyGoal} {t('common.kcal')}
-            </Text>
+            <View>
+              <Text style={styles.goalEyebrow}>GOAL PROGRESS</Text>
+              <Text style={styles.goalValue}>
+                {remainingGoal}
+                <Text style={styles.goalValueMuted}> kcal left</Text>
+              </Text>
+            </View>
+            <MaterialCommunityIcons name="trophy-outline" size={32} color={Colors.secondary} />
           </View>
-          <View style={styles.goalTrack}>
-            <View
-              style={[
-                styles.goalFill,
-                {
-                  width: `${Math.min(
-                    100,
-                    Math.round((summary.savedCalories / Math.max(1, dailyGoal)) * 100)
-                  )}%`,
-                },
-              ]}
+
+          <View style={styles.progressTrack}>
+            <SafeLinearGradient
+              colors={Colors.gradientAccent as [string, string]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[styles.progressFill, { width: `${goalProgress}%` }]}
             />
           </View>
-          <Text style={styles.goalHint}>
-            {summary.savedCalories >= dailyGoal
-              ? t('home.goalReached')
-              : t('home.goalRemaining', { count: Math.max(0, dailyGoal - summary.savedCalories) })}
-          </Text>
-        </View>
 
-        {/* Today's Summary */}
-        <TouchableOpacity
-          style={styles.summaryCard}
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate('Stats')}
-        >
-          <View style={styles.summaryHeader}>
-            <Text style={styles.summaryTitle}>{t('home.todaySummary')}</Text>
-            <Text style={styles.summaryLink}>{t('home.viewStats')}</Text>
-          </View>
+          <View style={styles.statsDivider} />
+
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{summary.skippedCount}</Text>
-              <Text style={styles.summaryLabel}>{t('home.skipped')}</Text>
+              <Text style={styles.summaryLabel}>SKIP</Text>
+              <Text style={styles.summaryNumber}>{summary.skippedCount}</Text>
             </View>
-            <View style={styles.summaryDivider} />
+            <View style={styles.summarySplit} />
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{summary.savedCalories} {t('common.kcal')}</Text>
-              <Text style={styles.summaryLabel}>{t('home.saved')}</Text>
+              <Text style={styles.summaryLabel}>SAVED</Text>
+              <Text style={styles.summaryNumber}>
+                {summary.savedCalories}
+                <Text style={styles.summaryUnit}> kcal</Text>
+              </Text>
             </View>
-            <View style={styles.summaryDivider} />
+            <View style={styles.summarySplit} />
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{summary.exerciseCount}</Text>
-              <Text style={styles.summaryLabel}>{t('home.exercises')}</Text>
+              <Text style={styles.summaryLabel}>EXERCISE</Text>
+              <Text style={styles.summaryNumber}>{summary.exerciseCount}</Text>
             </View>
           </View>
         </TouchableOpacity>
 
-        <View style={styles.obligationCard}>
-          <Text style={styles.obligationTitle}>{t('recovery.todayTitle')}</Text>
-          <Text style={styles.obligationValue}>
-            {t('recovery.todayRemaining', { count: todayObligationRemaining })}
-          </Text>
-          <Text style={styles.obligationHint}>
-            {t('recovery.todayCount', { count: todayObligationCount })}
-          </Text>
-          {todayMoveOptions.length > 0 && (
-            <View style={styles.movePreviewList}>
-              {todayMoveOptions.slice(0, 3).map((move) => (
-                <View key={move.obligationId} style={styles.movePreviewItem}>
-                  <Text style={styles.movePreviewTitle} numberOfLines={1}>
-                    {move.foodName}
-                  </Text>
-                  <Text style={styles.movePreviewMeta}>
-                    {t(`exercise.types.${move.exerciseType}.name`)} • {move.remainingCount} {t('exerciseSelect.reps')}
-                  </Text>
-                </View>
-              ))}
-              {todayMoveOptions.length > 3 && (
-                <Text style={styles.movePreviewMore}>
-                  {t('recovery.moreItems', { count: todayMoveOptions.length - 3 })}
-                </Text>
-              )}
-            </View>
-          )}
-          {todayMoveOptions.length > 0 && (
-            <TouchableOpacity
-              style={styles.moveCtaButton}
-              onPress={() => {
-                if (todayMoveOptions.length === 1) {
-                  navigateToMove(todayMoveOptions[0]);
-                  return;
-                }
-                setShowMovePicker(true);
-              }}
-            >
-              <Text style={styles.moveCtaText}>
-                {todayMoveOptions.length === 1 ? t('recovery.ctaContinue') : t('recovery.ctaChoose')}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
         <View style={styles.recoveryCard}>
-          <Text style={styles.recoveryTitle}>{t('recovery.title')}</Text>
-          <Text style={styles.recoveryValue}>
-            {t('recovery.remaining', { count: weeklyRecoveryRemaining })}
-          </Text>
-          <Text style={styles.recoveryHint}>{t('recovery.resetHint')}</Text>
+          <Text style={styles.recoverySparkle}>✨</Text>
+          <View style={styles.recoveryBody}>
+            <Text style={styles.recoveryTitle}>Energy Recovered!</Text>
+            <Text style={styles.recoveryText}>
+              Your metabolism is ready for the next challenge.
+            </Text>
+          </View>
         </View>
 
-        {/* Recent Activity Placeholder */}
-        <View style={styles.recentSection}>
-          <View style={styles.recentHeader}>
-            <Text style={styles.recentTitle}>{t('home.recentActivity')}</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Log')}>
-              <Text style={styles.seeAll}>{t('home.seeAll')}</Text>
-            </TouchableOpacity>
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionHeading}>
+            <Text style={styles.sectionTitle}>Pending Tasks!</Text>
+            <MaterialCommunityIcons name="alert" size={20} color={Colors.secondary} />
           </View>
-          {recentRecords.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyStateIcon}>🌟</Text>
-              <Text style={styles.emptyStateText}>{t('home.noActivity')}</Text>
-              <Text style={styles.emptyStateSubtext}>{t('home.noActivitySubtext')}</Text>
+          <TouchableOpacity activeOpacity={0.8} onPress={() => setShowMovePicker(true)}>
+            <Text style={styles.viewAll}>VIEW ALL</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.taskList}>
+          {todayMoveOptions.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>You&apos;re all caught up! 🌟</Text>
             </View>
           ) : (
-            <View style={styles.activityList}>
-              {recentRecords.map((record) => (
-                <View key={record.id} style={styles.activityCard}>
-                  <View style={styles.activityTopRow}>
-                    <Text style={styles.activityFood} numberOfLines={1}>
-                      {record.foodName}
-                    </Text>
-                    <Text style={styles.activityChoice}>
-                      {record.choice === 'ate' ? t('home.ate') : t('home.skippedChoice')}
-                    </Text>
+            todayMoveOptions.slice(0, 2).map((move, index) => {
+              const secondary = index === 1;
+              return (
+                <TouchableOpacity
+                  key={move.obligationId}
+                  activeOpacity={0.9}
+                  onPress={() => navigateToMove(move)}
+                  style={[
+                    styles.taskCard,
+                    secondary ? styles.taskCardSecondary : styles.taskCardPrimary,
+                  ]}
+                >
+                  <View style={styles.taskLeft}>
+                    <View style={styles.taskImageShell}>
+                      {move.photoUri ? (
+                        <Image source={{ uri: move.photoUri }} style={styles.taskImage} />
+                      ) : (
+                        <MaterialCommunityIcons name="food" size={20} color="#7b8794" />
+                      )}
+                    </View>
+                    <View>
+                      <Text style={styles.taskTitle}>{move.foodName}</Text>
+                      <Text
+                        style={[
+                          styles.taskMeta,
+                          secondary ? styles.taskMetaSecondary : styles.taskMetaPrimary,
+                        ]}
+                      >
+                        {move.remainingCount}
+                        {move.exerciseType === 'situp'
+                          ? 'min HIIT left'
+                          : ` ${move.exerciseType === 'squat' ? 'Squats' : 'Reps'} left`}
+                      </Text>
+                    </View>
                   </View>
-                  <Text style={styles.activityMeta}>
-                    {record.estimatedCalories} {t('common.kcal')} • {getRelativeTime(record.timestamp)}
-                  </Text>
-                </View>
-              ))}
-            </View>
+
+                  <SafeLinearGradient
+                    colors={
+                      secondary
+                        ? ([Colors.secondaryLight, Colors.secondary] as [string, string])
+                        : (Colors.gradientAccent as [string, string])
+                    }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.playButton}
+                  >
+                    <MaterialCommunityIcons name="play" size={22} color="#fff" />
+                  </SafeLinearGradient>
+                </TouchableOpacity>
+              );
+            })
           )}
+        </View>
+
+        <View style={styles.recentSection}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <View style={styles.recentList}>
+            {recentRecords.length === 0 ? (
+              <Text style={styles.emptyRecent}>No activity yet</Text>
+            ) : (
+              recentRecords.map((record, index) => (
+                <View key={record.id} style={styles.recentRow}>
+                  <View style={styles.recentLeft}>
+                    <View
+                      style={[
+                        styles.recentDot,
+                        { backgroundColor: index === 0 ? Colors.primary : Colors.secondary },
+                      ]}
+                    />
+                    <View>
+                      <Text style={styles.recentFood}>{record.foodName}</Text>
+                      <Text style={styles.recentMeta}>{getRelativeLabel(record)}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.recentCalories}>{record.estimatedCalories} kcal</Text>
+                </View>
+              ))
+            )}
+          </View>
         </View>
       </ScrollView>
 
       <Modal
-        visible={showMovePicker}
         transparent
         animationType="fade"
+        visible={showMovePicker}
         onRequestClose={() => setShowMovePicker(false)}
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t('recovery.selectTitle')}</Text>
+            <Text style={styles.modalTitle}>Pending Tasks</Text>
             <FlatList
-              style={styles.modalList}
               data={todayMoveOptions}
               keyExtractor={(item) => item.obligationId}
-              contentContainerStyle={styles.modalListContent}
-              showsVerticalScrollIndicator
-              nestedScrollEnabled
-              renderItem={({ item: move }) => (
+              contentContainerStyle={styles.modalList}
+              renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.modalOption}
                   onPress={() => {
                     setShowMovePicker(false);
-                    navigateToMove(move);
+                    navigateToMove(item);
                   }}
                 >
-                  <Text style={styles.modalOptionTitle}>
-                    {t(`exercise.types.${move.exerciseType}.name`)} • {move.remainingCount} {t('exerciseSelect.reps')}
+                  <Text style={styles.modalOptionTitle}>{item.foodName}</Text>
+                  <Text style={styles.modalOptionMeta}>
+                    {item.remainingCount} {item.exerciseType}
                   </Text>
-                  <Text style={styles.modalOptionSub}>{move.foodName}</Text>
                 </TouchableOpacity>
               )}
             />
             <TouchableOpacity
-              style={styles.modalCloseButton}
               onPress={() => setShowMovePicker(false)}
+              style={styles.modalClose}
             >
-              <Text style={styles.modalCloseButtonText}>{t('common.cancel')}</Text>
+              <Text style={styles.modalCloseText}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -362,345 +371,399 @@ export default function HomeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
-  },
-  scrollView: {
-    flex: 1,
+    backgroundColor: '#fdf8fb',
   },
   content: {
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 120,
+    gap: 24,
   },
   header: {
-    alignItems: 'center',
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.xl,
-  },
-  headerTopRow: {
-    width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.xs,
   },
-  settingsButton: {
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  brandMark: {
     width: 40,
     height: 40,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.surface,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 18,
+    elevation: 6,
   },
-  settingsButtonText: {
-    fontSize: 20,
+  brandName: {
+    fontSize: 25,
+    lineHeight: 30,
+    fontWeight: '400',
+    letterSpacing: -0.9,
+    color: '#111827',
   },
-  title: {
-    ...Typography.h2,
-    color: Colors.primary,
-    marginBottom: Spacing.xs,
-  },
-  subtitle: {
-    ...Typography.bodySmall,
-    color: Colors.textLight,
-  },
-  mainButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius['2xl'],
-    padding: Spacing.xl,
+  settingsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#ffffff',
     alignItems: 'center',
-    marginBottom: Spacing.lg,
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(244, 37, 175, 0.1)',
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  heroCard: {
+    borderRadius: 38,
+    paddingVertical: 46,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+    gap: 14,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.22,
+    shadowRadius: 26,
     elevation: 8,
   },
-  mainButtonIcon: {
-    fontSize: 64,
-    marginBottom: Spacing.sm,
+  heroIconShell: {
+    width: 74,
+    height: 74,
+    borderRadius: 37,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
   },
-  mainButtonText: {
-    ...Typography.h4,
-    color: Colors.surface,
-    marginBottom: Spacing.xs,
+  heroTitle: {
+    fontSize: 28,
+    lineHeight: 32,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: -0.8,
   },
-  mainButtonSubtext: {
-    ...Typography.bodySmall,
-    color: Colors.surface,
-    opacity: 0.9,
-  },
-  summaryCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    marginBottom: Spacing.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+  goalCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 34,
+    padding: 28,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.06,
+    shadowRadius: 26,
     elevation: 3,
   },
-  summaryTitle: {
-    ...Typography.h5,
-    color: Colors.text,
-  },
-  summaryHeader: {
+  goalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
+    alignItems: 'flex-end',
+    marginBottom: 16,
   },
-  summaryLink: {
-    ...Typography.caption,
-    color: Colors.primary,
+  goalEyebrow: {
+    fontSize: 11,
+    lineHeight: 15,
+    color: '#70829e',
+    fontWeight: '700',
+    letterSpacing: 1.1,
+  },
+  goalValue: {
+    marginTop: 4,
+    fontSize: 25,
+    lineHeight: 30,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  goalValueMuted: {
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: '500',
+    color: '#94a3b8',
+  },
+  progressTrack: {
+    height: 14,
+    borderRadius: 999,
+    backgroundColor: '#f1dde9',
+    overflow: 'hidden',
+    marginBottom: 18,
+  },
+  progressFill: {
+    height: '100%',
+  },
+  statsDivider: {
+    height: 1,
+    backgroundColor: '#edf2f7',
+    marginBottom: 18,
   },
   summaryRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    alignItems: 'stretch',
   },
   summaryItem: {
     flex: 1,
     alignItems: 'center',
   },
-  summaryValue: {
-    ...Typography.h4,
-    color: Colors.primary,
-    marginBottom: Spacing.xs,
+  summarySplit: {
+    width: 1,
+    backgroundColor: '#edf2f7',
   },
   summaryLabel: {
-    ...Typography.caption,
-    color: Colors.textLight,
+    fontSize: 11,
+    lineHeight: 14,
+    color: '#94a3b8',
+    fontWeight: '700',
+    marginBottom: 8,
   },
-  summaryDivider: {
-    width: 1,
-    backgroundColor: Colors.divider,
+  summaryNumber: {
+    fontSize: 18,
+    lineHeight: 22,
+    color: '#0f172a',
+    fontWeight: '800',
   },
-  goalCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.lg,
+  summaryUnit: {
+    fontSize: 10,
+    lineHeight: 12,
+    fontWeight: '700',
+    color: '#0f172a',
   },
-  goalHeader: {
+  recoveryCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
-    gap: Spacing.sm,
+    gap: 12,
+    backgroundColor: '#fffbe8',
+    borderWidth: 1,
+    borderColor: '#f0d14a',
+    borderRadius: 26,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
   },
-  goalTitle: {
-    ...Typography.bodySmall,
-    color: Colors.textLight,
+  recoverySparkle: {
+    fontSize: 28,
   },
-  goalValue: {
-    ...Typography.bodySmall,
-    color: Colors.text,
-    fontWeight: '600',
+  recoveryBody: {
+    flex: 1,
   },
-  goalTrack: {
-    height: 10,
-    borderRadius: 999,
-    backgroundColor: Colors.divider,
-    overflow: 'hidden',
-  },
-  goalFill: {
-    height: '100%',
-    borderRadius: 999,
-    backgroundColor: Colors.secondary,
-  },
-  goalHint: {
-    ...Typography.caption,
-    color: Colors.textLight,
-    marginTop: Spacing.xs,
-  },
-  recentSection: {},
-  obligationCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  obligationTitle: {
-    ...Typography.bodySmall,
-    color: Colors.textLight,
-    marginBottom: Spacing.xs,
-  },
-  obligationValue: {
-    ...Typography.h5,
-    color: Colors.text,
+  recoveryTitle: {
+    fontSize: 16,
+    lineHeight: 20,
+    color: '#a15c10',
+    fontWeight: '800',
     marginBottom: 2,
   },
-  obligationHint: {
-    ...Typography.caption,
-    color: Colors.textLight,
+  recoveryText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#a15c10',
   },
-  movePreviewList: {
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.xs,
-    gap: 6,
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  movePreviewItem: {
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+  sectionHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  movePreviewTitle: {
-    ...Typography.bodySmall,
-    color: Colors.text,
+  sectionTitle: {
+    fontSize: 22,
+    lineHeight: 28,
+    color: '#0f172a',
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  viewAll: {
+    fontSize: 12,
+    lineHeight: 14,
+    fontWeight: '800',
+    color: Colors.primary,
+  },
+  taskList: {
+    gap: 16,
+  },
+  taskCard: {
+    borderRadius: 24,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+  },
+  taskCardPrimary: {
+    backgroundColor: 'rgba(244, 37, 175, 0.05)',
+    borderColor: 'rgba(244, 37, 175, 0.12)',
+  },
+  taskCardSecondary: {
+    backgroundColor: 'rgba(255, 140, 66, 0.06)',
+    borderColor: 'rgba(255, 140, 66, 0.12)',
+  },
+  taskLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    flex: 1,
+  },
+  taskImageShell: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taskImage: {
+    width: '100%',
+    height: '100%',
+  },
+  taskTitle: {
+    fontSize: 18,
+    lineHeight: 22,
+    color: '#111827',
+    fontWeight: '800',
+  },
+  taskMeta: {
+    marginTop: 4,
+    fontSize: 14,
+    lineHeight: 18,
     fontWeight: '600',
   },
-  movePreviewMeta: {
-    ...Typography.caption,
-    color: Colors.textLight,
+  taskMetaPrimary: {
+    color: Colors.primary,
+  },
+  taskMetaSecondary: {
+    color: Colors.secondary,
+  },
+  playButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    elevation: 5,
+  },
+  recentSection: {
+    gap: 16,
+  },
+  recentList: {
+    gap: 18,
+  },
+  recentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  recentLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  recentDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  recentFood: {
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  recentMeta: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: '#94a3b8',
     marginTop: 2,
   },
-  movePreviewMore: {
-    ...Typography.caption,
-    color: Colors.textLight,
-    marginTop: 2,
+  recentCalories: {
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: '800',
+    color: '#475569',
   },
-  moveCtaButton: {
-    marginTop: Spacing.sm,
-    backgroundColor: Colors.accent,
-    borderRadius: BorderRadius.xl,
-    paddingVertical: Spacing.sm,
+  emptyCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    paddingVertical: 22,
+    paddingHorizontal: 18,
+    borderWidth: 1,
+    borderColor: '#f1e7ef',
     alignItems: 'center',
   },
-  moveCtaText: {
-    ...Typography.button,
-    color: Colors.surface,
+  emptyText: {
+    fontSize: 16,
+    lineHeight: 20,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  emptyRecent: {
+    fontSize: 15,
+    lineHeight: 20,
+    color: '#94a3b8',
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
     justifyContent: 'center',
-    padding: Spacing.lg,
+    paddingHorizontal: 24,
   },
   modalCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    maxHeight: '80%',
-  },
-  modalList: {
-    maxHeight: 420,
-    minHeight: 0,
-    flexShrink: 1,
-  },
-  modalListContent: {
-    paddingBottom: Spacing.xs,
+    backgroundColor: '#fff',
+    borderRadius: 28,
+    padding: 24,
+    maxHeight: '70%',
   },
   modalTitle: {
-    ...Typography.h5,
-    color: Colors.text,
-    marginBottom: Spacing.md,
+    fontSize: 20,
+    lineHeight: 24,
+    color: '#111827',
+    fontWeight: '800',
+    marginBottom: 16,
+  },
+  modalList: {
+    gap: 10,
   },
   modalOption: {
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    backgroundColor: '#fdf8fb',
+    borderRadius: 18,
+    padding: 16,
   },
   modalOptionTitle: {
-    ...Typography.body,
-    color: Colors.text,
-    fontWeight: '600',
+    fontSize: 16,
+    lineHeight: 20,
+    color: '#111827',
+    fontWeight: '700',
   },
-  modalOptionSub: {
-    ...Typography.caption,
-    color: Colors.textLight,
-    marginTop: 2,
+  modalOptionMeta: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#64748b',
+    marginTop: 4,
   },
-  modalCloseButton: {
-    marginTop: Spacing.md,
-    paddingVertical: Spacing.sm,
+  modalClose: {
+    marginTop: 16,
+    borderRadius: 999,
+    backgroundColor: Colors.primary,
     alignItems: 'center',
-    borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.divider,
-  },
-  modalCloseButtonText: {
-    ...Typography.button,
-    color: Colors.text,
-  },
-  recoveryCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  recoveryTitle: {
-    ...Typography.bodySmall,
-    color: Colors.textLight,
-    marginBottom: Spacing.xs,
-  },
-  recoveryValue: {
-    ...Typography.h5,
-    color: Colors.text,
-    marginBottom: 2,
-  },
-  recoveryHint: {
-    ...Typography.caption,
-    color: Colors.textLight,
-  },
-  recentTitle: {
-    ...Typography.h5,
-    color: Colors.text,
-  },
-  recentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  seeAll: {
-    ...Typography.caption,
-    color: Colors.primary,
-  },
-  emptyState: {
-    flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
+    paddingVertical: 14,
   },
-  emptyStateIcon: {
-    fontSize: 48,
-    marginBottom: Spacing.md,
-  },
-  emptyStateText: {
-    ...Typography.body,
-    color: Colors.textLight,
-    marginBottom: Spacing.xs,
-  },
-  emptyStateSubtext: {
-    ...Typography.bodySmall,
-    color: Colors.textExtraLight,
-  },
-  activityList: {
-    gap: Spacing.sm,
-  },
-  activityCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-  },
-  activityTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-    gap: Spacing.sm,
-  },
-  activityFood: {
-    ...Typography.body,
-    color: Colors.text,
-    flex: 1,
-  },
-  activityChoice: {
-    ...Typography.caption,
-    color: Colors.textLight,
-  },
-  activityMeta: {
-    ...Typography.caption,
-    color: Colors.textLight,
+  modalCloseText: {
+    fontSize: 15,
+    lineHeight: 18,
+    color: '#fff',
+    fontWeight: '800',
   },
 });
-

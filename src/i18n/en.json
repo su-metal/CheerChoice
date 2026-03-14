@@ -172,6 +172,7 @@
     "page3Body": "Your choices are always valid. Start with 7 free AI photo analyses."
   },
   "log": {
+    "title": "History",
     "ate": "Ate",
     "skipped": "Skipped",
     "loading": "Loading your activity...",

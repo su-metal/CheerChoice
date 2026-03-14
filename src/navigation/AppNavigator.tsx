@@ -11,6 +11,7 @@ import {
   SkippedScreen,
   ExerciseSelectScreen,
   ExerciseScreen,
+  ExerciseCompleteScreen,
   LogScreen,
   ManualEntryScreen,
   StatsScreen,
@@ -51,6 +52,13 @@ export type RootStackParamList = {
     mealRecordId?: string;
     obligationId?: string;
   };
+  ExerciseComplete: {
+    exerciseType: ExerciseRecord['exerciseType'];
+    count: number;
+    targetReps: number;
+    caloriesBurned: number;
+    foodName: string;
+  };
   Log: undefined;
   ManualEntry: undefined;
   Stats: undefined;
@@ -66,9 +74,9 @@ function TabIcon({ name, label, focused }: { name: string; label: string; focuse
   const getIconName = (type: string): React.ComponentProps<typeof MaterialCommunityIcons>['name'] => {
     switch (type) {
       case 'Home': return focused ? 'home' : 'home-outline';
-      case 'Log': return 'plus-circle';
-      case 'Stats': return focused ? 'calendar-month' : 'calendar-month-outline';
-      case 'Settings': return focused ? 'account' : 'account-outline';
+      case 'Log': return focused ? 'history' : 'history';
+      case 'Stats': return focused ? 'chart-pie' : 'chart-pie';
+      case 'Settings': return focused ? 'cog' : 'cog-outline';
       default: return 'circle';
     }
   };
@@ -163,7 +171,7 @@ function MainTabs() {
         component={StatsScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon name="Stats" label="Plan" focused={focused} />
+            <TabIcon name="Stats" label="Reports" focused={focused} />
           ),
         }}
       />
@@ -172,7 +180,7 @@ function MainTabs() {
         component={SettingsScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon name="Settings" label="Profile" focused={focused} />
+            <TabIcon name="Settings" label="Settings" focused={focused} />
           ),
         }}
       />
@@ -272,6 +280,13 @@ export default function AppNavigator() {
         <Stack.Screen
           name="Exercise"
           component={ExerciseScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="ExerciseComplete"
+          component={ExerciseCompleteScreen}
           options={{
             headerShown: false,
           }}

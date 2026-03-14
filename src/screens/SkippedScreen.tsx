@@ -147,7 +147,12 @@ export default function SkippedScreen({ navigation, route }: Props) {
             <View style={styles.actions}>
               <TouchableOpacity
                 style={styles.homeButton}
-                onPress={() => navigation.navigate('Home')}
+                onPress={() =>
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'Main' }],
+                  })
+                }
                 activeOpacity={0.8}
               >
                 <Text style={styles.homeButtonText}>{t('skipped.backHome')}</Text>

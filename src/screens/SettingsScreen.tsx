@@ -133,7 +133,10 @@ export default function SettingsScreen({ navigation }: Props) {
           onPress: async () => {
             try {
               await clearAllData();
-              navigation.navigate('Home');
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Main' }],
+              });
             } catch (error) {
               console.error('Error clearing data:', error);
               Alert.alert(t('common.oops'), t('settings.clearFailed'));

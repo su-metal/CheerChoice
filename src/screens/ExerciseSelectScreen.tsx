@@ -70,7 +70,10 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
       return;
     }
     setIsNavigating(true);
-    navigation.navigate('Home');
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Main' }],
+    });
   }
 
   return (

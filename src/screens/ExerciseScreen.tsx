@@ -20,7 +20,7 @@ import { RouteProp } from '@react-navigation/native';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants';
 import SafeLinearGradient from '../components/SafeLinearGradient';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { getRandomCompletionMessage, getRandomPartialMessage } from '../utils/exerciseMessages';
+import { getRandomPartialMessage } from '../utils/exerciseMessages';
 import { EXERCISES } from '../constants/Exercises';
 import { getPoseDetectorHtml } from '../utils/poseDetectorHtml';
 import { resolveLocale, t } from '../i18n';
@@ -510,26 +510,15 @@ export default function ExerciseScreen({ navigation, route }: Props) {
   }, [announceCount, isPaused, speakFeedback, speechLanguage, targetReps]);
 
   // 完了処理
-  const handleFinish = () => {
-    const message = getRandomCompletionMessage();
-    Alert.alert(
-      `🎉 ${t('exercise.alertCompleteTitle')}`,
-      t('exercise.alertCompleteBody', {
-        message,
-        count,
-        exerciseName,
-        foodName,
-      }),
-      [
-        {
-          text: t('common.done'),
-          onPress: async () => {
-            await persistExerciseSession();
-            navigation.navigate('Home');
-          },
-        },
-      ]
-    );
+  const handleFinish = async () => {
+    await persistExerciseSession();
+    navigation.replace('ExerciseComplete', {
+      exerciseType,
+      count,
+      targetReps,
+      caloriesBurned: Math.round(count * exercise.caloriesPerRep),
+      foodName,
+    });
   };
 
   // 途中終了処理
@@ -547,7 +536,10 @@ export default function ExerciseScreen({ navigation, route }: Props) {
           text: t('common.stop'),
           onPress: async () => {
             await persistExerciseSession();
-            navigation.navigate('Home');
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Main' }],
+            });
           },
           style: 'destructive',
         },

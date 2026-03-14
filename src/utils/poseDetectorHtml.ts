@@ -10,10 +10,35 @@
 export function getPoseDetectorHtml(
   exerciseType: string,
   targetReps: number,
-  voiceFeedbackEnabled: boolean = true
+  voiceFeedbackEnabled: boolean = true,
+  locale: 'en' | 'ja' = 'en'
 ): string {
   // exerciseType を THE TOLL 形式に変換 (squat → SQUAT)
   const exType = exerciseType.toUpperCase();
+  const copy =
+    locale === 'ja'
+      ? {
+          loading: 'AIモデルを読み込み中...',
+          showFullBody: '全身を映してください',
+          showTorso: '上半身から胴体を映してください',
+          showUpperBody: '上半身を映してください',
+          noPerson: '人物を検出できません',
+          calibrating: '動かずそのままで待ってください',
+          cameraErrorTitle: 'カメラエラー',
+          cameraInUseSuffix:
+            '（前面カメラが他のアプリやセッションで使用中の可能性があります。再試行してください。）',
+        }
+      : {
+          loading: 'Loading AI Model...',
+          showFullBody: 'SHOW FULL BODY',
+          showTorso: 'SHOW YOUR TORSO',
+          showUpperBody: 'SHOW UPPER BODY',
+          noPerson: 'NO PERSON DETECTED',
+          calibrating: 'STAY STILL - CALIBRATING',
+          cameraErrorTitle: 'Camera Error',
+          cameraInUseSuffix:
+            ' (Front camera may be in use by another app/session. Please retry.)',
+        };
 
   return `
 <!DOCTYPE html>
@@ -24,27 +49,43 @@ export function getPoseDetectorHtml(
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
-      width: 100%; height: 100%;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
       background: #000;
     }
+    :root {
+      --app-height: 100vh;
+    }
     #video-container {
-      position: relative;
-      width: 100%; height: 100%;
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: var(--app-height);
+      min-height: var(--app-height);
+      overflow: hidden;
+      background: #000;
     }
     video {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      object-fit: cover;
-      transform: scaleX(-1);
+      position: fixed;
+      top: -9999px;
+      left: -9999px;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
     }
     canvas {
       position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
+      inset: 0;
+      width: 100vw;
+      height: var(--app-height);
+      min-width: 100vw;
+      min-height: var(--app-height);
       object-fit: cover;
+      object-position: center center;
       transform: scaleX(-1);
+      display: block;
     }
     #loading {
       position: absolute;
@@ -97,9 +138,9 @@ export function getPoseDetectorHtml(
     <canvas id="pose-canvas"></canvas>
     <div id="loading">
       <div class="spinner"></div>
-      Loading AI Model...
+      ${copy.loading}
     </div>
-    <div id="guide">SHOW FULL BODY</div>
+    <div id="guide">${copy.showFullBody}</div>
     <div id="flash-border"></div>
   </div>
 
@@ -141,9 +182,43 @@ export function getPoseDetectorHtml(
     // ============================================
     const videoEl = document.getElementById('camera');
     const canvasEl = document.getElementById('pose-canvas');
+    const videoContainerEl = document.getElementById('video-container');
     const loadingEl = document.getElementById('loading');
     const guideEl = document.getElementById('guide');
     const ctx = canvasEl.getContext('2d');
+
+    function syncViewportHeight() {
+      var height = window.innerHeight || document.documentElement.clientHeight || screen.height || 0;
+      var width = window.innerWidth || document.documentElement.clientWidth || screen.width || 0;
+      if (height > 0) {
+        document.documentElement.style.setProperty('--app-height', height + 'px');
+        document.body.style.height = height + 'px';
+        document.body.style.minHeight = height + 'px';
+        document.body.style.width = width + 'px';
+        document.body.style.position = 'fixed';
+        document.body.style.inset = '0';
+        if (videoContainerEl) {
+          videoContainerEl.style.height = height + 'px';
+          videoContainerEl.style.minHeight = height + 'px';
+          videoContainerEl.style.width = width + 'px';
+        }
+        if (videoEl) {
+          videoEl.style.width = '1px';
+          videoEl.style.height = '1px';
+        }
+        if (canvasEl) {
+          canvasEl.style.height = height + 'px';
+          canvasEl.style.minHeight = height + 'px';
+          canvasEl.style.width = width + 'px';
+          canvasEl.width = width;
+          canvasEl.height = height;
+        }
+      }
+    }
+
+    syncViewportHeight();
+    window.addEventListener('resize', syncViewportHeight);
+    window.addEventListener('orientationchange', syncViewportHeight);
 
     // ============================================
     // RN Communication
@@ -265,7 +340,7 @@ export function getPoseDetectorHtml(
 
       // Calibration: wait for stable baseline
       if (state.pushupBaseline === null) {
-        showGuide('STAY STILL - CALIBRATING');
+        showGuide('${copy.calibrating}');
 
         state.calibrationBuffer.push(shoulderY);
 
@@ -307,7 +382,7 @@ export function getPoseDetectorHtml(
 
       // Calibration
       if (state.situpBaseline === null) {
-        showGuide('STAY STILL - CALIBRATING');
+        showGuide('${copy.calibrating}');
 
         state.calibrationBuffer.push(currentY);
 
@@ -375,6 +450,28 @@ export function getPoseDetectorHtml(
       });
     }
 
+    function drawCameraFrame(image) {
+      if (!image || !canvasEl.width || !canvasEl.height) {
+        return;
+      }
+
+      var sourceWidth = image.videoWidth || image.width || 0;
+      var sourceHeight = image.videoHeight || image.height || 0;
+      if (!sourceWidth || !sourceHeight) {
+        return;
+      }
+
+      var targetWidth = canvasEl.width;
+      var targetHeight = canvasEl.height;
+      var scale = Math.max(targetWidth / sourceWidth, targetHeight / sourceHeight);
+      var drawWidth = sourceWidth * scale;
+      var drawHeight = sourceHeight * scale;
+      var offsetX = (targetWidth - drawWidth) / 2;
+      var offsetY = (targetHeight - drawHeight) / 2;
+
+      ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+    }
+
     // ============================================
     // Guide helpers
     // ============================================
@@ -392,10 +489,11 @@ export function getPoseDetectorHtml(
     // ============================================
     function onPoseResults(results) {
       ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+      drawCameraFrame(results.image || videoEl);
 
       if (!results.poseLandmarks) {
         state.isCountPosture = false;
-        showGuide('NO PERSON DETECTED');
+        showGuide('${copy.noPerson}');
         // Reset baselines if no person for 2+ seconds
         if (state._lastPersonTs && Date.now() - state._lastPersonTs > 2000) {
           state.pushupBaseline = null;
@@ -410,17 +508,17 @@ export function getPoseDetectorHtml(
 
       // Check required landmarks visibility
       var requiredLandmarks = [];
-      var visibilityMsg = 'SHOW FULL BODY';
+      var visibilityMsg = '${copy.showFullBody}';
 
       if (EXERCISE_TYPE === 'SQUAT') {
         requiredLandmarks = [11, 12, 23, 24, 25, 26, 27, 28];
-        visibilityMsg = 'SHOW FULL BODY';
+        visibilityMsg = '${copy.showFullBody}';
       } else if (EXERCISE_TYPE === 'PUSHUP') {
         requiredLandmarks = [11, 12, 23, 24];
-        visibilityMsg = 'SHOW YOUR TORSO';
+        visibilityMsg = '${copy.showTorso}';
       } else if (EXERCISE_TYPE === 'SITUP') {
         requiredLandmarks = [0, 11, 12];
-        visibilityMsg = 'SHOW UPPER BODY';
+        visibilityMsg = '${copy.showUpperBody}';
       }
 
       var isVisible = requiredLandmarks.every(function(idx) {
@@ -521,6 +619,7 @@ export function getPoseDetectorHtml(
         var stream = await getCameraStreamWithFallback();
         currentStream = stream;
         videoEl.srcObject = stream;
+        syncViewportHeight();
 
         // Some WebViews reject play() promise without user gesture.
         // Do not treat this as fatal if frames can still be read.
@@ -543,8 +642,7 @@ export function getPoseDetectorHtml(
           check();
         });
 
-        canvasEl.width = videoEl.videoWidth;
-        canvasEl.height = videoEl.videoHeight;
+        syncViewportHeight();
 
         // Now init MediaPipe
         var pose = new Pose({
@@ -583,9 +681,9 @@ export function getPoseDetectorHtml(
         var baseMessage = (err && err.name ? err.name + ': ' : '') + ((err && err.message) || 'Could not access camera');
         var message = baseMessage;
         if (err && err.name === 'NotReadableError') {
-          message = baseMessage + ' (Front camera may be in use by another app/session. Please retry.)';
+          message = baseMessage + '${copy.cameraInUseSuffix}';
         }
-        loadingEl.innerHTML = '<div style="color:#FF6B6B;font-size:16px;">Camera Error</div><div style="color:#aaa;font-size:14px;margin-top:8px;">' + message + '</div>';
+        loadingEl.innerHTML = '<div style="color:#FF6B6B;font-size:16px;">${copy.cameraErrorTitle}</div><div style="color:#aaa;font-size:14px;margin-top:8px;">' + message + '</div>';
         sendToRN({ type: 'error', message: message });
       }
     }

@@ -11,9 +11,10 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { BorderRadius, Colors, Spacing, Typography } from '../constants';
-import { setAppLocale, t } from '../i18n';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import SafeLinearGradient from '../components/SafeLinearGradient';
+import { BorderRadius, Colors, Shadows, Spacing, Typography } from '../constants';
+import { setAppLocale, t, useAppLocale } from '../i18n';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '../config/appConfig';
 import { getUsageData, resetAIUsage } from '../services/usageService';
@@ -31,7 +32,9 @@ import {
   updateSettings,
 } from '../services/settingsService';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
+type Props = {
+  navigation: any;
+};
 
 function isPurchaseCancelledError(error: unknown): boolean {
   if (!error || typeof error !== 'object') {
@@ -43,6 +46,7 @@ function isPurchaseCancelledError(error: unknown): boolean {
 }
 
 export default function SettingsScreen({ navigation }: Props) {
+  useAppLocale();
   const [dailyGoal, setDailyGoal] = useState(300);
   const [voiceFeedbackEnabled, setVoiceFeedbackEnabled] = useState(true);
   const [language, setLanguage] = useState<'auto' | 'en' | 'ja'>('auto');
@@ -59,6 +63,7 @@ export default function SettingsScreen({ navigation }: Props) {
         if (!isMounted) {
           return;
         }
+        setAppLocale(settings.language);
         setDailyGoal(settings.dailyCalorieGoal);
         setVoiceFeedbackEnabled(settings.voiceFeedbackEnabled);
         setLanguage(settings.language);
@@ -100,8 +105,12 @@ export default function SettingsScreen({ navigation }: Props) {
     updateSettings({ language }).catch((error) => {
       console.error('Error saving language setting:', error);
     });
-    setAppLocale(language);
   }, [language]);
+
+  const handleLanguageChange = (nextLanguage: 'auto' | 'en' | 'ja') => {
+    setAppLocale(nextLanguage);
+    setLanguage(nextLanguage);
+  };
 
   const handleExportData = async () => {
     setIsExporting(true);
@@ -131,7 +140,10 @@ export default function SettingsScreen({ navigation }: Props) {
           onPress: async () => {
             try {
               await clearAllData();
-              navigation.navigate('Home');
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Main' }],
+              });
             } catch (error) {
               console.error('Error clearing data:', error);
               Alert.alert(t('common.oops'), t('settings.clearFailed'));
@@ -215,45 +227,106 @@ export default function SettingsScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{t('settings.title')}</Text>
+        </View>
+
+        <View style={styles.profileCard}>
+          <View style={styles.avatarContainer}>
+            <MaterialCommunityIcons name="account" size={40} color={Colors.primary} />
+          </View>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName}>{t('settings.profileName')}</Text>
+            <Text style={styles.profileEmail}>{t('settings.profileEmail')}</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          activeOpacity={0.92}
+          onPress={handlePurchasePremium}
+          disabled={isPremium || isProcessingPurchase}
+        >
+          <SafeLinearGradient
+            colors={Colors.gradientAccent as [string, string]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.premiumCard}
+          >
+            <View style={styles.premiumContent}>
+              <View style={styles.premiumTextContent}>
+                <Text style={styles.premiumTitle}>
+                  {isPremium ? t('settings.premiumActive') : t('settings.premiumInactive')}
+                </Text>
+                <Text style={styles.premiumSubtitle}>
+                  {isPremium ? t('settings.premiumActiveBody') : t('settings.premiumInactiveBody')}
+                </Text>
+              </View>
+              <View style={styles.premiumIcon}>
+                <MaterialCommunityIcons name="crown" size={28} color="#fff" />
+              </View>
+            </View>
+          </SafeLinearGradient>
+        </TouchableOpacity>
+
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.goals')}</Text>
+          <Text style={styles.sectionTitle}>{t('settings.sectionGoals')}</Text>
           <View style={styles.card}>
-            <Text style={styles.itemTitle}>{t('settings.dailyGoal')}</Text>
-            <Text style={styles.itemSubtext}>{dailyGoal} {t('common.kcal')}</Text>
-            <View style={styles.goalActions}>
-              <TouchableOpacity
-                style={styles.goalButton}
-                onPress={() => setDailyGoal((prev) => Math.max(100, prev - 50))}
-              >
-                <Text style={styles.goalButtonText}>-50</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.goalButton}
-                onPress={() => setDailyGoal((prev) => Math.min(1000, prev + 50))}
-              >
-                <Text style={styles.goalButtonText}>+50</Text>
-              </TouchableOpacity>
+            <View style={styles.settingRow}>
+              <View style={styles.settingIcon}>
+                <MaterialCommunityIcons name="target" size={22} color={Colors.secondary} />
+              </View>
+              <View style={styles.settingBody}>
+                <Text style={styles.settingLabel}>{t('settings.dailyGoal')}</Text>
+                <Text style={styles.settingValue}>
+                  {dailyGoal} {t('common.kcal')}
+                </Text>
+              </View>
+              <View style={styles.goalActions}>
+                <TouchableOpacity
+                  style={styles.goalButton}
+                  onPress={() => setDailyGoal((prev) => Math.max(100, prev - 50))}
+                >
+                  <Text style={styles.goalButtonText}>-</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.goalButton}
+                  onPress={() => setDailyGoal((prev) => Math.min(1000, prev + 50))}
+                >
+                  <Text style={styles.goalButtonText}>+</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.preferences')}</Text>
+          <Text style={styles.sectionTitle}>{t('settings.sectionPreference')}</Text>
           <View style={styles.card}>
-            <View style={styles.row}>
-              <View style={styles.rowText}>
-                <Text style={styles.itemTitle}>{t('settings.voiceFeedback')}</Text>
-                <Text style={styles.itemSubtext}>{t('settings.voiceFeedbackHint')}</Text>
+            <View style={styles.settingRow}>
+              <View style={styles.settingIcon}>
+                <MaterialCommunityIcons name="volume-high" size={22} color={Colors.primary} />
+              </View>
+              <View style={styles.settingBody}>
+                <Text style={styles.settingLabel}>{t('settings.voiceFeedback')}</Text>
+                <Text style={styles.settingValue}>{t('settings.voiceFeedbackHint')}</Text>
               </View>
               <Switch
                 value={voiceFeedbackEnabled}
                 onValueChange={setVoiceFeedbackEnabled}
-                trackColor={{ false: Colors.divider, true: Colors.primary }}
-                thumbColor={Colors.surface}
+                trackColor={{ false: '#e2e8f0', true: Colors.primary }}
+                thumbColor={Colors.white}
               />
             </View>
-            <View style={styles.languageGroup}>
-              <Text style={styles.itemTitle}>{t('settings.language')}</Text>
+
+            <View style={styles.divider} />
+
+            <View style={[styles.settingRow, { flexDirection: 'column', alignItems: 'flex-start' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                <View style={styles.settingIcon}>
+                  <MaterialCommunityIcons name="translate" size={22} color={Colors.accent} />
+                </View>
+                <Text style={styles.settingLabel}>{t('settings.language')}</Text>
+              </View>
               <View style={styles.languageActions}>
                 {(['auto', 'en', 'ja'] as const).map((option) => (
                   <TouchableOpacity
@@ -262,7 +335,7 @@ export default function SettingsScreen({ navigation }: Props) {
                       styles.languageButton,
                       language === option && styles.languageButtonActive,
                     ]}
-                    onPress={() => setLanguage(option)}
+                    onPress={() => handleLanguageChange(option)}
                   >
                     <Text
                       style={[
@@ -280,90 +353,95 @@ export default function SettingsScreen({ navigation }: Props) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.data')}</Text>
+          <Text style={styles.sectionTitle}>{t('settings.sectionData')}</Text>
           <View style={styles.card}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={handleExportData}
-              disabled={isExporting}
-            >
-              <Text style={styles.actionButtonText}>
-                {isExporting ? t('settings.exporting') : t('settings.exportData')}
-              </Text>
+            <TouchableOpacity onPress={handleExportData} disabled={isExporting}>
+              <View style={styles.settingRow}>
+                <View style={styles.settingIcon}>
+                  <MaterialCommunityIcons name="export" size={22} color="#64748b" />
+                </View>
+                <View style={styles.settingBody}>
+                  <Text style={styles.settingLabel}>
+                    {isExporting ? t('settings.exporting') : t('settings.exportData')}
+                  </Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#cbd5e1" />
+              </View>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.clearButton]}
-              onPress={handleClearData}
-            >
-              <Text style={[styles.actionButtonText, styles.clearButtonText]}>
-                {t('settings.clearData')}
-              </Text>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity onPress={handleClearData}>
+              <View style={styles.settingRow}>
+                <View style={styles.settingIcon}>
+                  <MaterialCommunityIcons name="trash-can-outline" size={22} color={Colors.primary} />
+                </View>
+                <View style={styles.settingBody}>
+                  <Text style={[styles.settingLabel, { color: Colors.primary }]}>
+                    {t('settings.clearData')}
+                  </Text>
+                </View>
+              </View>
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.subscription')}</Text>
+          <Text style={styles.sectionTitle}>{t('settings.sectionSupport')}</Text>
           <View style={styles.card}>
-            <Text style={styles.itemTitle}>
-              {t('settings.plan', { value: isPremium ? t('settings.planPremium') : t('settings.planFree') })}
-            </Text>
-            <Text style={styles.itemSubtext}>
-              {usageData
-                ? (isPremium
-                    ? t('settings.aiUsagePremium', { used: usageData.aiPhotosToday, limit: 20 })
-                    : t('settings.aiUsageFree', { used: usageData.aiPhotosUsed, limit: 7 }))
-                : t('settings.loadingUsage')}
-            </Text>
-            <TouchableOpacity style={styles.actionButton} onPress={handleResetAIUsage}>
-              <Text style={styles.actionButtonText}>{t('settings.resetAiUsage')}</Text>
+            <TouchableOpacity onPress={() => openExternalUrl(PRIVACY_POLICY_URL)}>
+              <View style={styles.settingRow}>
+                <View style={styles.settingIcon}>
+                  <MaterialCommunityIcons name="shield-check-outline" size={22} color="#64748b" />
+                </View>
+                <View style={styles.settingBody}>
+                  <Text style={styles.settingLabel}>{t('settings.privacyPolicy')}</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#cbd5e1" />
+              </View>
             </TouchableOpacity>
-            {!isPremium && (
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={handlePurchasePremium}
-                disabled={isProcessingPurchase}
-              >
-                <Text style={styles.actionButtonText}>
-                  {isProcessingPurchase ? t('settings.purchaseInProgress') : t('stats.upgradeButton')}
-                </Text>
-              </TouchableOpacity>
-            )}
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity onPress={() => openExternalUrl(TERMS_OF_SERVICE_URL)}>
+              <View style={styles.settingRow}>
+                <View style={styles.settingIcon}>
+                  <MaterialCommunityIcons name="file-document-outline" size={22} color="#64748b" />
+                </View>
+                <View style={styles.settingBody}>
+                  <Text style={styles.settingLabel}>{t('settings.termsOfService')}</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#cbd5e1" />
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
             <TouchableOpacity
-              style={styles.actionButton}
               onPress={handleRestorePurchases}
               disabled={isProcessingPurchase}
             >
-              <Text style={styles.actionButtonText}>{t('settings.restorePurchases')}</Text>
+              <View style={styles.settingRow}>
+                <View style={styles.settingIcon}>
+                  <MaterialCommunityIcons name="restore" size={22} color="#64748b" />
+                </View>
+                <View style={styles.settingBody}>
+                  <Text style={styles.settingLabel}>{t('settings.restorePurchases')}</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#cbd5e1" />
+              </View>
             </TouchableOpacity>
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.legal')}</Text>
-          <View style={styles.card}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => openExternalUrl(PRIVACY_POLICY_URL)}
-            >
-              <Text style={styles.actionButtonText}>{t('settings.privacyPolicy')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => openExternalUrl(TERMS_OF_SERVICE_URL)}
-            >
-              <Text style={styles.actionButtonText}>{t('settings.termsOfService')}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <TouchableOpacity activeOpacity={0.8} style={styles.dangerButton}>
+          <MaterialCommunityIcons name="logout" size={20} color={Colors.primary} />
+          <Text style={styles.dangerButtonText}>{t('settings.logout')}</Text>
+        </TouchableOpacity>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.about')}</Text>
-          <View style={styles.card}>
-            <Text style={styles.itemTitle}>CheerChoice</Text>
-            <Text style={styles.itemSubtext}>{t('settings.tagline')}</Text>
-            <Text style={styles.itemSubtext}>{t('settings.version', { value: '1.0.0' })}</Text>
-          </View>
+        <View style={styles.aboutSection}>
+          <Text style={styles.aboutTitle}>CheerChoice</Text>
+          <Text style={styles.aboutVersion}>{t('settings.version', { value: '1.0.0' })}</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -376,52 +454,161 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   content: {
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 40,
+    gap: 20,
   },
-  section: {
-    marginBottom: Spacing.lg,
+  header: {
+    marginBottom: 10,
   },
-  sectionTitle: {
-    ...Typography.h5,
+  headerTitle: {
+    ...Typography.h2,
     color: Colors.text,
-    marginBottom: Spacing.sm,
   },
-  card: {
+  profileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.md,
-    gap: Spacing.sm,
+    borderRadius: BorderRadius['4xl'],
+    padding: 24,
+    gap: 16,
+    ...Shadows.md,
   },
-  row: {
+  avatarContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(244, 37, 175, 0.05)',
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
+    ...Typography.h4,
+    color: Colors.text,
+  },
+  profileEmail: {
+    ...Typography.bodySmall,
+    color: Colors.textLight,
+    marginTop: 2,
+  },
+  premiumCard: {
+    borderRadius: BorderRadius['4xl'],
+    padding: 24,
+    ...Shadows.lg,
+  },
+  premiumContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: Spacing.md,
+    gap: 12,
   },
-  rowText: {
+  premiumTextContent: {
+    flex: 1,
+    gap: 4,
+  },
+  premiumTitle: {
+    ...Typography.h4,
+    color: Colors.white,
+  },
+  premiumSubtitle: {
+    ...Typography.bodySmall,
+    color: Colors.white,
+    opacity: 0.9,
+  },
+  premiumIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  section: {
+    gap: 12,
+  },
+  sectionTitle: {
+    ...Typography.h5,
+    color: Colors.textLight,
+    marginLeft: 4,
+  },
+  card: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius['3xl'],
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    ...Shadows.sm,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    gap: 14,
+  },
+  settingIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingBody: {
     flex: 1,
   },
-  languageGroup: {
-    marginTop: Spacing.xs,
-    gap: Spacing.sm,
+  settingLabel: {
+    ...Typography.h5,
+    color: Colors.text,
+    fontSize: 15,
+  },
+  settingValue: {
+    ...Typography.bodySmall,
+    color: Colors.textLight,
+    marginTop: 2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#f8fafc',
+    marginHorizontal: 8,
+  },
+  goalActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  goalButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  goalButtonText: {
+    ...Typography.h4,
+    color: Colors.primary,
   },
   languageActions: {
     flexDirection: 'row',
-    gap: Spacing.xs,
+    padding: 6,
+    backgroundColor: Colors.background,
+    borderRadius: 16,
+    marginTop: 8,
   },
   languageButton: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: Colors.divider,
-    borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.sm,
+    paddingVertical: 10,
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    borderRadius: 12,
   },
   languageButtonActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.white,
+    ...Shadows.sm,
   },
   languageButtonText: {
     ...Typography.caption,
@@ -431,49 +618,31 @@ const styles = StyleSheet.create({
   languageButtonTextActive: {
     color: Colors.primary,
   },
-  itemTitle: {
-    ...Typography.body,
-    color: Colors.text,
-    fontWeight: '600',
-  },
-  itemSubtext: {
-    ...Typography.caption,
-    color: Colors.textLight,
-    marginTop: 2,
-  },
-  goalActions: {
+  dangerButton: {
+    marginTop: 10,
     flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  goalButton: {
-    flex: 1,
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.sm,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(244, 37, 175, 0.04)',
+    borderRadius: 20,
+    paddingVertical: 16,
+    gap: 10,
   },
-  goalButtonText: {
-    ...Typography.bodySmall,
-    color: Colors.text,
-    fontWeight: '600',
-  },
-  actionButton: {
-    borderWidth: 1,
-    borderColor: Colors.accent,
-    borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-  },
-  actionButtonText: {
-    ...Typography.bodySmall,
-    color: Colors.accent,
-    fontWeight: '600',
-  },
-  clearButton: {
-    borderColor: Colors.primary,
-  },
-  clearButtonText: {
+  dangerButtonText: {
+    ...Typography.button,
     color: Colors.primary,
   },
+  aboutSection: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    gap: 6,
+  },
+  aboutTitle: {
+    ...Typography.h4,
+    color: Colors.text,
+  },
+  aboutVersion: {
+    ...Typography.caption,
+    color: Colors.textExtraLight,
+  },
 });
-

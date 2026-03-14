@@ -13,7 +13,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { Colors, Typography, Spacing, BorderRadius } from '../constants';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import SafeLinearGradient from '../components/SafeLinearGradient';
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { CalorieEstimationResult } from '../types';
 import { estimateCalories } from '../services/calorieEstimator';
@@ -48,6 +50,20 @@ export default function ResultScreen({ navigation, route }: Props) {
   const [isIdentifyingProduct, setIsIdentifyingProduct] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const isManualEntry = Boolean(manualInput);
+
+  function handleBackToHome() {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Main' }],
+    });
+  }
+
+  function handleRetakePhoto() {
+    navigation.reset({
+      index: 1,
+      routes: [{ name: 'Main' }, { name: 'Camera' }],
+    });
+  }
 
   // コンポーネントマウント時にカロリー推定を実行
   useEffect(() => {
@@ -182,13 +198,11 @@ export default function ResultScreen({ navigation, route }: Props) {
   // ローディング中
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>{t('result.loadingTitle')}</Text>
-          <Text style={styles.loadingSubtext}>{t('result.loadingSubtext')} ✨</Text>
-        </View>
-      </SafeAreaView>
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>{t('result.loadingTitle')}</Text>
+        <Text style={styles.loadingSubtext}>{t('result.loadingSubtext')} ✨</Text>
+      </View>
     );
   }
 
@@ -204,7 +218,7 @@ export default function ResultScreen({ navigation, route }: Props) {
             primaryLabel={t('common.tryAgain')}
             onPrimaryPress={analyzePhoto}
             secondaryLabel={t('result.takeAnotherPhoto')}
-            onSecondaryPress={() => navigation.navigate('Camera')}
+            onSecondaryPress={handleRetakePhoto}
           />
         </View>
       </SafeAreaView>
@@ -295,21 +309,52 @@ export default function ResultScreen({ navigation, route }: Props) {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        {/* 写真プレビュー */}
-        {photoUri ? (
-          <Image source={{ uri: photoUri }} style={styles.photoPreview} />
-        ) : (
-          <View style={styles.manualPlaceholder}>
-            <Text style={styles.manualPlaceholderText}>🍽️ {t('result.manualLabel')}</Text>
-          </View>
-        )}
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* 背景画像 / ヘッダー */}
+        <View style={styles.headerImageContainer}>
+          {photoUri ? (
+            <Image source={{ uri: photoUri }} style={styles.headerImage} />
+          ) : (
+            <SafeLinearGradient
+              colors={[Colors.primary, Colors.primaryDark]}
+              style={styles.manualHeaderGradient}
+            >
+              <MaterialCommunityIcons name="silverware-fork-knife" size={80} color={Colors.whiteTransparent} />
+            </SafeLinearGradient>
+          )}
+          
+          {/* ヘッダーオーバーレイ (グラデーション) */}
+          <SafeLinearGradient
+            colors={['rgba(0,0,0,0.5)', 'transparent', 'rgba(0,0,0,0.4)']}
+            style={StyleSheet.absoluteFill}
+          />
 
-        {/* カロリー情報カード */}
-        <View style={styles.resultCard}>
+          {/* 上部ナビゲーション */}
+          <SafeAreaView edges={['top']} style={styles.headerNav}>
+            <TouchableOpacity 
+              style={styles.navButton} 
+              onPress={handleBackToHome}
+            >
+              <MaterialCommunityIcons name="chevron-left" size={28} color={Colors.surface} />
+            </TouchableOpacity>
+            
+            <Text style={styles.headerTitle}>{t('result.analysisTitle')}</Text>
+            
+            <TouchableOpacity style={styles.navButton} onPress={handleBackToHome}>
+              <MaterialCommunityIcons name="home-outline" size={24} color={Colors.surface} />
+            </TouchableOpacity>
+          </SafeAreaView>
+        </View>
+
+        {/* メイン結果カード (フローティング) */}
+        <View style={[styles.floatingCard, isEditing && styles.floatingCardEditing]}>
           {isEditing ? (
-            <>
+            <View style={styles.editForm}>
               <Text style={styles.inputLabel}>{t('result.foodNameLabel')}</Text>
               <TextInput
                 value={editedFoodName}
@@ -324,123 +369,367 @@ export default function ResultScreen({ navigation, route }: Props) {
                 onChangeText={setEditedCalories}
                 style={styles.editInput}
                 keyboardType="number-pad"
-                placeholder="300"
+                placeholder={t('manualEntry.caloriesPlaceholder')}
                 placeholderTextColor={Colors.textExtraLight}
               />
               <View style={styles.editActions}>
-                <TouchableOpacity style={styles.editCancelButton} onPress={() => setIsEditing(false)}>
+                <TouchableOpacity
+                  style={[styles.editButtonBase, styles.editCancelButton]}
+                  onPress={() => setIsEditing(false)}
+                >
                   <Text style={styles.editCancelText}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.editSaveButton} onPress={saveEdit}>
-                  <Text style={styles.editSaveText}>{t('result.saveEdit')}</Text>
+                <TouchableOpacity
+                  style={[styles.editButtonBase, styles.editSaveButton]}
+                  onPress={saveEdit}
+                >
+                  <SafeLinearGradient colors={[Colors.primary, Colors.primaryDark]} style={styles.gradientFill}>
+                    <Text style={styles.editSaveText}>{t('result.saveEdit')}</Text>
+                  </SafeLinearGradient>
                 </TouchableOpacity>
               </View>
-            </>
+            </View>
           ) : (
             <>
-              <Text style={styles.foodName}>{result.foodName}</Text>
-
-              <View style={styles.calorieSection}>
-                <Text style={styles.calorieValue}>{result.estimatedCalories}</Text>
-                <Text style={styles.calorieUnit}>{t('common.kcal')}</Text>
+              <View style={styles.cardHeaderRow}>
+                <Text style={styles.foodName}>{result.foodName}</Text>
+                <TouchableOpacity onPress={startEdit}>
+                  <Text style={styles.editResultLink}>{t('result.editEstimate')}</Text>
+                </TouchableOpacity>
               </View>
 
-              <Text style={styles.calorieRange}>
-                {t('result.range', { min: result.calorieRange.min, max: result.calorieRange.max })}
-              </Text>
+              <View style={styles.calorieDisplay}>
+                <Text style={styles.calorieNumber}>{result.estimatedCalories}</Text>
+                <Text style={styles.calorieLabel}>{t('common.kcal')}</Text>
+              </View>
 
-              <View style={styles.metaInfo}>
-                <View style={styles.metaItem}>
-                  <Text style={styles.metaLabel}>{t('result.portionSize')}</Text>
-                  <Text style={styles.metaValue}>{result.portionSize}</Text>
+              <View style={styles.badgeContainer}>
+                <View style={styles.badge}>
+                  <MaterialCommunityIcons name="scale-balance" size={14} color={Colors.primary} style={styles.badgeIcon} />
+                  <Text style={styles.badgeText}>
+                    {t('result.range', { min: result.calorieRange.min, max: result.calorieRange.max })}
+                  </Text>
                 </View>
-                <View style={styles.metaItem}>
-                  <Text style={styles.metaLabel}>{t('result.confidence')}</Text>
-                  <Text style={styles.metaValue}>
-                    {isManualEntry ? t('result.manualLabel') : `${result.confidence}%`}
+                <View style={styles.badge}>
+                  <MaterialCommunityIcons name="food-apple" size={14} color={Colors.primary} style={styles.badgeIcon} />
+                  <Text style={styles.badgeText}>{result.portionSize}</Text>
+                </View>
+                <View style={styles.badge}>
+                  <MaterialCommunityIcons name="auto-fix" size={14} color={Colors.primary} style={styles.badgeIcon} />
+                  <Text style={styles.badgeText}>
+                    {isManualEntry
+                      ? t('result.manualLabel')
+                      : t('result.confidenceValue', { confidence: result.confidence })}
                   </Text>
                 </View>
               </View>
-
-              <TouchableOpacity style={styles.editButton} onPress={startEdit}>
-                <Text style={styles.editButtonText}>{t('result.editEstimate')}</Text>
-              </TouchableOpacity>
-              {!isManualEntry && (
-                <TouchableOpacity
-                  style={[styles.identifyButton, !isPremium && styles.identifyButtonLocked]}
-                  onPress={handleIdentifyProduct}
-                  disabled={isIdentifyingProduct}
-                >
-                  {isIdentifyingProduct ? (
-                    <ActivityIndicator size="small" color={Colors.surface} />
-                  ) : (
-                    <Text style={styles.identifyButtonText}>
-                      {isPremium ? t('result.identifyProduct') : t('result.identifyProductPremium')}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              )}
             </>
           )}
-
-          {!isManualEntry && !isEditing && result.confidence < 50 && (
-            <View style={styles.lowConfidenceWarning}>
-              <Text style={styles.warningText}>
-                ⚠️ {t('result.lowConfidenceWarning')}
-              </Text>
-            </View>
-          )}
         </View>
 
-        {/* 選択ボタン */}
-        <View style={styles.choiceSection}>
-          <Text style={styles.choiceTitle}>{t('result.choiceTitle')}</Text>
+        {/* アクションセクション */}
+        <View style={styles.choiceContainer}>
+          <Text style={styles.choiceHeading}>{t('result.choiceHeading')}</Text>
 
+          {/* Skip It ボタン */}
           <TouchableOpacity
-            style={[styles.choiceButton, styles.skipButton, isSubmittingChoice && styles.choiceButtonDisabled]}
+            style={[styles.actionButton, styles.skipButton]}
             disabled={isSubmittingChoice}
             onPress={() => handleChoice('skipped')}
+            activeOpacity={0.8}
           >
-            <Text style={styles.choiceButtonIcon}>🌟</Text>
-            <Text style={styles.choiceButtonText}>{t('result.skipIt')}</Text>
-            <Text style={styles.choiceButtonSubtext}>{t('result.skipSubtext', { calories: result.estimatedCalories })}</Text>
+            <Text style={styles.skipIcon}>🌟</Text>
+            <View style={styles.buttonTextContent}>
+              <Text style={styles.skipTitle}>{t('result.skipIt')}</Text>
+              <Text style={styles.skipSubtext}>{t('result.skipDetailedSubtext', { calories: result.estimatedCalories })}</Text>
+            </View>
           </TouchableOpacity>
 
+          {/* Eat It ボタン */}
           <TouchableOpacity
-            style={[styles.choiceButton, styles.eatButton, isSubmittingChoice && styles.choiceButtonDisabled]}
+            style={[styles.actionButton, styles.eatButtonContainer]}
             disabled={isSubmittingChoice}
             onPress={() => handleChoice('ate')}
+            activeOpacity={0.9}
           >
-            <Text style={styles.choiceButtonIcon}>🍽️</Text>
-            <Text style={styles.choiceButtonText}>{t('result.eatIt')}</Text>
-            <Text style={styles.choiceButtonSubtext}>{t('result.eatSubtext')}</Text>
+            <SafeLinearGradient
+              colors={['#f425af', '#ff8c42']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.eatButtonGradient}
+            >
+              <MaterialCommunityIcons name="silverware-fork-knife" size={24} color={Colors.surface} style={styles.eatIcon} />
+              <View style={styles.buttonTextContent}>
+                <Text style={styles.eatTitle}>{t('result.eatDetailedTitle')}</Text>
+                <Text style={styles.eatSubtext}>{t('result.eatDetailedSubtext')}</Text>
+              </View>
+            </SafeLinearGradient>
           </TouchableOpacity>
         </View>
 
-        {/* 再撮影ボタン */}
+        {/* 撮り直しアクション */}
         <TouchableOpacity
-          style={styles.retakeButton}
-          onPress={() => navigation.navigate('Camera')}
+          style={styles.retakeContainer}
+          onPress={handleRetakePhoto}
         >
-          <Text style={styles.retakeButtonText}>
-            {isManualEntry ? t('result.backToCamera') : t('result.takeAnotherPhoto')}
-          </Text>
+          <MaterialCommunityIcons name="refresh" size={20} color={Colors.textLight} />
+          <Text style={styles.retakeText}>{t('result.retakePhoto')}</Text>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#F7F8FA',
   },
   scrollView: {
     flex: 1,
   },
-  loadingContainer: {
+  scrollContent: {
+    paddingBottom: Spacing['4xl'],
+  },
+  // ヘッダー画像
+  headerImageContainer: {
+    width: '100%',
+    height: 400,
+    position: 'relative',
+  },
+  headerImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  manualHeaderGradient: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerNav: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+  },
+  navButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    ...Typography.h4,
+    color: Colors.surface,
+    fontWeight: '700',
+  },
+  // フフローティングカード
+  floatingCard: {
+    backgroundColor: Colors.surface,
+    marginHorizontal: Spacing.xl,
+    marginTop: -80, // 画像に重ねる
+    padding: Spacing.xl,
+    borderRadius: 40, // 大きめの角丸
+    ...Shadows.lg,
+  },
+  floatingCardEditing: {
+    marginTop: Spacing.lg,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  foodName: {
+    ...Typography.h3,
+    color: Colors.text,
+    fontWeight: '800',
     flex: 1,
+  },
+  editResultLink: {
+    ...Typography.bodySmall,
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  calorieDisplay: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: Spacing.lg,
+  },
+  calorieNumber: {
+    fontSize: 64,
+    fontWeight: '900',
+    color: Colors.primary,
+    lineHeight: 70,
+  },
+  calorieLabel: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.primary,
+    marginLeft: 8,
+  },
+  badgeContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF0F9',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  badgeIcon: {
+    marginRight: 4,
+  },
+  badgeText: {
+    ...Typography.caption,
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  // アクションセクション
+  choiceContainer: {
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xl,
+    alignItems: 'center',
+  },
+  choiceHeading: {
+    ...Typography.caption,
+    color: Colors.textLight,
+    letterSpacing: 1.5,
+    fontWeight: '700',
+    marginBottom: Spacing.xl,
+  },
+  actionButton: {
+    width: '100%',
+    height: 90,
+    borderRadius: 30,
+    marginBottom: Spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  skipButton: {
+    backgroundColor: '#E8EDF2',
+    paddingHorizontal: Spacing.xl,
+  },
+  skipIcon: {
+    fontSize: 32,
+    marginRight: Spacing.lg,
+  },
+  skipTitle: {
+    ...Typography.h4,
+    color: Colors.text,
+    fontWeight: '800',
+  },
+  skipSubtext: {
+    ...Typography.caption,
+    color: Colors.textLight,
+  },
+  eatButtonContainer: {
+    ...Shadows.md,
+    shadowColor: Colors.primary,
+  },
+  eatButtonGradient: {
+    flex: 1,
+    height: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+  eatIcon: {
+    marginRight: Spacing.lg,
+  },
+  eatTitle: {
+    ...Typography.h4,
+    color: Colors.surface,
+    fontWeight: '900',
+    fontStyle: 'italic',
+  },
+  eatSubtext: {
+    ...Typography.caption,
+    color: Colors.surface,
+    opacity: 0.9,
+  },
+  buttonTextContent: {
+    flex: 1,
+  },
+  // 撮り直し
+  retakeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.md,
+  },
+  retakeText: {
+    ...Typography.bodySmall,
+    color: Colors.textLight,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  // 編集フォーム (既存スタイル流用)
+  editForm: {
+    gap: Spacing.sm,
+  },
+  inputLabel: {
+    ...Typography.caption,
+    color: Colors.textLight,
+    marginLeft: Spacing.xs,
+  },
+  editInput: {
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    ...Typography.body,
+    color: Colors.text,
+  },
+  editActions: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginTop: Spacing.md,
+  },
+  editButtonBase: {
+    flex: 1,
+    height: 50,
+    borderRadius: BorderRadius.xl,
+    overflow: 'hidden',
+  },
+  editCancelButton: {
+    backgroundColor: Colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.divider,
+  },
+  editCancelText: {
+    ...Typography.button,
+    color: Colors.textLight,
+  },
+  editSaveButton: {
+  },
+  gradientFill: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editSaveText: {
+    ...Typography.button,
+    color: Colors.surface,
+  },
+  centerContent: {
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.xl,
@@ -449,232 +738,17 @@ const styles = StyleSheet.create({
     ...Typography.h4,
     color: Colors.text,
     marginTop: Spacing.lg,
-    textAlign: 'center',
   },
   loadingSubtext: {
     ...Typography.body,
     color: Colors.textLight,
     marginTop: Spacing.sm,
-    textAlign: 'center',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.xl,
-  },
-  photoPreview: {
-    width: '100%',
-    height: 250,
-    resizeMode: 'cover',
-  },
-  manualPlaceholder: {
-    width: '100%',
-    height: 180,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-  },
-  manualPlaceholderText: {
-    ...Typography.h4,
-    color: Colors.textLight,
-  },
-  resultCard: {
-    backgroundColor: Colors.surface,
-    margin: Spacing.lg,
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.xl,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  foodName: {
-    ...Typography.h3,
-    color: Colors.text,
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
-  },
-  calorieSection: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'baseline',
-    marginBottom: Spacing.sm,
-  },
-  calorieValue: {
-    fontSize: 64,
-    fontWeight: '700',
-    color: Colors.primary,
-  },
-  calorieUnit: {
-    ...Typography.h4,
-    color: Colors.primary,
-    marginLeft: Spacing.sm,
-  },
-  calorieRange: {
-    ...Typography.bodySmall,
-    color: Colors.textLight,
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
-  },
-  metaInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: Spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: Colors.divider,
-  },
-  metaItem: {
-    alignItems: 'center',
-  },
-  metaLabel: {
-    ...Typography.caption,
-    color: Colors.textLight,
-    marginBottom: Spacing.xs,
-  },
-  metaValue: {
-    ...Typography.body,
-    color: Colors.text,
-    fontWeight: '600',
-  },
-  lowConfidenceWarning: {
-    marginTop: Spacing.md,
-    padding: Spacing.md,
-    backgroundColor: '#FFF3CD',
-    borderRadius: BorderRadius.md,
-  },
-  warningText: {
-    ...Typography.bodySmall,
-    color: '#856404',
-    textAlign: 'center',
-  },
-  editButton: {
-    marginTop: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.accent,
-    borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-  },
-  editButtonText: {
-    ...Typography.bodySmall,
-    color: Colors.accent,
-    fontWeight: '600',
-  },
-  identifyButton: {
-    marginTop: Spacing.sm,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-  },
-  identifyButtonLocked: {
-    backgroundColor: Colors.textExtraLight,
-  },
-  identifyButtonText: {
-    ...Typography.bodySmall,
-    color: Colors.surface,
-    fontWeight: '700',
-  },
-  inputLabel: {
-    ...Typography.bodySmall,
-    color: Colors.textLight,
-    marginBottom: Spacing.xs,
-    marginTop: Spacing.xs,
-  },
-  editInput: {
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    ...Typography.body,
-    color: Colors.text,
-    marginBottom: Spacing.sm,
-  },
-  editActions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
-  editCancelButton: {
-    flex: 1,
-    backgroundColor: Colors.textExtraLight,
-    borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-  },
-  editCancelText: {
-    ...Typography.bodySmall,
-    color: Colors.surface,
-    fontWeight: '600',
-  },
-  editSaveButton: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-  },
-  editSaveText: {
-    ...Typography.bodySmall,
-    color: Colors.surface,
-    fontWeight: '600',
-  },
-  choiceSection: {
-    padding: Spacing.lg,
-  },
-  choiceTitle: {
-    ...Typography.h4,
-    color: Colors.text,
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
-  },
-  choiceButton: {
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.xl,
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  choiceButtonDisabled: {
-    opacity: 0.6,
-  },
-  skipButton: {
-    backgroundColor: Colors.secondary,
-  },
-  eatButton: {
-    backgroundColor: Colors.accent,
-  },
-  choiceButtonIcon: {
-    fontSize: 48,
-    marginBottom: Spacing.sm,
-  },
-  choiceButtonText: {
-    ...Typography.h4,
-    color: Colors.surface,
-    marginBottom: Spacing.xs,
-  },
-  choiceButtonSubtext: {
-    ...Typography.bodySmall,
-    color: Colors.surface,
-    opacity: 0.9,
-  },
-  retakeButton: {
-    margin: Spacing.lg,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.xl,
-    borderWidth: 2,
-    borderColor: Colors.textLight,
-    alignItems: 'center',
-  },
-  retakeButtonText: {
-    ...Typography.body,
-    color: Colors.textLight,
   },
 });
 

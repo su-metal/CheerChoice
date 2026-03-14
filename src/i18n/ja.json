@@ -15,6 +15,7 @@
     "unknownError": "不明なエラーが発生しました"
   },
   "navigation": {
+    "home": "ホーム",
     "camera": "写真を撮る",
     "result": "カロリー分析",
     "skipped": "すごい！",
@@ -26,6 +27,7 @@
     "settings": "設定"
   },
   "home": {
+    "brandName": "CheerChoice",
     "subtitle": "あなたのポジティブ健康パートナー",
     "mainButton": "写真を撮る",
     "mainButtonSubtext": "食べ物を撮影して始めよう",
@@ -46,7 +48,21 @@
     "noActivitySubtext": "最初の写真を撮って始めよう！",
     "goalProgressTitle": "今日の目標進捗",
     "goalReached": "今日の目標を達成しました！",
-    "goalRemaining": "目標まであと %{count} kcal"
+    "goalRemaining": "目標まであと %{count} kcal",
+    "heroTitle": "食事を記録する",
+    "goalEyebrow": "目標の進み具合",
+    "goalValueLeft": "あと %{count} kcal",
+    "pendingTasks": "残っているメニュー",
+    "viewAllCaps": "すべて見る",
+    "allCaughtUp": "今日は全部できています！ 🌟",
+    "recentLabel": "%{choice} • %{time}",
+    "taskMinutesLeft": "あと %{count} 分",
+    "taskSquatsLeft": "あと %{count} 回",
+    "taskRepsLeft": "あと %{count} 回",
+    "moveModalTitle": "残っているメニュー",
+    "moveModalClose": "閉じる",
+    "recoveryTitle": "エネルギーチャージ完了！",
+    "recoveryText": "次のチャレンジに向けて、体も気分も整っています。"
   },
   "camera": {
     "loading": "カメラを読み込み中...",
@@ -57,8 +73,10 @@
     "retake": "撮り直す",
     "usePhoto": "この写真を使う",
     "flip": "切替",
-    "remaining": "AI分析の残り: %{count}",
-    "manualEntry": "手動で入力",
+    "remaining": "残り: %{count}",
+    "manualEntry": "手動入力",
+    "aiAnalysisActive": "AI ANALYSIS ACTIVE",
+    "scanGuide": "食事全体がフレームに収まるようにしてください",
     "limitTitle": "AI上限に達しました",
     "limitMessage": "AI分析の上限です。手動入力を使ってください。",
     "paywallTitle": "無料枠を使い切りました",
@@ -69,6 +87,7 @@
     "errorTakePhoto": "写真の撮影に失敗しました。もう一度お試しください。"
   },
   "result": {
+    "analysisTitle": "カロリー分析",
     "loadingTitle": "食べ物を分析中...",
     "loadingSubtext": "AIでカロリーを推定しています",
     "range": "範囲: %{min} - %{max} kcal",
@@ -76,12 +95,18 @@
     "confidence": "確信度",
     "lowConfidenceWarning": "確信度が低めです。推定値の調整を検討してください。",
     "choiceTitle": "どうする？",
+    "choiceHeading": "次のアクションを選ぼう",
     "skipIt": "食べない",
     "skipSubtext": "%{calories} kcal 節約",
+    "skipDetailedSubtext": "%{calories} kcal をあとに残す",
     "eatIt": "食べる",
     "eatSubtext": "運動でバランスを取ろう",
+    "eatDetailedTitle": "食べる！",
+    "eatDetailedSubtext": "運動メニューを表示する",
     "manualLabel": "手動入力",
     "editEstimate": "解析結果を修正する",
+    "confidenceValue": "AI確信度: %{confidence}%",
+    "retakePhoto": "写真を撮り直す",
     "identifyProduct": "商品名を詳しく判定",
     "identifyProductPremium": "商品名を詳しく判定（Premium）",
     "identifyProductPremiumTitle": "この機能はプレミアム限定です",
@@ -100,17 +125,24 @@
   },
   "skipped": {
     "savingProgress": "記録を保存中...",
+    "celebrationTitle": "すごい！",
     "currentLabel": "節約したカロリー",
     "foodNameProgress": "%{foodName} を食べなかったよ",
     "progressTitle": "あなたの進捗",
-    "backHome": "ホームに戻る"
+    "backHome": "ホームに戻る",
+    "statUnitSaved": "kcal節約",
+    "statUnitTotal": "kcal合計"
   },
   "exerciseSelect": {
+    "headerTitle": "よし、このまま食べて動こう！ 😋",
+    "headerSubtitle": "%{foodName} の %{calories} kcal を動いてバランスしよう 💜",
     "subtitle": "%{foodName}（%{calories} kcal）を運動でバランスしよう！",
     "reps": "回",
     "setsHint": "（20回 x %{sets}セット）",
     "maybeLater": "あとでやる",
-    "footer": "無理しなくて大丈夫。どの選択も前進です"
+    "footer": "無理しなくて大丈夫。どの選択も前進です",
+    "laterButton": "あとで決める（ホームに戻る）",
+    "squatBadge": "10回 x %{sets}セット"
   },
   "exercise": {
     "alertCompleteTitle": "すごい！",
@@ -126,6 +158,15 @@
     "errorHint": "この機能はDevelopment Buildが必要です。\nExpo GoではWebViewカメラが使えない場合があります。",
     "loadingModel": "AIモデルを読み込み中...",
     "targetLabel": "目標: %{targetReps} 回",
+    "headerSubtitle": "リアルタイム計測",
+    "targetShort": "目標",
+    "modeMotion": "動き",
+    "modeTap": "タップ",
+    "progressLabel": "運動の進み具合",
+    "progressValue": "%{percent}% 完了",
+    "adjust": "調整",
+    "tapAction": "タップ！",
+    "flip": "切替",
     "motionMode": "運動モード",
     "tapMode": "タップモード",
     "tapToCount": "タップ +1",
@@ -151,12 +192,17 @@
   },
   "manualEntry": {
     "heading": "食べ物の情報を入力",
+    "subheading": "食べたものを入力してカロリーを記録しましょう",
     "foodName": "食べ物名",
     "foodNamePlaceholder": "例: シーザーサラダ",
     "calories": "推定カロリー",
     "caloriesPlaceholder": "例: 350",
     "quickPicks": "クイック選択",
-    "continue": "続ける"
+    "continue": "続ける",
+    "quickPickSalad": "サラダ",
+    "quickPickPizza": "ピザ",
+    "quickPickBurger": "バーガー",
+    "quickPickCake": "ケーキ"
   },
   "onboarding": {
     "skip": "スキップ",
@@ -170,8 +216,16 @@
     "page3Body": "あなたの選択はいつでも価値があります。まずはAI撮影7回無料体験から。"
   },
   "log": {
+    "title": "履歴",
     "ate": "食べた",
     "skipped": "食べない",
+    "savedBadge": "SAVED",
+    "mealAteDescription": "食事を記録しました。",
+    "mealSkippedDescription": "この食事を見送ってカロリーを節約しました。",
+    "exerciseDetails": "20分 • -%{calories} kcal",
+    "calendarComingSoonTitle": "近日対応",
+    "calendarComingSoonBody": "カレンダー表示はV3で対応予定です。",
+    "todayBadge": "今日",
     "loading": "アクティビティを読み込み中...",
     "deleteTitle": "記録を削除",
     "deleteMessage": "この記録を削除しますか？",
@@ -202,6 +256,33 @@
     "totalReps": "合計回数: %{count}",
     "totalBurned": "消費: %{count} kcal"
   },
+  "statsExtended": {
+    "headerTitle": "レポート",
+    "periodWeek": "週",
+    "periodMonth": "月",
+    "heroLabel": "節約カロリー",
+    "comparisonUp": "前の%{period}より %{percent}% 増加",
+    "comparisonDown": "前の%{period}より %{percent}% 減少",
+    "periodWordWeek": "週",
+    "periodWordMonth": "月",
+    "kpiBurned": "消費",
+    "kpiPending": "残り",
+    "kpiTasks": "件",
+    "trendEyebrow": "節約カロリー推移",
+    "trendTitle": "日ごとの進み具合",
+    "avgLabel": "平均",
+    "metricSkipped": "見送り",
+    "metricRecovered": "回復",
+    "metricWorkouts": "運動",
+    "pendingTitle": "未完了のリカバリー",
+    "pendingCaughtUp": "未完了はありません",
+    "pendingRemaining": "あと %{count} 件",
+    "pendingButton": "続きから再開",
+    "insightHigh": "この%{period}で %{count} kcal 節約できました。いい流れです！",
+    "insightMedium": "この%{period}で %{count} kcal 節約できました。ペースができてきています。",
+    "insightLow": "この%{period}で %{count} kcal 節約できました。小さな積み重ねが効いています。",
+    "insightNone": "まだこの%{period}の節約はありません。次の選択から始めましょう。"
+  },
   "recovery": {
     "todayTitle": "今日のムーブ",
     "todayRemaining": "あと %{count} 回でOK",
@@ -215,6 +296,7 @@
     "resetHint": "毎週月曜に気持ちよくリスタート"
   },
   "settings": {
+    "title": "設定",
     "goals": "目標",
     "dailyGoal": "日別カロリー目標",
     "preferences": "設定",
@@ -262,7 +344,31 @@
     "legalUrlMissingBody": "このリンクはまだ設定されていません。開発者に連絡してください。",
     "legalOpenFailed": "リンクを開けませんでした。",
     "tagline": "あなたのポジティブ健康パートナー",
-    "version": "バージョン %{value}"
+    "version": "バージョン %{value}",
+    "profileName": "CheerChoice ユーザー",
+    "profileEmail": "あなたのポジティブ健康パートナー",
+    "premiumActive": "プレミアム利用中",
+    "premiumInactive": "プレミアムにする",
+    "premiumActiveBody": "ご利用ありがとうございます！",
+    "premiumInactiveBody": "AI分析と詳細統計をアンロックできます。",
+    "sectionGoals": "目標",
+    "sectionPreference": "設定",
+    "sectionData": "データ管理",
+    "sectionSupport": "サポートと法的情報",
+    "logout": "ログアウト"
+  },
+  "exerciseComplete": {
+    "topTitle": "目標達成",
+    "banner": "ミッションクリア",
+    "headline": "いい選択でした！ ✨",
+    "valueLabel": "消費！",
+    "summary": "%{foodName} のぶんを %{count} 回でしっかり動けました。",
+    "loadingProgress": "進捗を読み込み中...",
+    "goalProgress": "目標まで %{percent}%",
+    "goalReachedSubtitle": "今日はかなりいい感じです！ 🔥",
+    "goalBuildingSubtitle": "この調子で積み上がっています！",
+    "backHome": "ホームに戻る",
+    "viewBreakdown": "詳しい内訳を見る"
   },
   "messages": {
     "skipped": {

@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  LayoutChangeEvent,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,20 +10,16 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { BorderRadius, Colors, Spacing, Typography } from '../constants';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import SafeLinearGradient from '../components/SafeLinearGradient';
+import { BorderRadius, Colors, Shadows, Spacing, Typography } from '../constants';
 import { getExerciseRecords, getMealRecords } from '../services/recordService';
-import { t } from '../i18n';
-import {
-  calculateStats,
-  StatsData,
-  StatsPeriod,
-} from '../utils/statsCalculator';
-import { RootStackParamList } from '../navigation/AppNavigator';
+import { t, useAppLocale } from '../i18n';
+import { calculateStats, DailyCalories, StatsData, StatsPeriod } from '../utils/statsCalculator';
 import { getWeeklyRecoveryStatus } from '../services/recoveryService';
-import { refreshPremiumStatus } from '../services/subscriptionService';
+import { MealRecord } from '../types';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Stats'>;
+type Props = any;
 
 const defaultStats: StatsData = {
   dailyCalories: [],
@@ -36,161 +33,223 @@ const defaultStats: StatsData = {
   },
 };
 
-function parseDateKey(dateKey: string): Date {
-  const [y, m, d] = dateKey.split('-').map(Number);
-  return new Date(y, (m || 1) - 1, d || 1);
+const CHART_HEIGHT = 180;
+
+function startOfDay(date: Date): Date {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
 }
 
-function BarChart({ data }: { data: StatsData['dailyCalories'] }) {
-  const maxValue = Math.max(1, ...data.map((item) => item.calories));
+function endOfDay(date: Date): Date {
+  const next = new Date(date);
+  next.setHours(23, 59, 59, 999);
+  return next;
+}
 
-  return (
-    <View>
-      <View style={styles.barRow}>
-        {data.map((item) => {
-          const barHeight = item.calories <= 0 ? 0 : Math.max(8, (item.calories / maxValue) * 90);
+function getCurrentRange(period: StatsPeriod) {
+  const today = startOfDay(new Date());
 
-          return (
-            <View key={item.dateKey} style={styles.barItem}>
-              <View style={styles.barTrack}>
-                <View style={[styles.barFill, { height: barHeight }]} />
-              </View>
-              <Text style={styles.barLabel}>{item.label}</Text>
-            </View>
-          );
-        })}
-      </View>
-    </View>
+  if (period === 'week') {
+    const start = new Date(today);
+    start.setDate(today.getDate() - 6);
+    return { start, end: endOfDay(today) };
+  }
+
+  const start = new Date(today.getFullYear(), today.getMonth(), 1);
+  return { start: startOfDay(start), end: endOfDay(today) };
+}
+
+function getPreviousRange(period: StatsPeriod) {
+  const current = getCurrentRange(period);
+
+  if (period === 'week') {
+    const end = new Date(current.start);
+    end.setDate(end.getDate() - 1);
+    const start = new Date(end);
+    start.setDate(end.getDate() - 6);
+    return { start: startOfDay(start), end: endOfDay(end) };
+  }
+
+  const currentStart = current.start;
+  const previousMonthEnd = new Date(currentStart);
+  previousMonthEnd.setDate(0);
+  const previousMonthStart = new Date(
+    previousMonthEnd.getFullYear(),
+    previousMonthEnd.getMonth(),
+    1
   );
+  return { start: startOfDay(previousMonthStart), end: endOfDay(previousMonthEnd) };
 }
 
-function MonthCalendar({ data }: { data: StatsData['dailyCalories'] }) {
-  const maxValue = Math.max(1, ...data.map((item) => item.calories));
-  const calorieMap = useMemo(() => {
-    const map = new Map<string, number>();
-    data.forEach((item) => {
-      map.set(item.dateKey, item.calories);
+function isInRange(timestamp: string, start: Date, end: Date) {
+  const value = new Date(timestamp).getTime();
+  return value >= start.getTime() && value <= end.getTime();
+}
+
+function calculateSavedCaloriesForRange(meals: MealRecord[], start: Date, end: Date) {
+  return meals
+    .filter((meal) => meal.choice === 'skipped' && isInRange(meal.timestamp, start, end))
+    .reduce((sum, meal) => sum + meal.estimatedCalories, 0);
+}
+
+function calculatePeriodChange(meals: MealRecord[], period: StatsPeriod) {
+  const currentRange = getCurrentRange(period);
+  const previousRange = getPreviousRange(period);
+  const currentValue = calculateSavedCaloriesForRange(meals, currentRange.start, currentRange.end);
+  const previousValue = calculateSavedCaloriesForRange(meals, previousRange.start, previousRange.end);
+
+  if (previousValue <= 0) {
+    return currentValue > 0 ? 100 : 0;
+  }
+
+  return Math.round(((currentValue - previousValue) / previousValue) * 100);
+}
+
+function sampleTrendData(data: DailyCalories[], maxPoints = 7) {
+  if (data.length <= maxPoints) {
+    return data;
+  }
+
+  return Array.from({ length: maxPoints }, (_, index) => {
+    const sourceIndex = Math.round((index / (maxPoints - 1)) * (data.length - 1));
+    return data[sourceIndex];
+  });
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat().format(value);
+}
+
+function getInsightMessage(totalSavedCalories: number, period: StatsPeriod) {
+  const periodLabel = period === 'week' ? t('statsExtended.periodWordWeek') : t('statsExtended.periodWordMonth');
+  if (totalSavedCalories >= 1500) {
+    return t('statsExtended.insightHigh', { count: formatNumber(totalSavedCalories), period: periodLabel });
+  }
+  if (totalSavedCalories >= 700) {
+    return t('statsExtended.insightMedium', { count: formatNumber(totalSavedCalories), period: periodLabel });
+  }
+  if (totalSavedCalories > 0) {
+    return t('statsExtended.insightLow', { count: formatNumber(totalSavedCalories), period: periodLabel });
+  }
+  return t('statsExtended.insightNone', { period: periodLabel });
+}
+
+function TrendChart({ data }: { data: DailyCalories[] }) {
+  const [chartWidth, setChartWidth] = useState(0);
+
+  const sampledData = useMemo(() => sampleTrendData(data, 7), [data]);
+  const maxValue = Math.max(1, ...sampledData.map((item) => item.calories));
+  const average = sampledData.length
+    ? Math.round(sampledData.reduce((sum, item) => sum + item.calories, 0) / sampledData.length)
+    : 0;
+
+  const points = useMemo(() => {
+    if (!chartWidth || sampledData.length === 0) {
+      return [];
+    }
+
+    return sampledData.map((item, index) => {
+      const x = sampledData.length === 1 ? chartWidth / 2 : (chartWidth / (sampledData.length - 1)) * index;
+      const intensity = item.calories / maxValue;
+      const y = CHART_HEIGHT - 24 - intensity * (CHART_HEIGHT - 64);
+      return {
+        x,
+        y,
+        label: item.label,
+        calories: item.calories,
+      };
     });
-    return map;
-  }, [data]);
+  }, [chartWidth, maxValue, sampledData]);
 
-  if (data.length === 0) {
-    return null;
-  }
+  const segments = useMemo(() => {
+    return points.slice(0, -1).map((point, index) => {
+      const nextPoint = points[index + 1];
+      const dx = nextPoint.x - point.x;
+      const dy = nextPoint.y - point.y;
+      const width = Math.sqrt(dx * dx + dy * dy);
+      const angle = `${Math.atan2(dy, dx)}rad`;
 
-  const firstDate = parseDateKey(data[0].dateKey);
-  const lastDate = parseDateKey(data[data.length - 1].dateKey);
-  const leadingBlankCount = firstDate.getDay();
-  const daysInScope = lastDate.getDate();
-  const cells: Array<{ key: string; day?: number; calories?: number }> = [];
-
-  for (let i = 0; i < leadingBlankCount; i += 1) {
-    cells.push({ key: `blank-${i}` });
-  }
-
-  for (let day = 1; day <= daysInScope; day += 1) {
-    const date = new Date(lastDate.getFullYear(), lastDate.getMonth(), day);
-    const dateKey = [
-      date.getFullYear(),
-      String(date.getMonth() + 1).padStart(2, '0'),
-      String(date.getDate()).padStart(2, '0'),
-    ].join('-');
-    cells.push({
-      key: dateKey,
-      day,
-      calories: calorieMap.get(dateKey) ?? 0,
+      return {
+        key: `${index}-${nextPoint.label}`,
+        left: (point.x + nextPoint.x) / 2 - width / 2,
+        top: (point.y + nextPoint.y) / 2 - 2,
+        width,
+        angle,
+        color: index >= points.length - 3 ? Colors.secondary : Colors.primary,
+      };
     });
-  }
+  }, [points]);
 
-  const weekdayLabels = [];
-  for (let i = 0; i < 7; i += 1) {
-    const base = new Date(2026, 0, 4 + i);
-    weekdayLabels.push(base.toLocaleDateString(undefined, { weekday: 'narrow' }));
-  }
+  const handleLayout = useCallback((event: LayoutChangeEvent) => {
+    const width = event.nativeEvent.layout.width;
+    if (width > 0) {
+      setChartWidth(width - 8);
+    }
+  }, []);
 
   return (
-    <View>
-      <View style={styles.calendarWeekHeader}>
-        {weekdayLabels.map((label, index) => (
-          <Text key={`${label}-${index}`} style={styles.calendarWeekHeaderText}>
-            {label}
+    <View style={styles.trendCard}>
+      <View style={styles.trendHeader}>
+        <View>
+          <Text style={styles.trendEyebrow}>{t('statsExtended.trendEyebrow')}</Text>
+          <Text style={styles.trendTitle}>{t('statsExtended.trendTitle')}</Text>
+        </View>
+        <View style={styles.avgBadge}>
+          <Text style={styles.avgBadgeText}>{t('statsExtended.avgLabel')}:{'\n'}{formatNumber(average)}</Text>
+        </View>
+      </View>
+
+      <View style={styles.chartArea} onLayout={handleLayout}>
+        <View style={styles.chartGlow} />
+        <View style={styles.chartFade} />
+        {segments.map((segment) => (
+          <View
+            key={segment.key}
+            style={[
+              styles.chartSegment,
+              {
+                left: segment.left,
+                top: segment.top,
+                width: segment.width,
+                backgroundColor: segment.color,
+                transform: [{ rotate: segment.angle }],
+              },
+            ]}
+          />
+        ))}
+        {points.map((point, index) => (
+          <View
+            key={`${point.label}-${index}`}
+            style={[
+              styles.chartPoint,
+              {
+                left: point.x - 6,
+                top: point.y - 6,
+                backgroundColor: index === points.length - 1 ? Colors.secondary : Colors.primary,
+              },
+            ]}
+          />
+        ))}
+      </View>
+
+      <View style={styles.chartLabelsRow}>
+        {sampledData.map((item) => (
+          <Text key={item.dateKey} style={styles.chartLabel}>
+            {item.label.slice(0, 3).toUpperCase()}
           </Text>
         ))}
       </View>
-      <View style={styles.calendarGrid}>
-        {cells.map((cell) => {
-          if (cell.day == null) {
-            return <View key={cell.key} style={styles.calendarCell} />;
-          }
-
-          const intensity = (cell.calories ?? 0) / maxValue;
-          const isActive = (cell.calories ?? 0) > 0;
-
-          return (
-            <View key={cell.key} style={styles.calendarCell}>
-              <View
-                style={[
-                  styles.calendarDot,
-                  isActive
-                    ? { backgroundColor: `rgba(107, 203, 119, ${0.25 + intensity * 0.75})` }
-                    : styles.calendarDotEmpty,
-                ]}
-              >
-                <Text style={styles.calendarDayText}>{cell.day}</Text>
-              </View>
-            </View>
-          );
-        })}
-      </View>
-      <Text style={styles.calendarLegend}>● {t('stats.calendarLegend')}</Text>
-    </View>
-  );
-}
-
-function ChoiceRatioBar({
-  skippedPercent,
-  atePercent,
-}: {
-  skippedPercent: number;
-  atePercent: number;
-}) {
-  return (
-    <View style={styles.choiceBar}>
-      <View style={[styles.choiceBarSkipped, { flex: skippedPercent || 1 }]} />
-      <View style={[styles.choiceBarAte, { flex: atePercent || 1 }]} />
-    </View>
-  );
-}
-
-function ExerciseTypeRow({
-  emoji,
-  label,
-  sessions,
-  widthPercent,
-}: {
-  emoji: string;
-  label: string;
-  sessions: number;
-  widthPercent: number;
-}) {
-  return (
-    <View style={styles.exerciseRow}>
-      <Text style={styles.exerciseLabel}>
-        {emoji} {label}
-      </Text>
-      <View style={styles.exerciseTrack}>
-        <View style={[styles.exerciseFill, { width: `${Math.max(6, widthPercent)}%` }]} />
-      </View>
-      <Text style={styles.exerciseValue}>{sessions}</Text>
     </View>
   );
 }
 
 export default function StatsScreen({ navigation }: Props) {
+  useAppLocale();
   const [period, setPeriod] = useState<StatsPeriod>('week');
   const [stats, setStats] = useState<StatsData>(defaultStats);
   const [isLoading, setIsLoading] = useState(true);
-  const [isPremium, setIsPremium] = useState(false);
+  const [comparisonPercent, setComparisonPercent] = useState(0);
   const [weeklyRecovery, setWeeklyRecovery] = useState({
     generatedCount: 0,
     resolvedCount: 0,
@@ -205,9 +264,9 @@ export default function StatsScreen({ navigation }: Props) {
         getExerciseRecords(),
         getWeeklyRecoveryStatus(),
       ]);
-      const premium = await refreshPremiumStatus();
+
       setStats(calculateStats(meals, exercises, period));
-      setIsPremium(premium);
+      setComparisonPercent(calculatePeriodChange(meals, period));
       setWeeklyRecovery({
         generatedCount: recovery.generatedCount,
         resolvedCount: recovery.resolvedCount,
@@ -216,6 +275,7 @@ export default function StatsScreen({ navigation }: Props) {
     } catch (error) {
       console.error('Error loading stats:', error);
       setStats(defaultStats);
+      setComparisonPercent(0);
       setWeeklyRecovery({
         generatedCount: 0,
         resolvedCount: 0,
@@ -232,39 +292,43 @@ export default function StatsScreen({ navigation }: Props) {
     }, [loadStats])
   );
 
-  const skippedPercent = useMemo(() => {
-    if (stats.choiceRatio.total === 0) {
-      return 0;
-    }
-    return Math.round((stats.choiceRatio.skippedCount / stats.choiceRatio.total) * 100);
-  }, [stats.choiceRatio]);
+  const insightMessage = useMemo(() => {
+    return getInsightMessage(stats.totalSavedCalories, period);
+  }, [period, stats.totalSavedCalories]);
 
-  const atePercent = useMemo(() => {
-    if (stats.choiceRatio.total === 0) {
-      return 0;
+  const pendingSubtitle = useMemo(() => {
+    if (weeklyRecovery.remainingCount <= 0) {
+      return t('statsExtended.pendingCaughtUp');
     }
-    return 100 - skippedPercent;
-  }, [skippedPercent, stats.choiceRatio.total]);
+    return t('statsExtended.pendingRemaining', { count: weeklyRecovery.remainingCount });
+  }, [weeklyRecovery.remainingCount]);
 
-  const maxExerciseSessions = useMemo(() => {
-    return Math.max(
-      1,
-      stats.exerciseSummary.byType.squat,
-      stats.exerciseSummary.byType.situp,
-      stats.exerciseSummary.byType.pushup
-    );
-  }, [stats.exerciseSummary.byType]);
+  const periodLabel = period === 'week' ? t('statsExtended.periodWordWeek') : t('statsExtended.periodWordMonth');
+  const comparisonText =
+    comparisonPercent >= 0
+      ? t('statsExtended.comparisonUp', { percent: comparisonPercent, period: periodLabel })
+      : t('statsExtended.comparisonDown', { percent: Math.abs(comparisonPercent), period: periodLabel });
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.headerButton} onPress={() => navigation.navigate('Home')}>
+            <MaterialCommunityIcons name="chevron-left" size={28} color={Colors.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t('statsExtended.headerTitle')}</Text>
+          <TouchableOpacity style={styles.headerButton} onPress={() => navigation.navigate('Settings')}>
+            <MaterialCommunityIcons name="dots-horizontal" size={24} color={Colors.primary} />
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.periodToggle}>
           <TouchableOpacity
             style={[styles.toggleButton, period === 'week' && styles.toggleButtonActive]}
             onPress={() => setPeriod('week')}
           >
             <Text style={[styles.toggleText, period === 'week' && styles.toggleTextActive]}>
-              {t('stats.thisWeek')}
+              {t('statsExtended.periodWeek')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -272,145 +336,118 @@ export default function StatsScreen({ navigation }: Props) {
             onPress={() => setPeriod('month')}
           >
             <Text style={[styles.toggleText, period === 'month' && styles.toggleTextActive]}>
-              {t('stats.thisMonth')}
+              {t('statsExtended.periodMonth')}
             </Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.summaryGrid}>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>{t('stats.savedCalories')}</Text>
-            <Text style={styles.summaryValue}>
-              {stats.totalSavedCalories} {t('common.kcal')}
-            </Text>
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={styles.loadingText}>{t('stats.loading')}</Text>
           </View>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>{t('stats.totalMeals')}</Text>
-            <Text style={styles.summaryValue}>{stats.choiceRatio.total}</Text>
-          </View>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>{t('stats.exerciseSessions')}</Text>
-            <Text style={styles.summaryValue}>{stats.exerciseSummary.totalSessions}</Text>
-          </View>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>{t('stats.recoverySummary')}</Text>
-            <Text style={styles.summaryValueSmall}>
-              {t('stats.recoveryResolvedShort', {
-                resolved: weeklyRecovery.resolvedCount,
-                generated: weeklyRecovery.generatedCount,
-              })}
-            </Text>
-            <Text style={styles.summaryValueHint}>
-              {t('stats.recoveryRemainingShort', { count: weeklyRecovery.remainingCount })}
-            </Text>
-          </View>
-        </View>
-
-        {isLoading && (
+        ) : (
           <>
-            <View style={styles.loadingHeader}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-              <Text style={styles.loadingText}>{t('stats.loading')}</Text>
-            </View>
-            <View style={styles.summaryGrid}>
-              {[0, 1, 2, 3].map((index) => (
-                <View key={`summary-skeleton-${index}`} style={styles.summaryCard}>
-                  <View style={styles.skeletonLabel} />
-                  <View style={styles.skeletonValue} />
+            <View style={styles.heroCard}>
+              <View style={styles.heroCardTopRow}>
+                <Text style={styles.heroCardLabel}>{t('statsExtended.heroLabel')}</Text>
+                <View style={styles.heroIconBadge}>
+                  <MaterialCommunityIcons name="fire" size={22} color={Colors.primary} />
                 </View>
-              ))}
-            </View>
-            <View style={styles.card}>
-              <View style={styles.skeletonTitle} />
-              <View style={styles.previewChart}>
-                <View style={[styles.previewBar, { height: 20 }]} />
-                <View style={[styles.previewBar, { height: 34 }]} />
-                <View style={[styles.previewBar, { height: 14 }]} />
-                <View style={[styles.previewBar, { height: 42 }]} />
-                <View style={[styles.previewBar, { height: 28 }]} />
-                <View style={[styles.previewBar, { height: 18 }]} />
-                <View style={[styles.previewBar, { height: 36 }]} />
+              </View>
+              <Text style={styles.heroValue}>{formatNumber(stats.totalSavedCalories)}</Text>
+              <View style={styles.heroTrendRow}>
+                <MaterialCommunityIcons
+                  name={comparisonPercent >= 0 ? 'trending-up' : 'trending-down'}
+                  size={16}
+                  color={comparisonPercent >= 0 ? Colors.success : Colors.secondary}
+                />
+                <Text
+                  style={[
+                    styles.heroTrendText,
+                    { color: comparisonPercent >= 0 ? Colors.success : Colors.secondary },
+                  ]}
+                >
+                  {comparisonText}
+                </Text>
               </View>
             </View>
-          </>
-        )}
 
-        {!isLoading && !isPremium && (
-          <View style={styles.upgradeCard}>
-            <Text style={styles.upgradeTitle}>{t('stats.unlockTitle')}</Text>
-            <Text style={styles.upgradeBody}>{t('stats.unlockBody')}</Text>
-            <View style={styles.previewChart}>
-              <View style={[styles.previewBar, { height: 20 }]} />
-              <View style={[styles.previewBar, { height: 34 }]} />
-              <View style={[styles.previewBar, { height: 14 }]} />
-              <View style={[styles.previewBar, { height: 42 }]} />
-              <View style={[styles.previewBar, { height: 28 }]} />
-              <View style={[styles.previewBar, { height: 18 }]} />
-              <View style={[styles.previewBar, { height: 36 }]} />
+            <View style={styles.kpiRow}>
+              <View style={styles.smallKpiCard}>
+                <View style={styles.smallKpiHeader}>
+                  <MaterialCommunityIcons name="dumbbell" size={18} color={Colors.primary} />
+                  <Text style={styles.smallKpiLabel}>{t('statsExtended.kpiBurned')}</Text>
+                </View>
+                <Text style={styles.smallKpiValue}>
+                  {formatNumber(stats.exerciseSummary.totalCaloriesBurned)}
+                  <Text style={styles.smallKpiUnit}> kcal</Text>
+                </Text>
+              </View>
+
+              <View style={styles.smallKpiCard}>
+                <View style={styles.smallKpiHeader}>
+                  <MaterialCommunityIcons name="clipboard-clock-outline" size={18} color={Colors.secondary} />
+                  <Text style={styles.smallKpiLabel}>{t('statsExtended.kpiPending')}</Text>
+                </View>
+                <Text style={styles.smallKpiValue}>
+                  {weeklyRecovery.remainingCount}
+                  <Text style={styles.smallKpiUnit}> {t('statsExtended.kpiTasks')}</Text>
+                </Text>
+              </View>
             </View>
-            <TouchableOpacity
-              style={styles.upgradeButton}
-              onPress={() => navigation.navigate('Settings')}
+
+            <SafeLinearGradient
+              colors={[Colors.primary, Colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.motivationCard}
             >
-              <Text style={styles.upgradeButtonText}>{t('stats.upgradeButton')}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+              <View style={styles.motivationIconCircle}>
+                <MaterialCommunityIcons name="trophy-outline" size={28} color={Colors.surface} />
+              </View>
+              <Text style={styles.motivationText}>{insightMessage}</Text>
+            </SafeLinearGradient>
 
-        {!isLoading && isPremium && (
-          <>
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>{t('stats.savedCalories')}</Text>
-              <Text style={styles.cardSubtitle}>
-                {stats.totalSavedCalories} {t('common.kcal')}
-              </Text>
-              {period === 'week' ? (
-                <BarChart data={stats.dailyCalories} />
-              ) : (
-                <MonthCalendar data={stats.dailyCalories} />
-              )}
+            <TrendChart data={stats.dailyCalories} />
+
+            <View style={styles.metricsRow}>
+              <View style={styles.metricBubble}>
+                <MaterialCommunityIcons name="food-off-outline" size={24} color={Colors.primary} />
+                <Text style={styles.metricLabel}>{t('statsExtended.metricSkipped')}</Text>
+                <Text style={styles.metricValue}>{stats.choiceRatio.skippedCount}</Text>
+              </View>
+
+              <View style={styles.metricBubble}>
+                <MaterialCommunityIcons name="auto-fix" size={24} color={Colors.secondary} />
+                <Text style={styles.metricLabel}>{t('statsExtended.metricRecovered')}</Text>
+                <Text style={styles.metricValue}>{weeklyRecovery.resolvedCount}</Text>
+              </View>
+
+              <View style={styles.metricBubble}>
+                <MaterialCommunityIcons name="run-fast" size={24} color={Colors.success} />
+                <Text style={styles.metricLabel}>{t('statsExtended.metricWorkouts')}</Text>
+                <Text style={styles.metricValue}>{stats.exerciseSummary.totalSessions}</Text>
+              </View>
             </View>
 
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>{t('stats.choiceRatio')}</Text>
-              <ChoiceRatioBar skippedPercent={skippedPercent} atePercent={atePercent} />
-              <Text style={styles.ratioText}>
-                {t('stats.skippedLabel', {
-                  count: stats.choiceRatio.skippedCount,
-                  percent: skippedPercent,
-                })}
-              </Text>
-              <Text style={styles.ratioText}>
-                {t('stats.ateLabel', { count: stats.choiceRatio.ateCount, percent: atePercent })}
-              </Text>
-            </View>
+            <View style={styles.pendingCard}>
+              <View style={styles.pendingInfoRow}>
+                <View style={styles.pendingIconCircle}>
+                  <MaterialCommunityIcons name="history" size={20} color={Colors.secondary} />
+                </View>
+                <View style={styles.pendingTextContainer}>
+                  <Text style={styles.pendingTitle}>{t('statsExtended.pendingTitle')}</Text>
+                  <Text style={styles.pendingSubtitle}>{pendingSubtitle}</Text>
+                </View>
+              </View>
 
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>{t('stats.exerciseBreakdown')}</Text>
-              <ExerciseTypeRow
-                emoji="🏋️"
-                label={t('exercise.types.squat.name')}
-                sessions={stats.exerciseSummary.byType.squat}
-                widthPercent={(stats.exerciseSummary.byType.squat / maxExerciseSessions) * 100}
-              />
-              <ExerciseTypeRow
-                emoji="🤸"
-                label={t('exercise.types.situp.name')}
-                sessions={stats.exerciseSummary.byType.situp}
-                widthPercent={(stats.exerciseSummary.byType.situp / maxExerciseSessions) * 100}
-              />
-              <ExerciseTypeRow
-                emoji="💪"
-                label={t('exercise.types.pushup.name')}
-                sessions={stats.exerciseSummary.byType.pushup}
-                widthPercent={(stats.exerciseSummary.byType.pushup / maxExerciseSessions) * 100}
-              />
-              <Text style={styles.ratioText}>
-                {t('stats.totalReps', { count: stats.exerciseSummary.totalReps })}
-              </Text>
-              <Text style={styles.ratioText}>
-                {t('stats.totalBurned', { count: stats.exerciseSummary.totalCaloriesBurned })}
-              </Text>
+              <TouchableOpacity
+                style={styles.pendingButton}
+                onPress={() => navigation.navigate('Home')}
+              >
+                <Text style={styles.pendingButtonText}>{t('statsExtended.pendingButton')}</Text>
+              </TouchableOpacity>
             </View>
           </>
         )}
@@ -425,253 +462,323 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   content: {
-    padding: Spacing.lg,
-    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: 160,
+    gap: Spacing.lg,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    ...Typography.h4,
+    color: Colors.text,
+    fontWeight: '800',
+    textTransform: 'uppercase',
   },
   periodToggle: {
     flexDirection: 'row',
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
-    padding: 4,
+    backgroundColor: 'rgba(244, 37, 175, 0.10)',
+    borderRadius: BorderRadius.full,
+    padding: 5,
+    ...Shadows.sm,
   },
   toggleButton: {
     flex: 1,
-    borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   toggleButtonActive: {
     backgroundColor: Colors.primary,
+    ...Shadows.lg,
   },
   toggleText: {
     ...Typography.bodySmall,
-    color: Colors.textLight,
-    fontWeight: '600',
+    color: Colors.primary,
+    fontWeight: '700',
   },
   toggleTextActive: {
     color: Colors.surface,
   },
-  summaryGrid: {
-    gap: Spacing.sm,
-  },
-  loadingHeader: {
+  loadingContainer: {
+    height: 260,
     alignItems: 'center',
-    gap: Spacing.sm,
+    justifyContent: 'center',
+    gap: Spacing.md,
   },
   loadingText: {
+    ...Typography.body,
+    color: Colors.textLight,
+  },
+  heroCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius['4xl'],
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(244, 37, 175, 0.06)',
+    ...Shadows.md,
+  },
+  heroCardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  heroCardLabel: {
+    ...Typography.body,
+    color: Colors.textLight,
+  },
+  heroIconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(244, 37, 175, 0.10)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroValue: {
+    fontSize: 58,
+    lineHeight: 62,
+    fontWeight: '900',
+    color: Colors.primary,
+    letterSpacing: -1.5,
+  },
+  heroTrendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  heroTrendText: {
+    ...Typography.bodySmall,
+    fontWeight: '800',
+  },
+  kpiRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  smallKpiCard: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius['3xl'],
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.05)',
+    ...Shadows.md,
+  },
+  smallKpiHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: Spacing.sm,
+  },
+  smallKpiLabel: {
+    ...Typography.eyebrow,
+    color: Colors.textLight,
+    fontSize: 11,
+  },
+  smallKpiValue: {
+    ...Typography.h4,
+    color: Colors.text,
+    fontWeight: '800',
+  },
+  smallKpiUnit: {
+    ...Typography.caption,
+    color: Colors.textLight,
+  },
+  motivationCard: {
+    borderRadius: BorderRadius['4xl'],
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    ...Shadows.xl,
+  },
+  motivationIconCircle: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  motivationText: {
+    ...Typography.bodyLarge,
+    color: Colors.surface,
+    fontWeight: '700',
+    flex: 1,
+    lineHeight: 28,
+  },
+  trendCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius['4xl'],
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.05)',
+    ...Shadows.md,
+  },
+  trendHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.lg,
+  },
+  trendEyebrow: {
     ...Typography.bodySmall,
     color: Colors.textLight,
   },
-  summaryCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-  },
-  summaryLabel: {
-    ...Typography.caption,
-    color: Colors.textLight,
-    marginBottom: Spacing.xs,
-  },
-  summaryValue: {
+  trendTitle: {
     ...Typography.h4,
     color: Colors.text,
+    fontWeight: '800',
+    marginTop: 4,
   },
-  summaryValueSmall: {
-    ...Typography.body,
-    color: Colors.text,
+  avgBadge: {
+    minWidth: 58,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(244, 37, 175, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(244, 37, 175, 0.12)',
+  },
+  avgBadgeText: {
+    ...Typography.caption,
+    color: Colors.primary,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  chartArea: {
+    height: CHART_HEIGHT,
+    position: 'relative',
+    justifyContent: 'flex-end',
+  },
+  chartGlow: {
+    position: 'absolute',
+    left: '8%',
+    right: '8%',
+    bottom: 42,
+    height: 100,
+    borderRadius: 999,
+    backgroundColor: 'rgba(244, 37, 175, 0.08)',
+  },
+  chartFade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 10,
+    height: 90,
+    backgroundColor: 'rgba(244, 37, 175, 0.03)',
+    borderBottomLeftRadius: BorderRadius['3xl'],
+    borderBottomRightRadius: BorderRadius['3xl'],
+  },
+  chartSegment: {
+    position: 'absolute',
+    height: 4,
+    borderRadius: 999,
+  },
+  chartPoint: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  chartLabelsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: Spacing.sm,
+  },
+  chartLabel: {
+    ...Typography.caption,
+    color: 'rgba(15, 23, 42, 0.35)',
+    fontWeight: '700',
+    fontSize: 10,
+  },
+  metricsRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  metricBubble: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.full,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    alignItems: 'center',
+    gap: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.04)',
+    ...Shadows.sm,
+  },
+  metricLabel: {
+    ...Typography.caption,
+    color: Colors.textLight,
     fontWeight: '600',
   },
-  summaryValueHint: {
+  metricValue: {
+    ...Typography.h5,
+    color: Colors.text,
+    fontWeight: '800',
+  },
+  pendingCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius['4xl'],
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.05)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+    ...Shadows.md,
+  },
+  pendingInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    flex: 1,
+  },
+  pendingIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 140, 66, 0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pendingTextContainer: {
+    flex: 1,
+  },
+  pendingTitle: {
+    ...Typography.label,
+    color: Colors.text,
+    fontWeight: '800',
+  },
+  pendingSubtitle: {
     ...Typography.caption,
     color: Colors.textLight,
     marginTop: 2,
   },
-  skeletonLabel: {
-    width: '38%',
-    height: 10,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.divider,
-    marginBottom: Spacing.sm,
-  },
-  skeletonValue: {
-    width: '54%',
-    height: 18,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.divider,
-  },
-  skeletonTitle: {
-    width: '42%',
-    height: 18,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.divider,
-    marginBottom: Spacing.sm,
-  },
-  upgradeCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-  },
-  upgradeTitle: {
-    ...Typography.h5,
-    color: Colors.text,
-    marginBottom: Spacing.xs,
-  },
-  upgradeBody: {
-    ...Typography.bodySmall,
-    color: Colors.textLight,
-    marginBottom: Spacing.md,
-  },
-  previewChart: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    height: 52,
-    opacity: 0.35,
-    marginBottom: Spacing.md,
-  },
-  previewBar: {
-    width: 18,
-    backgroundColor: Colors.secondary,
-    borderRadius: BorderRadius.sm,
-  },
-  upgradeButton: {
+  pendingButton: {
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 12,
+    ...Shadows.lg,
   },
-  upgradeButtonText: {
-    ...Typography.button,
+  pendingButtonText: {
+    ...Typography.label,
     color: Colors.surface,
-  },
-  card: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    gap: Spacing.xs,
-  },
-  cardTitle: {
-    ...Typography.h5,
-    color: Colors.text,
-  },
-  cardSubtitle: {
-    ...Typography.bodySmall,
-    color: Colors.textLight,
-    marginBottom: Spacing.sm,
-  },
-  barRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    minHeight: 120,
-  },
-  barItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  barTrack: {
-    height: 90,
-    width: 14,
-    justifyContent: 'flex-end',
-  },
-  barFill: {
-    width: '100%',
-    backgroundColor: Colors.secondary,
-    borderRadius: BorderRadius.sm,
-  },
-  barLabel: {
-    ...Typography.caption,
-    color: Colors.textLight,
-    marginTop: Spacing.xs,
-  },
-  calendarWeekHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.xs,
-  },
-  calendarWeekHeaderText: {
-    ...Typography.caption,
-    color: Colors.textLight,
-    width: `${100 / 7}%`,
-    textAlign: 'center',
-  },
-  calendarGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  calendarCell: {
-    width: `${100 / 7}%`,
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
-  calendarDot: {
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  calendarDotEmpty: {
-    backgroundColor: '#EEF4EF',
-  },
-  calendarDayText: {
-    ...Typography.caption,
-    color: Colors.text,
-    fontWeight: '600',
-  },
-  calendarLegend: {
-    ...Typography.caption,
-    color: Colors.textLight,
-    marginTop: Spacing.xs,
-  },
-  ratioText: {
-    ...Typography.body,
-    color: Colors.text,
-    marginTop: Spacing.xs,
-  },
-  choiceBar: {
-    height: 12,
-    borderRadius: BorderRadius.sm,
-    overflow: 'hidden',
-    flexDirection: 'row',
-    marginTop: Spacing.xs,
-    marginBottom: Spacing.xs,
-    backgroundColor: Colors.divider,
-  },
-  choiceBarSkipped: {
-    backgroundColor: Colors.secondary,
-  },
-  choiceBarAte: {
-    backgroundColor: Colors.accent,
-  },
-  exerciseRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
-  exerciseLabel: {
-    ...Typography.bodySmall,
-    color: Colors.text,
-    width: 90,
-  },
-  exerciseTrack: {
-    flex: 1,
-    height: 8,
-    backgroundColor: Colors.divider,
-    borderRadius: BorderRadius.sm,
-    marginHorizontal: Spacing.sm,
-    overflow: 'hidden',
-  },
-  exerciseFill: {
-    height: '100%',
-    backgroundColor: Colors.secondary,
-    borderRadius: BorderRadius.sm,
-  },
-  exerciseValue: {
-    ...Typography.caption,
-    color: Colors.textLight,
-    width: 24,
-    textAlign: 'right',
+    fontWeight: '800',
   },
 });
-

@@ -6,46 +6,51 @@
  */
 
 export const Colors = {
-  // Primary Colors - Coral/Peach (Energetic & Feminine)
-  primary: '#FF6B6B',      // Coral - main action color
-  primaryLight: '#FF8E8E', // Light coral
-  primaryDark: '#FF4949',  // Dark coral
+  // Primary Colors - Vivid Pink/Magenta (Energetic)
+  primary: '#f425af',
+  primaryLight: '#f968c6',
+  primaryDark: '#d11d94',
 
-  // Secondary Colors - Mint Green (Healthy & Fresh)
-  secondary: '#6BCB77',    // Mint green - success, healthy choice
-  secondaryLight: '#8DD99A',
-  secondaryDark: '#4CAF50',
+  // Secondary Colors - Orange (Healthy & Warning)
+  secondary: '#ff8c42',
+  secondaryLight: '#ffa771',
+  secondaryDark: '#e66e2a',
 
-  // Accent Colors - Lavender (Calm & Premium)
-  accent: '#A28FDB',       // Lavender - special moments
-  accentLight: '#BDB0E8',
-  accentDark: '#8B73CE',
+  // Accent Colors - Deep Magenta (Premium)
+  accent: '#f425af',
+  accentLight: '#f968c6',
+  accentDark: '#d11d94',
 
   // Background Colors
-  background: '#FFF8F0',   // Cream/off-white - warm, inviting
-  surface: '#FFFFFF',      // Pure white for cards
-  surfaceAlt: '#FFF5E9',   // Slightly darker cream
+  background: '#fdf8fb',
+  backgroundDark: '#22101c',
+  surface: '#FFFFFF',
+  surfaceAlt: '#f8fafc',
 
   // Text Colors
-  text: '#2D3436',         // Dark charcoal - main text
-  textLight: '#636E72',    // Medium gray - secondary text
-  textExtraLight: '#B2BEC3', // Light gray - disabled/placeholder
+  text: '#0f172a',
+  textLight: '#64748b',
+  textExtraLight: '#94a3b8',
 
   // Semantic Colors
-  success: '#6BCB77',      // Same as secondary
-  error: '#FF6B6B',        // Same as primary (keep positive tone)
-  warning: '#FFD93D',      // Yellow - caution
-  info: '#74B9FF',         // Light blue
+  success: '#22c55e',
+  error: '#ef4444',
+  warning: '#f59e0b',
+  info: '#3b82f6',
+
+  // Whites
+  white: '#FFFFFF',
+  whiteTransparent: 'rgba(255, 255, 255, 0.2)',
 
   // Special Colors
-  overlay: 'rgba(45, 52, 54, 0.6)', // Dark overlay for modals
-  border: '#E1E8ED',       // Light border
-  divider: '#F1F3F5',      // Very light divider
+  overlay: 'rgba(15, 23, 42, 0.6)',
+  border: '#f1f5f9',
+  divider: '#f1f5f9',
 
-  // Gradients (for buttons, headers)
-  gradientPrimary: ['#FF6B6B', '#FF8E8E'],
-  gradientSecondary: ['#6BCB77', '#8DD99A'],
-  gradientAccent: ['#A28FDB', '#BDB0E8'],
+  // Gradients
+  gradientPrimary: ['#f425af', '#ff8c42'],
+  gradientSecondary: ['#ff8c42', '#f425af'],
+  gradientAccent: ['#f425af', '#ff8c42'],
 } as const;
 
 export type ColorKey = keyof typeof Colors;

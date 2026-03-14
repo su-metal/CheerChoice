@@ -25,6 +25,7 @@ import {
 import { MealRecord } from '../types';
 import { getTodayOpenObligations, runRecoveryMaintenance } from '../services/recoveryService';
 import { getSettings } from '../services/settingsService';
+import { t } from '../i18n';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Main'>;
 
@@ -73,7 +74,7 @@ export default function HomeScreen({ navigation }: Props) {
               obligationId: item.id,
               exerciseType: item.exerciseType,
               remainingCount: item.remainingCount,
-              foodName: linkedMeal?.foodName ?? 'Meal',
+              foodName: linkedMeal?.foodName ?? t('result.manualLabel'),
               calories: linkedMeal?.estimatedCalories ?? 0,
               mealRecordId: item.mealRecordId,
               photoUri: linkedMeal?.photoUri,
@@ -122,8 +123,8 @@ export default function HomeScreen({ navigation }: Props) {
       minute: '2-digit',
       hour12: true,
     });
-    const mealLabel = record.choice === 'ate' ? 'Snack' : 'Breakfast';
-    return `${mealLabel} • ${timeLabel}`;
+    const mealLabel = record.choice === 'ate' ? t('home.ate') : t('home.skippedChoice');
+    return t('home.recentLabel', { choice: mealLabel, time: timeLabel });
   };
 
   return (
@@ -142,7 +143,7 @@ export default function HomeScreen({ navigation }: Props) {
             >
               <MaterialCommunityIcons name="lightning-bolt" size={22} color="#fff" />
             </SafeLinearGradient>
-            <Text style={styles.brandName}>Diet Hero</Text>
+            <Text style={styles.brandName}>{t('home.brandName')}</Text>
           </View>
 
           <TouchableOpacity
@@ -167,7 +168,7 @@ export default function HomeScreen({ navigation }: Props) {
             <View style={styles.heroIconShell}>
               <MaterialCommunityIcons name="camera" size={34} color="#fff" />
             </View>
-            <Text style={styles.heroTitle}>📸 Log Meal</Text>
+            <Text style={styles.heroTitle}>📸 {t('home.heroTitle')}</Text>
           </SafeLinearGradient>
         </TouchableOpacity>
 
@@ -178,11 +179,8 @@ export default function HomeScreen({ navigation }: Props) {
         >
           <View style={styles.goalHeader}>
             <View>
-              <Text style={styles.goalEyebrow}>GOAL PROGRESS</Text>
-              <Text style={styles.goalValue}>
-                {remainingGoal}
-                <Text style={styles.goalValueMuted}> kcal left</Text>
-              </Text>
+              <Text style={styles.goalEyebrow}>{t('home.goalEyebrow')}</Text>
+              <Text style={styles.goalValue}>{t('home.goalValueLeft', { count: remainingGoal })}</Text>
             </View>
             <MaterialCommunityIcons name="trophy-outline" size={32} color={Colors.secondary} />
           </View>
@@ -200,12 +198,12 @@ export default function HomeScreen({ navigation }: Props) {
 
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>SKIP</Text>
+              <Text style={styles.summaryLabel}>{t('home.skipped')}</Text>
               <Text style={styles.summaryNumber}>{summary.skippedCount}</Text>
             </View>
             <View style={styles.summarySplit} />
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>SAVED</Text>
+              <Text style={styles.summaryLabel}>{t('home.saved')}</Text>
               <Text style={styles.summaryNumber}>
                 {summary.savedCalories}
                 <Text style={styles.summaryUnit}> kcal</Text>
@@ -213,7 +211,7 @@ export default function HomeScreen({ navigation }: Props) {
             </View>
             <View style={styles.summarySplit} />
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>EXERCISE</Text>
+              <Text style={styles.summaryLabel}>{t('home.exercises')}</Text>
               <Text style={styles.summaryNumber}>{summary.exerciseCount}</Text>
             </View>
           </View>
@@ -222,27 +220,25 @@ export default function HomeScreen({ navigation }: Props) {
         <View style={styles.recoveryCard}>
           <Text style={styles.recoverySparkle}>✨</Text>
           <View style={styles.recoveryBody}>
-            <Text style={styles.recoveryTitle}>Energy Recovered!</Text>
-            <Text style={styles.recoveryText}>
-              Your metabolism is ready for the next challenge.
-            </Text>
+            <Text style={styles.recoveryTitle}>{t('home.recoveryTitle')}</Text>
+            <Text style={styles.recoveryText}>{t('home.recoveryText')}</Text>
           </View>
         </View>
 
         <View style={styles.sectionHeader}>
           <View style={styles.sectionHeading}>
-            <Text style={styles.sectionTitle}>Pending Tasks!</Text>
+            <Text style={styles.sectionTitle}>{t('home.pendingTasks')}</Text>
             <MaterialCommunityIcons name="alert" size={20} color={Colors.secondary} />
           </View>
           <TouchableOpacity activeOpacity={0.8} onPress={() => setShowMovePicker(true)}>
-            <Text style={styles.viewAll}>VIEW ALL</Text>
+            <Text style={styles.viewAll}>{t('home.viewAllCaps')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.taskList}>
           {todayMoveOptions.length === 0 ? (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>You&apos;re all caught up! 🌟</Text>
+              <Text style={styles.emptyText}>{t('home.allCaughtUp')}</Text>
             </View>
           ) : (
             todayMoveOptions.slice(0, 2).map((move, index) => {
@@ -273,10 +269,11 @@ export default function HomeScreen({ navigation }: Props) {
                           secondary ? styles.taskMetaSecondary : styles.taskMetaPrimary,
                         ]}
                       >
-                        {move.remainingCount}
                         {move.exerciseType === 'situp'
-                          ? 'min HIIT left'
-                          : ` ${move.exerciseType === 'squat' ? 'Squats' : 'Reps'} left`}
+                          ? t('home.taskMinutesLeft', { count: move.remainingCount })
+                          : move.exerciseType === 'squat'
+                            ? t('home.taskSquatsLeft', { count: move.remainingCount })
+                            : t('home.taskRepsLeft', { count: move.remainingCount })}
                       </Text>
                     </View>
                   </View>
@@ -300,10 +297,10 @@ export default function HomeScreen({ navigation }: Props) {
         </View>
 
         <View style={styles.recentSection}>
-          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <Text style={styles.sectionTitle}>{t('home.recentActivity')}</Text>
           <View style={styles.recentList}>
             {recentRecords.length === 0 ? (
-              <Text style={styles.emptyRecent}>No activity yet</Text>
+              <Text style={styles.emptyRecent}>{t('home.noActivity')}</Text>
             ) : (
               recentRecords.map((record, index) => (
                 <View key={record.id} style={styles.recentRow}>
@@ -335,7 +332,7 @@ export default function HomeScreen({ navigation }: Props) {
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Pending Tasks</Text>
+            <Text style={styles.modalTitle}>{t('home.moveModalTitle')}</Text>
             <FlatList
               data={todayMoveOptions}
               keyExtractor={(item) => item.obligationId}
@@ -359,7 +356,7 @@ export default function HomeScreen({ navigation }: Props) {
               onPress={() => setShowMovePicker(false)}
               style={styles.modalClose}
             >
-              <Text style={styles.modalCloseText}>Close</Text>
+              <Text style={styles.modalCloseText}>{t('home.moveModalClose')}</Text>
             </TouchableOpacity>
           </View>
         </View>

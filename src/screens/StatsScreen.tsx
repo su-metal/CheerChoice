@@ -14,7 +14,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import SafeLinearGradient from '../components/SafeLinearGradient';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '../constants';
 import { getExerciseRecords, getMealRecords } from '../services/recordService';
-import { t } from '../i18n';
+import { t, useAppLocale } from '../i18n';
 import { calculateStats, DailyCalories, StatsData, StatsPeriod } from '../utils/statsCalculator';
 import { getWeeklyRecoveryStatus } from '../services/recoveryService';
 import { MealRecord } from '../types';
@@ -122,16 +122,17 @@ function formatNumber(value: number) {
 }
 
 function getInsightMessage(totalSavedCalories: number, period: StatsPeriod) {
+  const periodLabel = period === 'week' ? t('statsExtended.periodWordWeek') : t('statsExtended.periodWordMonth');
   if (totalSavedCalories >= 1500) {
-    return `You saved ${formatNumber(totalSavedCalories)} kcal this ${period}. Your consistency is getting stronger!`;
+    return t('statsExtended.insightHigh', { count: formatNumber(totalSavedCalories), period: periodLabel });
   }
   if (totalSavedCalories >= 700) {
-    return `You saved ${formatNumber(totalSavedCalories)} kcal this ${period}. Your momentum is building nicely.`;
+    return t('statsExtended.insightMedium', { count: formatNumber(totalSavedCalories), period: periodLabel });
   }
   if (totalSavedCalories > 0) {
-    return `You saved ${formatNumber(totalSavedCalories)} kcal this ${period}. Every small choice is adding up.`;
+    return t('statsExtended.insightLow', { count: formatNumber(totalSavedCalories), period: periodLabel });
   }
-  return `No saved calories yet this ${period}. Your next smart choice can start the streak.`;
+  return t('statsExtended.insightNone', { period: periodLabel });
 }
 
 function TrendChart({ data }: { data: DailyCalories[] }) {
@@ -191,11 +192,11 @@ function TrendChart({ data }: { data: DailyCalories[] }) {
     <View style={styles.trendCard}>
       <View style={styles.trendHeader}>
         <View>
-          <Text style={styles.trendEyebrow}>Saved kcal Trend</Text>
-          <Text style={styles.trendTitle}>Daily progress tracking</Text>
+          <Text style={styles.trendEyebrow}>{t('statsExtended.trendEyebrow')}</Text>
+          <Text style={styles.trendTitle}>{t('statsExtended.trendTitle')}</Text>
         </View>
         <View style={styles.avgBadge}>
-          <Text style={styles.avgBadgeText}>Avg:{'\n'}{formatNumber(average)}</Text>
+          <Text style={styles.avgBadgeText}>{t('statsExtended.avgLabel')}:{'\n'}{formatNumber(average)}</Text>
         </View>
       </View>
 
@@ -244,6 +245,7 @@ function TrendChart({ data }: { data: DailyCalories[] }) {
 }
 
 export default function StatsScreen({ navigation }: Props) {
+  useAppLocale();
   const [period, setPeriod] = useState<StatsPeriod>('week');
   const [stats, setStats] = useState<StatsData>(defaultStats);
   const [isLoading, setIsLoading] = useState(true);
@@ -296,16 +298,16 @@ export default function StatsScreen({ navigation }: Props) {
 
   const pendingSubtitle = useMemo(() => {
     if (weeklyRecovery.remainingCount <= 0) {
-      return 'You are fully caught up';
+      return t('statsExtended.pendingCaughtUp');
     }
-    return `${weeklyRecovery.remainingCount} offsets remaining`;
+    return t('statsExtended.pendingRemaining', { count: weeklyRecovery.remainingCount });
   }, [weeklyRecovery.remainingCount]);
 
-  const periodLabel = period === 'week' ? 'week' : 'month';
+  const periodLabel = period === 'week' ? t('statsExtended.periodWordWeek') : t('statsExtended.periodWordMonth');
   const comparisonText =
     comparisonPercent >= 0
-      ? `${comparisonPercent}% from last ${periodLabel}`
-      : `${Math.abs(comparisonPercent)}% below last ${periodLabel}`;
+      ? t('statsExtended.comparisonUp', { percent: comparisonPercent, period: periodLabel })
+      : t('statsExtended.comparisonDown', { percent: Math.abs(comparisonPercent), period: periodLabel });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -314,7 +316,7 @@ export default function StatsScreen({ navigation }: Props) {
           <TouchableOpacity style={styles.headerButton} onPress={() => navigation.navigate('Home')}>
             <MaterialCommunityIcons name="chevron-left" size={28} color={Colors.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Reports</Text>
+          <Text style={styles.headerTitle}>{t('statsExtended.headerTitle')}</Text>
           <TouchableOpacity style={styles.headerButton} onPress={() => navigation.navigate('Settings')}>
             <MaterialCommunityIcons name="dots-horizontal" size={24} color={Colors.primary} />
           </TouchableOpacity>
@@ -325,13 +327,17 @@ export default function StatsScreen({ navigation }: Props) {
             style={[styles.toggleButton, period === 'week' && styles.toggleButtonActive]}
             onPress={() => setPeriod('week')}
           >
-            <Text style={[styles.toggleText, period === 'week' && styles.toggleTextActive]}>Week</Text>
+            <Text style={[styles.toggleText, period === 'week' && styles.toggleTextActive]}>
+              {t('statsExtended.periodWeek')}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.toggleButton, period === 'month' && styles.toggleButtonActive]}
             onPress={() => setPeriod('month')}
           >
-            <Text style={[styles.toggleText, period === 'month' && styles.toggleTextActive]}>Month</Text>
+            <Text style={[styles.toggleText, period === 'month' && styles.toggleTextActive]}>
+              {t('statsExtended.periodMonth')}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -344,7 +350,7 @@ export default function StatsScreen({ navigation }: Props) {
           <>
             <View style={styles.heroCard}>
               <View style={styles.heroCardTopRow}>
-                <Text style={styles.heroCardLabel}>Calories Saved</Text>
+                <Text style={styles.heroCardLabel}>{t('statsExtended.heroLabel')}</Text>
                 <View style={styles.heroIconBadge}>
                   <MaterialCommunityIcons name="fire" size={22} color={Colors.primary} />
                 </View>
@@ -371,7 +377,7 @@ export default function StatsScreen({ navigation }: Props) {
               <View style={styles.smallKpiCard}>
                 <View style={styles.smallKpiHeader}>
                   <MaterialCommunityIcons name="dumbbell" size={18} color={Colors.primary} />
-                  <Text style={styles.smallKpiLabel}>Burned</Text>
+                  <Text style={styles.smallKpiLabel}>{t('statsExtended.kpiBurned')}</Text>
                 </View>
                 <Text style={styles.smallKpiValue}>
                   {formatNumber(stats.exerciseSummary.totalCaloriesBurned)}
@@ -382,11 +388,11 @@ export default function StatsScreen({ navigation }: Props) {
               <View style={styles.smallKpiCard}>
                 <View style={styles.smallKpiHeader}>
                   <MaterialCommunityIcons name="clipboard-clock-outline" size={18} color={Colors.secondary} />
-                  <Text style={styles.smallKpiLabel}>Pending</Text>
+                  <Text style={styles.smallKpiLabel}>{t('statsExtended.kpiPending')}</Text>
                 </View>
                 <Text style={styles.smallKpiValue}>
                   {weeklyRecovery.remainingCount}
-                  <Text style={styles.smallKpiUnit}> tasks</Text>
+                  <Text style={styles.smallKpiUnit}> {t('statsExtended.kpiTasks')}</Text>
                 </Text>
               </View>
             </View>
@@ -408,19 +414,19 @@ export default function StatsScreen({ navigation }: Props) {
             <View style={styles.metricsRow}>
               <View style={styles.metricBubble}>
                 <MaterialCommunityIcons name="food-off-outline" size={24} color={Colors.primary} />
-                <Text style={styles.metricLabel}>Skipped</Text>
+                <Text style={styles.metricLabel}>{t('statsExtended.metricSkipped')}</Text>
                 <Text style={styles.metricValue}>{stats.choiceRatio.skippedCount}</Text>
               </View>
 
               <View style={styles.metricBubble}>
                 <MaterialCommunityIcons name="auto-fix" size={24} color={Colors.secondary} />
-                <Text style={styles.metricLabel}>Recovered</Text>
+                <Text style={styles.metricLabel}>{t('statsExtended.metricRecovered')}</Text>
                 <Text style={styles.metricValue}>{weeklyRecovery.resolvedCount}</Text>
               </View>
 
               <View style={styles.metricBubble}>
                 <MaterialCommunityIcons name="run-fast" size={24} color={Colors.success} />
-                <Text style={styles.metricLabel}>Workouts</Text>
+                <Text style={styles.metricLabel}>{t('statsExtended.metricWorkouts')}</Text>
                 <Text style={styles.metricValue}>{stats.exerciseSummary.totalSessions}</Text>
               </View>
             </View>
@@ -431,7 +437,7 @@ export default function StatsScreen({ navigation }: Props) {
                   <MaterialCommunityIcons name="history" size={20} color={Colors.secondary} />
                 </View>
                 <View style={styles.pendingTextContainer}>
-                  <Text style={styles.pendingTitle}>Pending recovery</Text>
+                  <Text style={styles.pendingTitle}>{t('statsExtended.pendingTitle')}</Text>
                   <Text style={styles.pendingSubtitle}>{pendingSubtitle}</Text>
                 </View>
               </View>
@@ -440,7 +446,7 @@ export default function StatsScreen({ navigation }: Props) {
                 style={styles.pendingButton}
                 onPress={() => navigation.navigate('Home')}
               >
-                <Text style={styles.pendingButtonText}>Resume Plan</Text>
+                <Text style={styles.pendingButtonText}>{t('statsExtended.pendingButton')}</Text>
               </TouchableOpacity>
             </View>
           </>

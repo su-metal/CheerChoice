@@ -11,11 +11,10 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import SafeLinearGradient from '../components/SafeLinearGradient';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '../constants';
-import { setAppLocale, t } from '../i18n';
+import { setAppLocale, t, useAppLocale } from '../i18n';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '../config/appConfig';
 import { getUsageData, resetAIUsage } from '../services/usageService';
@@ -33,7 +32,9 @@ import {
   updateSettings,
 } from '../services/settingsService';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
+type Props = {
+  navigation: any;
+};
 
 function isPurchaseCancelledError(error: unknown): boolean {
   if (!error || typeof error !== 'object') {
@@ -45,6 +46,7 @@ function isPurchaseCancelledError(error: unknown): boolean {
 }
 
 export default function SettingsScreen({ navigation }: Props) {
+  useAppLocale();
   const [dailyGoal, setDailyGoal] = useState(300);
   const [voiceFeedbackEnabled, setVoiceFeedbackEnabled] = useState(true);
   const [language, setLanguage] = useState<'auto' | 'en' | 'ja'>('auto');
@@ -61,6 +63,7 @@ export default function SettingsScreen({ navigation }: Props) {
         if (!isMounted) {
           return;
         }
+        setAppLocale(settings.language);
         setDailyGoal(settings.dailyCalorieGoal);
         setVoiceFeedbackEnabled(settings.voiceFeedbackEnabled);
         setLanguage(settings.language);
@@ -102,8 +105,12 @@ export default function SettingsScreen({ navigation }: Props) {
     updateSettings({ language }).catch((error) => {
       console.error('Error saving language setting:', error);
     });
-    setAppLocale(language);
   }, [language]);
+
+  const handleLanguageChange = (nextLanguage: 'auto' | 'en' | 'ja') => {
+    setAppLocale(nextLanguage);
+    setLanguage(nextLanguage);
+  };
 
   const handleExportData = async () => {
     setIsExporting(true);
@@ -221,7 +228,7 @@ export default function SettingsScreen({ navigation }: Props) {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>{t('settings.title') || 'Settings'}</Text>
+          <Text style={styles.headerTitle}>{t('settings.title')}</Text>
         </View>
 
         <View style={styles.profileCard}>
@@ -229,8 +236,8 @@ export default function SettingsScreen({ navigation }: Props) {
             <MaterialCommunityIcons name="account" size={40} color={Colors.primary} />
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>Tossy</Text>
-            <Text style={styles.profileEmail}>tossy@example.com</Text>
+            <Text style={styles.profileName}>{t('settings.profileName')}</Text>
+            <Text style={styles.profileEmail}>{t('settings.profileEmail')}</Text>
           </View>
         </View>
 
@@ -248,10 +255,10 @@ export default function SettingsScreen({ navigation }: Props) {
             <View style={styles.premiumContent}>
               <View style={styles.premiumTextContent}>
                 <Text style={styles.premiumTitle}>
-                  {isPremium ? 'Premium Active' : 'Go Premium'}
+                  {isPremium ? t('settings.premiumActive') : t('settings.premiumInactive')}
                 </Text>
                 <Text style={styles.premiumSubtitle}>
-                  {isPremium ? 'Thank you for your support!' : 'Unlock AI analysis and full stats.'}
+                  {isPremium ? t('settings.premiumActiveBody') : t('settings.premiumInactiveBody')}
                 </Text>
               </View>
               <View style={styles.premiumIcon}>
@@ -262,7 +269,7 @@ export default function SettingsScreen({ navigation }: Props) {
         </TouchableOpacity>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Target & Goals</Text>
+          <Text style={styles.sectionTitle}>{t('settings.sectionGoals')}</Text>
           <View style={styles.card}>
             <View style={styles.settingRow}>
               <View style={styles.settingIcon}>
@@ -293,7 +300,7 @@ export default function SettingsScreen({ navigation }: Props) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preference</Text>
+          <Text style={styles.sectionTitle}>{t('settings.sectionPreference')}</Text>
           <View style={styles.card}>
             <View style={styles.settingRow}>
               <View style={styles.settingIcon}>
@@ -328,7 +335,7 @@ export default function SettingsScreen({ navigation }: Props) {
                       styles.languageButton,
                       language === option && styles.languageButtonActive,
                     ]}
-                    onPress={() => setLanguage(option)}
+                    onPress={() => handleLanguageChange(option)}
                   >
                     <Text
                       style={[
@@ -346,7 +353,7 @@ export default function SettingsScreen({ navigation }: Props) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Data Management</Text>
+          <Text style={styles.sectionTitle}>{t('settings.sectionData')}</Text>
           <View style={styles.card}>
             <TouchableOpacity onPress={handleExportData} disabled={isExporting}>
               <View style={styles.settingRow}>
@@ -380,7 +387,7 @@ export default function SettingsScreen({ navigation }: Props) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Support & Legal</Text>
+          <Text style={styles.sectionTitle}>{t('settings.sectionSupport')}</Text>
           <View style={styles.card}>
             <TouchableOpacity onPress={() => openExternalUrl(PRIVACY_POLICY_URL)}>
               <View style={styles.settingRow}>
@@ -429,12 +436,12 @@ export default function SettingsScreen({ navigation }: Props) {
 
         <TouchableOpacity activeOpacity={0.8} style={styles.dangerButton}>
           <MaterialCommunityIcons name="logout" size={20} color={Colors.primary} />
-          <Text style={styles.dangerButtonText}>Logout</Text>
+          <Text style={styles.dangerButtonText}>{t('settings.logout')}</Text>
         </TouchableOpacity>
 
         <View style={styles.aboutSection}>
           <Text style={styles.aboutTitle}>CheerChoice</Text>
-          <Text style={styles.aboutVersion}>Version 1.0.0</Text>
+          <Text style={styles.aboutVersion}>{t('settings.version', { value: '1.0.0' })}</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

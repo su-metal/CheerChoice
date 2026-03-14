@@ -23,7 +23,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { getRandomPartialMessage } from '../utils/exerciseMessages';
 import { EXERCISES } from '../constants/Exercises';
 import { getPoseDetectorHtml } from '../utils/poseDetectorHtml';
-import { resolveLocale, t } from '../i18n';
+import { getCurrentLocale, resolveLocale, t } from '../i18n';
 import { saveExerciseRecord } from '../services/recordService';
 import { getSettings } from '../services/settingsService';
 import {
@@ -550,7 +550,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
   const progressPercentage = Math.min(Math.round((count / targetReps) * 100), 100);
   const centerBottomOffset = inputMode === 'tap' ? (isPaused ? 260 : 220) : 140;
 
-  const htmlContent = getPoseDetectorHtml(exerciseType, targetReps, false);
+  const htmlContent = getPoseDetectorHtml(exerciseType, targetReps, false, getCurrentLocale());
 
   const switchInputMode = (nextMode: InputMode) => {
     if (isPaused) {
@@ -731,11 +731,11 @@ export default function ExerciseScreen({ navigation, route }: Props) {
                 </View>
                 <View>
                   <Text style={styles.headerTitle}>{exercise.icon} {exerciseName}</Text>
-                  <Text style={styles.headerSubtitle}>REAL-TIME TRACKING</Text>
+                  <Text style={styles.headerSubtitle}>{t('exercise.headerSubtitle')}</Text>
                 </View>
               </View>
               <View style={styles.targetContainer}>
-                <Text style={styles.targetLabel}>TARGET</Text>
+                <Text style={styles.targetLabel}>{t('exercise.targetShort')}</Text>
                 <Text style={styles.targetValue}>{targetReps}</Text>
               </View>
             </View>
@@ -746,7 +746,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
                 onPress={() => switchInputMode('motion')}
               >
                 <Text style={[styles.modeButtonText, inputMode === 'motion' && styles.modeButtonTextActive]}>
-                  Motion
+                  {t('exercise.modeMotion')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -754,7 +754,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
                 onPress={() => switchInputMode('tap')}
               >
                 <Text style={[styles.modeButtonText, inputMode === 'tap' && styles.modeButtonTextActive]}>
-                  Tap
+                  {t('exercise.modeTap')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -774,8 +774,8 @@ export default function ExerciseScreen({ navigation, route }: Props) {
 
           <View style={styles.progressContainer}>
             <View style={styles.progressHeader}>
-              <Text style={styles.progressLabel}>Workout Progress</Text>
-              <Text style={styles.progressValue}>{progressPercentage}% COMPLETE</Text>
+              <Text style={styles.progressLabel}>{t('exercise.progressLabel')}</Text>
+              <Text style={styles.progressValue}>{t('exercise.progressValue', { percent: progressPercentage })}</Text>
             </View>
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
@@ -790,7 +790,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
               <TouchableOpacity style={styles.adjustButton} onPress={decrementByTap}>
                 <MaterialCommunityIcons name="minus" size={32} color="#fff" />
               </TouchableOpacity>
-              <Text style={styles.actionLabel}>ADJUST</Text>
+              <Text style={styles.actionLabel}>{t('exercise.adjust')}</Text>
             </View>
 
             <View style={styles.tapButtonContainer}>
@@ -800,7 +800,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
                 activeOpacity={0.8}
               >
                 <MaterialCommunityIcons name="gesture-tap" size={40} color="#fff" />
-                <Text style={styles.tapButtonLabel}>TAP!</Text>
+                <Text style={styles.tapButtonLabel}>{t('exercise.tapAction')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -813,7 +813,7 @@ export default function ExerciseScreen({ navigation, route }: Props) {
               >
                 <MaterialCommunityIcons name="camera-flip" size={32} color="#fff" />
               </TouchableOpacity>
-              <Text style={styles.actionLabel}>FLIP</Text>
+              <Text style={styles.actionLabel}>{t('exercise.flip')}</Text>
             </View>
           </View>
 

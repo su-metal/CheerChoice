@@ -88,7 +88,7 @@ export default function SkippedScreen({ navigation, route }: Props) {
               <View style={styles.iconCircle}>
                 <MaterialCommunityIcons name="star-face" size={80} color={Colors.surface} />
               </View>
-              <Text style={styles.celebrationTitle}>AMAZING!</Text>
+              <Text style={styles.celebrationTitle}>{t('skipped.celebrationTitle')}</Text>
             </View>
 
             {/* ポジティブメッセージ */}
@@ -118,13 +118,13 @@ export default function SkippedScreen({ navigation, route }: Props) {
                   <View style={styles.statBox}>
                     <Text style={styles.statLabel}>{t('common.today')}</Text>
                     <Text style={styles.statNumber}>{stats.today.toLocaleString()}</Text>
-                    <Text style={styles.statUnit}>kcal Saved</Text>
+                    <Text style={styles.statUnit}>{t('skipped.statUnitSaved')}</Text>
                   </View>
 
                   <View style={styles.statBox}>
                     <Text style={styles.statLabel}>{t('common.thisWeek')}</Text>
                     <Text style={styles.statNumber}>{stats.thisWeek.toLocaleString()}</Text>
-                    <Text style={styles.statUnit}>kcal Saved</Text>
+                    <Text style={styles.statUnit}>{t('skipped.statUnitSaved')}</Text>
                   </View>
                 </View>
 
@@ -134,7 +134,7 @@ export default function SkippedScreen({ navigation, route }: Props) {
                     <Text style={[styles.statNumber, styles.largeNumber]}>
                       {stats.thisMonth.toLocaleString()}
                     </Text>
-                    <Text style={[styles.statUnit, styles.largeUnit]}>kcal Total</Text>
+                    <Text style={[styles.statUnit, styles.largeUnit]}>{t('skipped.statUnitTotal')}</Text>
                   </View>
                   <View style={styles.progressBar}>
                     <View style={[styles.progressFill, { width: '65%' }]} />

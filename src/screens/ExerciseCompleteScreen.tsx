@@ -16,6 +16,7 @@ import { BorderRadius, Colors, Shadows, Spacing, Typography } from '../constants
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getTodayRecordSummary } from '../services/recordService';
 import { getSettings } from '../services/settingsService';
+import { t } from '../i18n';
 
 type ExerciseCompleteScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -93,7 +94,7 @@ export default function ExerciseCompleteScreen({ navigation, route }: Props) {
           <TouchableOpacity style={styles.closeButton} onPress={goHome}>
             <MaterialCommunityIcons name="close" size={32} color={Colors.primary} />
           </TouchableOpacity>
-          <Text style={styles.topTitle}>Goal Achieved</Text>
+          <Text style={styles.topTitle}>{t('exerciseComplete.topTitle')}</Text>
           <View style={styles.topSpacer} />
         </View>
 
@@ -107,7 +108,7 @@ export default function ExerciseCompleteScreen({ navigation, route }: Props) {
               end={{ x: 1, y: 0 }}
               style={styles.banner}
             >
-              <Text style={styles.bannerText}>Mission Complete</Text>
+              <Text style={styles.bannerText}>{t('exerciseComplete.banner')}</Text>
             </SafeLinearGradient>
 
             <MaterialCommunityIcons
@@ -132,11 +133,11 @@ export default function ExerciseCompleteScreen({ navigation, route }: Props) {
         </View>
 
         <View style={styles.messageBlock}>
-          <Text style={styles.headline}>Incredible Choice! ✨</Text>
+          <Text style={styles.headline}>{t('exerciseComplete.headline')}</Text>
           <Text style={styles.valueText}>{caloriesBurned} kcal</Text>
-          <Text style={styles.valueLabel}>BURNED!</Text>
+          <Text style={styles.valueLabel}>{t('exerciseComplete.valueLabel')}</Text>
           <Text style={styles.subtext}>
-            {foodName} balanced with {count} reps completed.
+            {t('exerciseComplete.summary', { foodName, count })}
           </Text>
         </View>
 
@@ -154,10 +155,14 @@ export default function ExerciseCompleteScreen({ navigation, route }: Props) {
 
           <View style={styles.progressTextWrap}>
             <Text style={styles.progressTitle}>
-              {isLoading ? 'Loading progress...' : `${goalProgress}% to goal`}
+              {isLoading
+                ? t('exerciseComplete.loadingProgress')
+                : t('exerciseComplete.goalProgress', { percent: goalProgress })}
             </Text>
             <Text style={styles.progressSubtitle}>
-              {completionPercent >= 100 ? "You're on fire today! 🔥" : 'Your momentum is building!'}
+              {completionPercent >= 100
+                ? t('exerciseComplete.goalReachedSubtitle')
+                : t('exerciseComplete.goalBuildingSubtitle')}
             </Text>
           </View>
         </View>
@@ -170,13 +175,13 @@ export default function ExerciseCompleteScreen({ navigation, route }: Props) {
               end={{ x: 1, y: 0 }}
               style={styles.primaryButton}
             >
-              <Text style={styles.primaryButtonText}>Back to Dashboard</Text>
+              <Text style={styles.primaryButtonText}>{t('exerciseComplete.backHome')}</Text>
               <MaterialCommunityIcons name="arrow-right" size={22} color={Colors.surface} />
             </SafeLinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.secondaryButton} onPress={viewBreakdown}>
-            <Text style={styles.secondaryButtonText}>View detailed breakdown</Text>
+            <Text style={styles.secondaryButtonText}>{t('exerciseComplete.viewBreakdown')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

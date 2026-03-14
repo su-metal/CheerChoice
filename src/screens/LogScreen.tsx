@@ -147,7 +147,7 @@ export default function LogScreen({ navigation }: Props) {
           <View style={styles.cardHeaderText}>
             <View style={styles.titleRow}>
               <Text style={styles.foodName} numberOfLines={1}>{item.foodName}</Text>
-              {isAte && <View style={styles.savedBadge}><Text style={styles.savedBadgeText}>SAVED</Text></View>}
+              {isAte && <View style={styles.savedBadge}><Text style={styles.savedBadgeText}>{t('log.savedBadge')}</Text></View>}
             </View>
             <Text style={styles.cardSubInfo}>
               {formatTimestamp(item.timestamp)} • {item.estimatedCalories} {t('common.kcal')}
@@ -160,7 +160,7 @@ export default function LogScreen({ navigation }: Props) {
         </View>
 
         <Text style={styles.foodDescription} numberOfLines={2}>
-          {isAte ? 'Meal enjoyed and recorded.' : 'Skipped this meal to save calories.'}
+          {isAte ? t('log.mealAteDescription') : t('log.mealSkippedDescription')}
         </Text>
 
         {linkedExercise && (
@@ -174,7 +174,7 @@ export default function LogScreen({ navigation }: Props) {
                 </Text>
               </View>
               <Text style={styles.exerciseDetails}>
-                20 mins • -{linkedExercise.caloriesBurned} kcal
+                {t('log.exerciseDetails', { calories: linkedExercise.caloriesBurned })}
               </Text>
             </View>
           </View>
@@ -227,7 +227,7 @@ export default function LogScreen({ navigation }: Props) {
             <Text style={styles.headerTitleMain}>{t('log.title')}</Text>
             <TouchableOpacity 
               style={styles.headerIconButton}
-              onPress={() => Alert.alert('Coming Soon', 'Calendar view is planned for V3.')}
+              onPress={() => Alert.alert(t('log.calendarComingSoonTitle'), t('log.calendarComingSoonBody'))}
             >
               <MaterialCommunityIcons name="calendar-month" size={24} color="#FF2D55" />
             </TouchableOpacity>
@@ -244,7 +244,7 @@ export default function LogScreen({ navigation }: Props) {
             <Text style={styles.sectionTitle}>{section.title}</Text>
             {section.title === t('common.today') && (
               <View style={styles.kcalLeftBadge}>
-                <Text style={styles.kcalLeftText}>420 KCAL LEFT</Text>
+                <Text style={styles.kcalLeftText}>{t('log.todayBadge')}</Text>
               </View>
             )}
           </View>

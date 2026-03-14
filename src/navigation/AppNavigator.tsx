@@ -19,7 +19,7 @@ import {
   OnboardingScreen,
 } from '../screens';
 import { Colors } from '../constants';
-import { t } from '../i18n';
+import { t, useAppLocale } from '../i18n';
 import { ExerciseRecord } from '../types';
 
 const ONBOARDING_COMPLETE_KEY = '@CheerChoice:onboardingComplete';
@@ -145,7 +145,7 @@ function MainTabs() {
         component={HomeScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon name="Home" label="Home" focused={focused} />
+            <TabIcon name="Home" label={t('navigation.home')} focused={focused} />
           ),
         }}
       />
@@ -154,7 +154,7 @@ function MainTabs() {
         component={LogScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon name="Log" label="Log" focused={focused} />
+            <TabIcon name="Log" label={t('navigation.log')} focused={focused} />
           ),
         }}
       />
@@ -171,7 +171,7 @@ function MainTabs() {
         component={StatsScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon name="Stats" label="Reports" focused={focused} />
+            <TabIcon name="Stats" label={t('navigation.stats')} focused={focused} />
           ),
         }}
       />
@@ -180,7 +180,7 @@ function MainTabs() {
         component={SettingsScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon name="Settings" label="Settings" focused={focused} />
+            <TabIcon name="Settings" label={t('navigation.settings')} focused={focused} />
           ),
         }}
       />
@@ -189,6 +189,7 @@ function MainTabs() {
 }
 
 export default function AppNavigator() {
+  useAppLocale();
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
   const [isFirstLaunch, setIsFirstLaunch] = useState(false);
 

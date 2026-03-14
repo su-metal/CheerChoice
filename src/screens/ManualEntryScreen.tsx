@@ -33,10 +33,10 @@ type QuickPick = {
 };
 
 const QUICK_PICKS: QuickPick[] = [
-  { key: 'salad', foodName: 'Salad', calories: 250, icon: '🥗' },
-  { key: 'pizza', foodName: 'Pizza', calories: 350, icon: '🍕' },
-  { key: 'burger', foodName: 'Burger', calories: 500, icon: '🍔' },
-  { key: 'cake', foodName: 'Cake', calories: 400, icon: '🍰' },
+  { key: 'salad', foodName: 'manualEntry.quickPickSalad', calories: 250, icon: '🥗' },
+  { key: 'pizza', foodName: 'manualEntry.quickPickPizza', calories: 350, icon: '🍕' },
+  { key: 'burger', foodName: 'manualEntry.quickPickBurger', calories: 500, icon: '🍔' },
+  { key: 'cake', foodName: 'manualEntry.quickPickCake', calories: 400, icon: '🍰' },
 ];
 
 export default function ManualEntryScreen({ navigation }: Props) {
@@ -68,7 +68,7 @@ export default function ManualEntryScreen({ navigation }: Props) {
   };
 
   const applyQuickPick = (pick: QuickPick) => {
-    setFoodName(pick.foodName);
+    setFoodName(t(pick.foodName));
     setCaloriesText(String(pick.calories));
   };
 
@@ -82,7 +82,7 @@ export default function ManualEntryScreen({ navigation }: Props) {
           <View style={styles.header}>
             <Text style={styles.icon}>🍱</Text>
             <Text style={styles.heading}>{t('manualEntry.heading')}</Text>
-            <Text style={styles.subheading}>Enter what you ate to track calories</Text>
+            <Text style={styles.subheading}>{t('manualEntry.subheading')}</Text>
           </View>
 
           <View style={styles.form}>
@@ -123,7 +123,7 @@ export default function ManualEntryScreen({ navigation }: Props) {
                   >
                     <Text style={styles.quickPickIcon}>{pick.icon}</Text>
                     <Text style={styles.quickPickText}>
-                      {pick.foodName}
+                      {t(pick.foodName)}
                       {'\n'}
                       <Text style={styles.quickPickCal}>~{pick.calories} kcal</Text>
                     </Text>

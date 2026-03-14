@@ -1,3 +1,4 @@
+import { getCurrentLocale } from '../i18n';
 import { ExerciseRecord, MealRecord } from '../types';
 
 export type StatsPeriod = 'week' | 'month';
@@ -72,7 +73,8 @@ function getRangeDates(period: StatsPeriod): Date[] {
 
 function getDayLabel(date: Date, period: StatsPeriod): string {
   if (period === 'week') {
-    return date.toLocaleDateString(undefined, { weekday: 'short' });
+    const locale = getCurrentLocale() === 'ja' ? 'ja-JP' : 'en-US';
+    return date.toLocaleDateString(locale, { weekday: 'short' });
   }
   return String(date.getDate());
 }

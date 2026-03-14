@@ -369,7 +369,7 @@ export default function ResultScreen({ navigation, route }: Props) {
                 onChangeText={setEditedCalories}
                 style={styles.editInput}
                 keyboardType="number-pad"
-                placeholder="300"
+                placeholder={t('manualEntry.caloriesPlaceholder')}
                 placeholderTextColor={Colors.textExtraLight}
               />
               <View style={styles.editActions}>
@@ -400,7 +400,7 @@ export default function ResultScreen({ navigation, route }: Props) {
 
               <View style={styles.calorieDisplay}>
                 <Text style={styles.calorieNumber}>{result.estimatedCalories}</Text>
-                <Text style={styles.calorieLabel}>kcal</Text>
+                <Text style={styles.calorieLabel}>{t('common.kcal')}</Text>
               </View>
 
               <View style={styles.badgeContainer}>
@@ -417,7 +417,9 @@ export default function ResultScreen({ navigation, route }: Props) {
                 <View style={styles.badge}>
                   <MaterialCommunityIcons name="auto-fix" size={14} color={Colors.primary} style={styles.badgeIcon} />
                   <Text style={styles.badgeText}>
-                    {isManualEntry ? t('result.manualLabel') : `AI Confidence: ${result.confidence}%`}
+                    {isManualEntry
+                      ? t('result.manualLabel')
+                      : t('result.confidenceValue', { confidence: result.confidence })}
                   </Text>
                 </View>
               </View>
@@ -427,7 +429,7 @@ export default function ResultScreen({ navigation, route }: Props) {
 
         {/* アクションセクション */}
         <View style={styles.choiceContainer}>
-          <Text style={styles.choiceHeading}>DECIDE YOUR FATE</Text>
+          <Text style={styles.choiceHeading}>{t('result.choiceHeading')}</Text>
 
           {/* Skip It ボタン */}
           <TouchableOpacity
@@ -438,8 +440,8 @@ export default function ResultScreen({ navigation, route }: Props) {
           >
             <Text style={styles.skipIcon}>🌟</Text>
             <View style={styles.buttonTextContent}>
-              <Text style={styles.skipTitle}>Skip it</Text>
-              <Text style={styles.skipSubtext}>Save {result.estimatedCalories} kcal for later</Text>
+              <Text style={styles.skipTitle}>{t('result.skipIt')}</Text>
+              <Text style={styles.skipSubtext}>{t('result.skipDetailedSubtext', { calories: result.estimatedCalories })}</Text>
             </View>
           </TouchableOpacity>
 
@@ -458,8 +460,8 @@ export default function ResultScreen({ navigation, route }: Props) {
             >
               <MaterialCommunityIcons name="silverware-fork-knife" size={24} color={Colors.surface} style={styles.eatIcon} />
               <View style={styles.buttonTextContent}>
-                <Text style={styles.eatTitle}>EAT IT!</Text>
-                <Text style={styles.eatSubtext}>Show exercise menu to burn this</Text>
+                <Text style={styles.eatTitle}>{t('result.eatDetailedTitle')}</Text>
+                <Text style={styles.eatSubtext}>{t('result.eatDetailedSubtext')}</Text>
               </View>
             </SafeLinearGradient>
           </TouchableOpacity>
@@ -471,7 +473,7 @@ export default function ResultScreen({ navigation, route }: Props) {
           onPress={handleRetakePhoto}
         >
           <MaterialCommunityIcons name="refresh" size={20} color={Colors.textLight} />
-          <Text style={styles.retakeText}>Retake photo</Text>
+          <Text style={styles.retakeText}>{t('result.retakePhoto')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

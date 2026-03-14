@@ -10,10 +10,35 @@
 export function getPoseDetectorHtml(
   exerciseType: string,
   targetReps: number,
-  voiceFeedbackEnabled: boolean = true
+  voiceFeedbackEnabled: boolean = true,
+  locale: 'en' | 'ja' = 'en'
 ): string {
   // exerciseType を THE TOLL 形式に変換 (squat → SQUAT)
   const exType = exerciseType.toUpperCase();
+  const copy =
+    locale === 'ja'
+      ? {
+          loading: 'AIモデルを読み込み中...',
+          showFullBody: '全身を映してください',
+          showTorso: '上半身から胴体を映してください',
+          showUpperBody: '上半身を映してください',
+          noPerson: '人物を検出できません',
+          calibrating: '動かずそのままで待ってください',
+          cameraErrorTitle: 'カメラエラー',
+          cameraInUseSuffix:
+            '（前面カメラが他のアプリやセッションで使用中の可能性があります。再試行してください。）',
+        }
+      : {
+          loading: 'Loading AI Model...',
+          showFullBody: 'SHOW FULL BODY',
+          showTorso: 'SHOW YOUR TORSO',
+          showUpperBody: 'SHOW UPPER BODY',
+          noPerson: 'NO PERSON DETECTED',
+          calibrating: 'STAY STILL - CALIBRATING',
+          cameraErrorTitle: 'Camera Error',
+          cameraInUseSuffix:
+            ' (Front camera may be in use by another app/session. Please retry.)',
+        };
 
   return `
 <!DOCTYPE html>
@@ -113,9 +138,9 @@ export function getPoseDetectorHtml(
     <canvas id="pose-canvas"></canvas>
     <div id="loading">
       <div class="spinner"></div>
-      Loading AI Model...
+      ${copy.loading}
     </div>
-    <div id="guide">SHOW FULL BODY</div>
+    <div id="guide">${copy.showFullBody}</div>
     <div id="flash-border"></div>
   </div>
 
@@ -315,7 +340,7 @@ export function getPoseDetectorHtml(
 
       // Calibration: wait for stable baseline
       if (state.pushupBaseline === null) {
-        showGuide('STAY STILL - CALIBRATING');
+        showGuide('${copy.calibrating}');
 
         state.calibrationBuffer.push(shoulderY);
 
@@ -357,7 +382,7 @@ export function getPoseDetectorHtml(
 
       // Calibration
       if (state.situpBaseline === null) {
-        showGuide('STAY STILL - CALIBRATING');
+        showGuide('${copy.calibrating}');
 
         state.calibrationBuffer.push(currentY);
 
@@ -468,7 +493,7 @@ export function getPoseDetectorHtml(
 
       if (!results.poseLandmarks) {
         state.isCountPosture = false;
-        showGuide('NO PERSON DETECTED');
+        showGuide('${copy.noPerson}');
         // Reset baselines if no person for 2+ seconds
         if (state._lastPersonTs && Date.now() - state._lastPersonTs > 2000) {
           state.pushupBaseline = null;
@@ -483,17 +508,17 @@ export function getPoseDetectorHtml(
 
       // Check required landmarks visibility
       var requiredLandmarks = [];
-      var visibilityMsg = 'SHOW FULL BODY';
+      var visibilityMsg = '${copy.showFullBody}';
 
       if (EXERCISE_TYPE === 'SQUAT') {
         requiredLandmarks = [11, 12, 23, 24, 25, 26, 27, 28];
-        visibilityMsg = 'SHOW FULL BODY';
+        visibilityMsg = '${copy.showFullBody}';
       } else if (EXERCISE_TYPE === 'PUSHUP') {
         requiredLandmarks = [11, 12, 23, 24];
-        visibilityMsg = 'SHOW YOUR TORSO';
+        visibilityMsg = '${copy.showTorso}';
       } else if (EXERCISE_TYPE === 'SITUP') {
         requiredLandmarks = [0, 11, 12];
-        visibilityMsg = 'SHOW UPPER BODY';
+        visibilityMsg = '${copy.showUpperBody}';
       }
 
       var isVisible = requiredLandmarks.every(function(idx) {
@@ -656,9 +681,9 @@ export function getPoseDetectorHtml(
         var baseMessage = (err && err.name ? err.name + ': ' : '') + ((err && err.message) || 'Could not access camera');
         var message = baseMessage;
         if (err && err.name === 'NotReadableError') {
-          message = baseMessage + ' (Front camera may be in use by another app/session. Please retry.)';
+          message = baseMessage + '${copy.cameraInUseSuffix}';
         }
-        loadingEl.innerHTML = '<div style="color:#FF6B6B;font-size:16px;">Camera Error</div><div style="color:#aaa;font-size:14px;margin-top:8px;">' + message + '</div>';
+        loadingEl.innerHTML = '<div style="color:#FF6B6B;font-size:16px;">${copy.cameraErrorTitle}</div><div style="color:#aaa;font-size:14px;margin-top:8px;">' + message + '</div>';
         sendToRN({ type: 'error', message: message });
       }
     }

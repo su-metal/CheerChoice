@@ -15,6 +15,7 @@
     "unknownError": "Unknown error occurred"
   },
   "navigation": {
+    "home": "Home",
     "camera": "Take a Photo",
     "result": "Calorie Analysis",
     "skipped": "Amazing!",
@@ -26,6 +27,7 @@
     "settings": "Settings"
   },
   "home": {
+    "brandName": "CheerChoice",
     "subtitle": "Your positive health companion",
     "mainButton": "Take a Photo",
     "mainButtonSubtext": "Snap your food to get started",
@@ -46,7 +48,21 @@
     "noActivitySubtext": "Take your first photo to get started!",
     "goalProgressTitle": "Daily Goal Progress",
     "goalReached": "You hit your goal today!",
-    "goalRemaining": "%{count} kcal to your goal"
+    "goalRemaining": "%{count} kcal to your goal",
+    "heroTitle": "Log Meal",
+    "goalEyebrow": "Goal Progress",
+    "goalValueLeft": "%{count} kcal left",
+    "pendingTasks": "Pending Tasks",
+    "viewAllCaps": "View All",
+    "allCaughtUp": "You're all caught up! 🌟",
+    "recentLabel": "%{choice} • %{time}",
+    "taskMinutesLeft": "%{count} min left",
+    "taskSquatsLeft": "%{count} squats left",
+    "taskRepsLeft": "%{count} reps left",
+    "moveModalTitle": "Pending Tasks",
+    "moveModalClose": "Close",
+    "recoveryTitle": "Energy Recovered!",
+    "recoveryText": "Your metabolism is ready for the next challenge."
   },
   "camera": {
     "loading": "Loading camera...",
@@ -71,6 +87,7 @@
     "errorTakePhoto": "Failed to take picture. Please try again."
   },
   "result": {
+    "analysisTitle": "Calorie Analysis",
     "loadingTitle": "Analyzing your food...",
     "loadingSubtext": "Using AI to estimate calories",
     "range": "Range: %{min} - %{max} kcal",
@@ -78,12 +95,18 @@
     "confidence": "Confidence",
     "lowConfidenceWarning": "Low confidence. You may want to adjust the estimate.",
     "choiceTitle": "What do you want to do?",
+    "choiceHeading": "Choose your next step",
     "skipIt": "Skip It",
     "skipSubtext": "Save %{calories} kcal",
+    "skipDetailedSubtext": "Save %{calories} kcal for later",
     "eatIt": "Eat It",
     "eatSubtext": "Balance with exercise",
+    "eatDetailedTitle": "Eat it!",
+    "eatDetailedSubtext": "Show exercise menu to burn this",
     "manualLabel": "Manual Entry",
     "editEstimate": "Edit estimation",
+    "confidenceValue": "AI Confidence: %{confidence}%",
+    "retakePhoto": "Retake photo",
     "identifyProduct": "Identify Product Name",
     "identifyProductPremium": "Identify Product Name (Premium)",
     "identifyProductPremiumTitle": "Premium feature",
@@ -102,17 +125,24 @@
   },
   "skipped": {
     "savingProgress": "Saving your progress...",
+    "celebrationTitle": "Amazing!",
     "currentLabel": "You saved",
     "foodNameProgress": "by skipping %{foodName}",
     "progressTitle": "Your Progress",
-    "backHome": "Back to Home"
+    "backHome": "Back to Home",
+    "statUnitSaved": "kcal saved",
+    "statUnitTotal": "kcal total"
   },
   "exerciseSelect": {
+    "headerTitle": "Great! Let's eat and burn! 😋",
+    "headerSubtitle": "Choose a move to burn %{calories} kcal from %{foodName} 💜",
     "subtitle": "Balance your %{foodName} (%{calories} kcal) with movement!",
     "reps": "reps",
     "setsHint": "(%{sets} sets of 20)",
     "maybeLater": "Maybe Later",
-    "footer": "No pressure! Every choice you make is a step forward"
+    "footer": "No pressure! Every choice you make is a step forward",
+    "laterButton": "Decide later (Back to Home)",
+    "squatBadge": "10 reps x %{sets} sets"
   },
   "exercise": {
     "alertCompleteTitle": "Amazing!",
@@ -128,6 +158,15 @@
     "errorHint": "This feature requires a Development Build.\nExpo Go may not support WebView camera access.",
     "loadingModel": "Loading AI Model...",
     "targetLabel": "Target: %{targetReps} reps",
+    "headerSubtitle": "Real-time tracking",
+    "targetShort": "Target",
+    "modeMotion": "Motion",
+    "modeTap": "Tap",
+    "progressLabel": "Workout Progress",
+    "progressValue": "%{percent}% complete",
+    "adjust": "Adjust",
+    "tapAction": "Tap!",
+    "flip": "Flip",
     "motionMode": "Motion",
     "tapMode": "Tap",
     "tapToCount": "Tap +1",
@@ -153,12 +192,17 @@
   },
   "manualEntry": {
     "heading": "Enter your food details",
+    "subheading": "Enter what you ate to track calories",
     "foodName": "Food name",
     "foodNamePlaceholder": "e.g. Caesar Salad",
     "calories": "Estimated calories",
     "caloriesPlaceholder": "e.g. 350",
     "quickPicks": "Quick picks",
-    "continue": "Continue"
+    "continue": "Continue",
+    "quickPickSalad": "Salad",
+    "quickPickPizza": "Pizza",
+    "quickPickBurger": "Burger",
+    "quickPickCake": "Cake"
   },
   "onboarding": {
     "skip": "Skip",
@@ -175,6 +219,13 @@
     "title": "History",
     "ate": "Ate",
     "skipped": "Skipped",
+    "savedBadge": "SAVED",
+    "mealAteDescription": "Meal enjoyed and recorded.",
+    "mealSkippedDescription": "Skipped this meal to save calories.",
+    "exerciseDetails": "20 mins • -%{calories} kcal",
+    "calendarComingSoonTitle": "Coming Soon",
+    "calendarComingSoonBody": "Calendar view is planned for V3.",
+    "todayBadge": "Today",
     "loading": "Loading your activity...",
     "deleteTitle": "Delete record",
     "deleteMessage": "Are you sure you want to delete this record?",
@@ -205,6 +256,33 @@
     "totalReps": "Total reps: %{count}",
     "totalBurned": "Burned: %{count} kcal"
   },
+  "statsExtended": {
+    "headerTitle": "Reports",
+    "periodWeek": "Week",
+    "periodMonth": "Month",
+    "heroLabel": "Calories Saved",
+    "comparisonUp": "%{percent}% from last %{period}",
+    "comparisonDown": "%{percent}% below last %{period}",
+    "periodWordWeek": "week",
+    "periodWordMonth": "month",
+    "kpiBurned": "Burned",
+    "kpiPending": "Pending",
+    "kpiTasks": "tasks",
+    "trendEyebrow": "Saved kcal Trend",
+    "trendTitle": "Daily progress tracking",
+    "avgLabel": "Avg",
+    "metricSkipped": "Skipped",
+    "metricRecovered": "Recovered",
+    "metricWorkouts": "Workouts",
+    "pendingTitle": "Pending recovery",
+    "pendingCaughtUp": "You are fully caught up",
+    "pendingRemaining": "%{count} offsets remaining",
+    "pendingButton": "Resume Plan",
+    "insightHigh": "You saved %{count} kcal this %{period}. Your consistency is getting stronger!",
+    "insightMedium": "You saved %{count} kcal this %{period}. Your momentum is building nicely.",
+    "insightLow": "You saved %{count} kcal this %{period}. Every small choice is adding up.",
+    "insightNone": "No saved calories yet this %{period}. Your next smart choice can start the streak."
+  },
   "recovery": {
     "todayTitle": "Today's Move",
     "todayRemaining": "%{count} reps to go",
@@ -218,6 +296,7 @@
     "resetHint": "Fresh restart every Monday"
   },
   "settings": {
+    "title": "Settings",
     "goals": "Goals",
     "dailyGoal": "Daily Calorie Goal",
     "preferences": "Preferences",
@@ -265,7 +344,31 @@
     "legalUrlMissingBody": "This link is not configured yet. Please contact the app owner.",
     "legalOpenFailed": "Failed to open link.",
     "tagline": "Your positive health companion",
-    "version": "Version %{value}"
+    "version": "Version %{value}",
+    "profileName": "CheerChoice User",
+    "profileEmail": "Positive health companion",
+    "premiumActive": "Premium Active",
+    "premiumInactive": "Go Premium",
+    "premiumActiveBody": "Thank you for your support!",
+    "premiumInactiveBody": "Unlock AI analysis and full stats.",
+    "sectionGoals": "Target & Goals",
+    "sectionPreference": "Preference",
+    "sectionData": "Data Management",
+    "sectionSupport": "Support & Legal",
+    "logout": "Logout"
+  },
+  "exerciseComplete": {
+    "topTitle": "Goal Achieved",
+    "banner": "Mission Complete",
+    "headline": "Incredible Choice! ✨",
+    "valueLabel": "Burned!",
+    "summary": "%{foodName} balanced with %{count} reps completed.",
+    "loadingProgress": "Loading progress...",
+    "goalProgress": "%{percent}% to goal",
+    "goalReachedSubtitle": "You're on fire today! 🔥",
+    "goalBuildingSubtitle": "Your momentum is building!",
+    "backHome": "Back to Dashboard",
+    "viewBreakdown": "View detailed breakdown"
   },
   "messages": {
     "skipped": {

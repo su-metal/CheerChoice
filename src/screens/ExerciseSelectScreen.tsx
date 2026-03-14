@@ -95,9 +95,9 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* ヘッダーメッセージ */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Great! Let's eat and{'\n'}burn! 😋</Text>
+          <Text style={styles.headerTitle}>{t('exerciseSelect.headerTitle')}</Text>
           <Text style={styles.headerSubtitle}>
-            Choose a menu to burn <Text style={styles.highlightText}>{calories}kcal</Text> from {foodName} 💜
+            {t('exerciseSelect.headerSubtitle', { calories, foodName })}
           </Text>
         </View>
 
@@ -133,7 +133,9 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
                     <Text style={styles.exerciseDescription}>{t(`exercise.types.${exercise.id}.description`)}</Text>
                     <View style={styles.metricBadge}>
                       <Text style={styles.metricBadgeText}>
-                        {exercise.id === 'squat' ? `10 REPS X ${sets} SETS` : `${recommendedReps} ${t('exerciseSelect.reps')}`}
+                        {exercise.id === 'squat'
+                          ? t('exerciseSelect.squatBadge', { sets })
+                          : `${recommendedReps} ${t('exerciseSelect.reps')}`}
                       </Text>
                     </View>
                   </View>
@@ -155,12 +157,12 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
             onPress={handleMaybeLater}
             disabled={isNavigating}
           >
-            <Text style={styles.maybeLaterText}>Decide later (Back to Home)</Text>
+            <Text style={styles.maybeLaterText}>{t('exerciseSelect.laterButton')}</Text>
           </TouchableOpacity>
 
           {/* 励ましメッセージ */}
           <Text style={styles.footerText}>
-            Do your best at your own pace! 🌟
+            {t('exerciseSelect.footer')}
           </Text>
         </View>
       </ScrollView>

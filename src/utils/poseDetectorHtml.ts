@@ -24,27 +24,43 @@ export function getPoseDetectorHtml(
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
-      width: 100%; height: 100%;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
       background: #000;
     }
+    :root {
+      --app-height: 100vh;
+    }
     #video-container {
-      position: relative;
-      width: 100%; height: 100%;
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: var(--app-height);
+      min-height: var(--app-height);
+      overflow: hidden;
+      background: #000;
     }
     video {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      object-fit: cover;
-      transform: scaleX(-1);
+      position: fixed;
+      top: -9999px;
+      left: -9999px;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
     }
     canvas {
       position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
+      inset: 0;
+      width: 100vw;
+      height: var(--app-height);
+      min-width: 100vw;
+      min-height: var(--app-height);
       object-fit: cover;
+      object-position: center center;
       transform: scaleX(-1);
+      display: block;
     }
     #loading {
       position: absolute;
@@ -141,9 +157,43 @@ export function getPoseDetectorHtml(
     // ============================================
     const videoEl = document.getElementById('camera');
     const canvasEl = document.getElementById('pose-canvas');
+    const videoContainerEl = document.getElementById('video-container');
     const loadingEl = document.getElementById('loading');
     const guideEl = document.getElementById('guide');
     const ctx = canvasEl.getContext('2d');
+
+    function syncViewportHeight() {
+      var height = window.innerHeight || document.documentElement.clientHeight || screen.height || 0;
+      var width = window.innerWidth || document.documentElement.clientWidth || screen.width || 0;
+      if (height > 0) {
+        document.documentElement.style.setProperty('--app-height', height + 'px');
+        document.body.style.height = height + 'px';
+        document.body.style.minHeight = height + 'px';
+        document.body.style.width = width + 'px';
+        document.body.style.position = 'fixed';
+        document.body.style.inset = '0';
+        if (videoContainerEl) {
+          videoContainerEl.style.height = height + 'px';
+          videoContainerEl.style.minHeight = height + 'px';
+          videoContainerEl.style.width = width + 'px';
+        }
+        if (videoEl) {
+          videoEl.style.width = '1px';
+          videoEl.style.height = '1px';
+        }
+        if (canvasEl) {
+          canvasEl.style.height = height + 'px';
+          canvasEl.style.minHeight = height + 'px';
+          canvasEl.style.width = width + 'px';
+          canvasEl.width = width;
+          canvasEl.height = height;
+        }
+      }
+    }
+
+    syncViewportHeight();
+    window.addEventListener('resize', syncViewportHeight);
+    window.addEventListener('orientationchange', syncViewportHeight);
 
     // ============================================
     // RN Communication
@@ -375,6 +425,28 @@ export function getPoseDetectorHtml(
       });
     }
 
+    function drawCameraFrame(image) {
+      if (!image || !canvasEl.width || !canvasEl.height) {
+        return;
+      }
+
+      var sourceWidth = image.videoWidth || image.width || 0;
+      var sourceHeight = image.videoHeight || image.height || 0;
+      if (!sourceWidth || !sourceHeight) {
+        return;
+      }
+
+      var targetWidth = canvasEl.width;
+      var targetHeight = canvasEl.height;
+      var scale = Math.max(targetWidth / sourceWidth, targetHeight / sourceHeight);
+      var drawWidth = sourceWidth * scale;
+      var drawHeight = sourceHeight * scale;
+      var offsetX = (targetWidth - drawWidth) / 2;
+      var offsetY = (targetHeight - drawHeight) / 2;
+
+      ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+    }
+
     // ============================================
     // Guide helpers
     // ============================================
@@ -392,6 +464,7 @@ export function getPoseDetectorHtml(
     // ============================================
     function onPoseResults(results) {
       ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+      drawCameraFrame(results.image || videoEl);
 
       if (!results.poseLandmarks) {
         state.isCountPosture = false;
@@ -521,6 +594,7 @@ export function getPoseDetectorHtml(
         var stream = await getCameraStreamWithFallback();
         currentStream = stream;
         videoEl.srcObject = stream;
+        syncViewportHeight();
 
         // Some WebViews reject play() promise without user gesture.
         // Do not treat this as fatal if frames can still be read.
@@ -543,8 +617,7 @@ export function getPoseDetectorHtml(
           check();
         });
 
-        canvasEl.width = videoEl.videoWidth;
-        canvasEl.height = videoEl.videoHeight;
+        syncViewportHeight();
 
         // Now init MediaPipe
         var pose = new Pose({

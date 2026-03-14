@@ -12,10 +12,11 @@ import { RouteProp } from '@react-navigation/native';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { EXERCISE_LIST, ExerciseDefinition } from '../constants/Exercises';
-import { calculateRecommendedReps, isTooManyReps, calculateSets } from '../utils/exerciseCalculator';
+import { calculateRecommendedReps, calculateSets } from '../utils/exerciseCalculator';
 import { t } from '../i18n';
 import { updateExerciseObligationTarget } from '../services/recoveryService';
 import SafeLinearGradient from '../components/SafeLinearGradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 type ExerciseSelectScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -28,11 +29,11 @@ type Props = {
   route: ExerciseSelectScreenRouteProp;
 };
 
-// 運動ごとのテーマカラー
+// 運動ごとのテーマカラー (Stitchのデザインに合わせた鮮やかなグラデーション)
 const EXERCISE_THEMES: Record<string, { colors: [string, string, ...string[]] }> = {
-  squat: { colors: ['#4DA1FF', '#4D6AFF'] },
-  situp: { colors: ['#9D62FF', '#623AA2'] },
-  pushup: { colors: ['#FF5E62', '#FF9966'] },
+  squat: { colors: ['#FF0066', '#CC33FF'] }, // Magenta -> Purple
+  situp: { colors: ['#FF3399', '#FF9933'] }, // Pink -> Orange
+  pushup: { colors: ['#FF0033', '#FF66CC'] }, // PinkRed -> Rose
 };
 
 export default function ExerciseSelectScreen({ navigation, route }: Props) {
@@ -63,7 +64,7 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
     });
   }
 
-  // 「Maybe Later」ボタンの処理
+  // 「Decide later」ボタンの処理
   function handleMaybeLater() {
     if (isNavigating) {
       return;
@@ -74,12 +75,26 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.topBar}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.goBack()}
+          disabled={isNavigating}
+        >
+          <MaterialCommunityIcons name="chevron-left" size={30} color={Colors.text} />
+        </TouchableOpacity>
+        <View style={styles.calorieBadge}>
+          <MaterialCommunityIcons name="fire" size={16} color="#FF3399" />
+          <Text style={styles.calorieBadgeText}>{calories}</Text>
+        </View>
+      </View>
+
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* ヘッダーメッセージ */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Nice meal!{'\n'}Now pick your mission.</Text>
+          <Text style={styles.headerTitle}>Great! Let's eat and{'\n'}burn! 😋</Text>
           <Text style={styles.headerSubtitle}>
-            You just had {foodName}.{'\n'}Let's burn {calories} calories together! 💜
+            Choose a menu to burn <Text style={styles.highlightText}>{calories}kcal</Text> from {foodName} 💜
           </Text>
         </View>
 
@@ -87,9 +102,8 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
         <View style={styles.exerciseList}>
           {EXERCISE_LIST.map((exercise) => {
             const recommendedReps = calculateRecommendedReps(calories, exercise);
-            const tooMany = isTooManyReps(recommendedReps);
             const sets = calculateSets(recommendedReps);
-            const theme = EXERCISE_THEMES[exercise.id] || { colors: [Colors.primary, Colors.secondary] };
+            const theme = EXERCISE_THEMES[exercise.id] || { colors: ['#FF9900', '#FFCC00'] };
 
             return (
               <TouchableOpacity
@@ -103,23 +117,27 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
                   colors={theme.colors}
                   style={[styles.exerciseCard, isNavigating && styles.exerciseCardDisabled]}
                   start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
+                  end={{ x: 1, y: 0.5 }}
                 >
-                  <View style={styles.exerciseIcon}>
-                    <Text style={styles.iconText}>{exercise.icon}</Text>
+                  <View style={styles.exerciseIconContainer}>
+                    <View style={styles.iconCircle}>
+                      <Text style={styles.iconText}>{exercise.icon}</Text>
+                    </View>
                   </View>
 
                   <View style={styles.exerciseInfo}>
                     <Text style={styles.exerciseName}>{t(`exercise.types.${exercise.id}.name`)}</Text>
                     <Text style={styles.exerciseDescription}>{t(`exercise.types.${exercise.id}.description`)}</Text>
+                    <View style={styles.metricBadge}>
+                      <Text style={styles.metricBadgeText}>
+                        {exercise.id === 'squat' ? `10 REPS X ${sets} SETS` : `${recommendedReps} ${t('exerciseSelect.reps')}`}
+                      </Text>
+                    </View>
                   </View>
 
-                  <View style={styles.exerciseReps}>
-                    <Text style={styles.repsValue}>{recommendedReps}</Text>
-                    <Text style={styles.repsLabel}>{t('exerciseSelect.reps')}</Text>
-                    {tooMany && (
-                      <Text style={styles.setsHint}>{t('exerciseSelect.setsHint', { sets })}</Text>
-                    )}
+                  <View style={styles.exerciseMetrics}>
+                    <Text style={styles.metricsValue}>{recommendedReps}</Text>
+                    <Text style={styles.metricsLabel}>{t('exerciseSelect.reps').toUpperCase()}</Text>
                   </View>
                 </SafeLinearGradient>
               </TouchableOpacity>
@@ -127,19 +145,19 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
           })}
         </View>
 
-        {/* Maybe Laterボタン */}
+        {/* Decide laterボタン */}
         <View style={styles.footer}>
           <TouchableOpacity
             style={[styles.maybeLaterButton, isNavigating && styles.buttonDisabled]}
             onPress={handleMaybeLater}
             disabled={isNavigating}
           >
-            <Text style={styles.maybeLaterText}>{t('exerciseSelect.maybeLater')}</Text>
+            <Text style={styles.maybeLaterText}>Decide later (Back to Home)</Text>
           </TouchableOpacity>
 
           {/* 励ましメッセージ */}
           <Text style={styles.footerText}>
-            Every step counts towards your goal! 🌟
+            Do your best at your own pace! 🌟
           </Text>
         </View>
       </ScrollView>
@@ -150,118 +168,166 @@ export default function ExerciseSelectScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#FDF8FB', // デザインに合わせた淡い背景
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadows.sm,
+  },
+  calorieBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 51, 153, 0.15)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  calorieBadgeText: {
+    ...Typography.bodySmall,
+    color: '#FF3399',
+    fontWeight: '900',
+    marginLeft: 4,
   },
   scrollView: {
     flex: 1,
   },
   content: {
     flexGrow: 1,
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xl,
   },
   header: {
-    alignItems: 'flex-start',
     marginBottom: Spacing.xl,
-    paddingHorizontal: Spacing.xs,
+    paddingHorizontal: 4,
   },
   headerTitle: {
     ...Typography.h2,
-    color: '#623AA2',
-    fontWeight: '900',
+    fontSize: 34,
+    color: Colors.text,
+    lineHeight: 40,
     marginBottom: Spacing.md,
-    lineHeight: 34,
   },
   headerSubtitle: {
     ...Typography.bodyLarge,
     color: Colors.textLight,
-    lineHeight: 22,
+    lineHeight: 24,
+  },
+  highlightText: {
+    color: '#FF3399',
+    fontWeight: '800',
   },
   exerciseList: {
     marginBottom: Spacing.xl,
   },
   cardContainer: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
     ...Shadows.md,
   },
   exerciseCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: BorderRadius['5xl'],
-    padding: Spacing.xl,
+    borderRadius: 40,
+    padding: Spacing.lg,
+    minHeight: 120,
   },
   exerciseCardDisabled: {
     opacity: 0.6,
   },
-  exerciseIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+  exerciseIconContainer: {
+    marginRight: Spacing.md,
+  },
+  iconCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.lg,
   },
   iconText: {
-    fontSize: 36,
+    fontSize: 34,
   },
   exerciseInfo: {
     flex: 1,
+    justifyContent: 'center',
   },
   exerciseName: {
     ...Typography.h4,
     color: Colors.white,
-    fontWeight: '800',
-    marginBottom: 4,
+    fontWeight: '900',
+    marginBottom: 2,
   },
   exerciseDescription: {
-    ...Typography.bodySmall,
+    fontSize: 12,
     color: Colors.white,
-    opacity: 0.85,
+    opacity: 0.9,
+    marginBottom: 8,
+    fontWeight: '600',
   },
-  exerciseReps: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.xl,
-    minWidth: 70,
+  metricBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
   },
-  repsValue: {
-    ...Typography.h3,
+  metricBadgeText: {
+    fontSize: 11,
     color: Colors.white,
     fontWeight: '900',
+    textTransform: 'uppercase',
   },
-  repsLabel: {
-    ...Typography.caption,
-    color: Colors.white,
-    fontWeight: '700',
-    marginTop: -2,
+  exerciseMetrics: {
+    alignItems: 'flex-end',
+    minWidth: 80,
   },
-  setsHint: {
-    ...Typography.caption,
+  metricsValue: {
+    fontSize: 38,
     color: Colors.white,
-    opacity: 0.8,
-    marginTop: 2,
+    fontWeight: '900',
+    lineHeight: 44,
+  },
+  metricsLabel: {
     fontSize: 10,
+    color: Colors.white,
+    fontWeight: '800',
+    marginTop: -4,
+    opacity: 0.9,
   },
   footer: {
-    marginTop: 'auto',
-    paddingBottom: Spacing.lg,
+    marginTop: Spacing.md,
+    alignItems: 'center',
   },
   maybeLaterButton: {
-    backgroundColor: '#F0F0F0',
-    paddingVertical: Spacing.lg,
-    borderRadius: BorderRadius['4xl'],
+    backgroundColor: '#F2F3F7',
+    paddingVertical: 18,
+    paddingHorizontal: 32,
+    borderRadius: 30,
+    width: '100%',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.xl,
   },
   buttonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   maybeLaterText: {
     ...Typography.button,
     color: Colors.textLight,
-    fontWeight: '800',
+    fontWeight: '700',
+    fontSize: 15,
   },
   footerText: {
     ...Typography.bodySmall,

@@ -301,32 +301,44 @@ export default function ResultScreen({ navigation, route }: Props) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 写真プレビュー / グラデーションヘッダー */}
-        <View style={styles.headerContainer}>
+        {/* 背景画像 / ヘッダー */}
+        <View style={styles.headerImageContainer}>
           {photoUri ? (
-            <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+            <Image source={{ uri: photoUri }} style={styles.headerImage} />
           ) : (
             <SafeLinearGradient
               colors={[Colors.primary, Colors.primaryDark]}
-              style={styles.manualHeader}
+              style={styles.manualHeaderGradient}
             >
-              <MaterialCommunityIcons name="silverware-fork-knife" size={64} color={Colors.surface} />
+              <MaterialCommunityIcons name="silverware-fork-knife" size={80} color={Colors.whiteTransparent} />
             </SafeLinearGradient>
           )}
+          
+          {/* ヘッダーオーバーレイ (グラデーション) */}
+          <SafeLinearGradient
+            colors={['rgba(0,0,0,0.5)', 'transparent', 'rgba(0,0,0,0.4)']}
+            style={StyleSheet.absoluteFill}
+          />
 
-          {/* 結果概要オーバーレイ */}
-          <View style={styles.headerOverlay}>
+          {/* 上部ナビゲーション */}
+          <SafeAreaView edges={['top']} style={styles.headerNav}>
+            <TouchableOpacity 
+              style={styles.navButton} 
+              onPress={() => navigation.navigate('Camera')}
+            >
+              <MaterialCommunityIcons name="chevron-left" size={28} color={Colors.surface} />
+            </TouchableOpacity>
+            
             <Text style={styles.headerTitle}>{t('result.analysisTitle')}</Text>
-            <View style={styles.celebrationBadge}>
-              <Text style={styles.celebrationText}>
-                {result.confidence > 80 ? '🎯 Excellent' : '✅ Analyzed'}
-              </Text>
-            </View>
-          </View>
+            
+            <TouchableOpacity style={styles.navButton}>
+              <MaterialCommunityIcons name="dots-horizontal" size={28} color={Colors.surface} />
+            </TouchableOpacity>
+          </SafeAreaView>
         </View>
 
-        {/* カロリー情報カード */}
-        <View style={[styles.resultCard, isEditing && styles.resultCardEditing]}>
+        {/* メイン結果カード (フローティング) */}
+        <View style={[styles.floatingCard, isEditing && styles.floatingCardEditing]}>
           {isEditing ? (
             <View style={styles.editForm}>
               <Text style={styles.inputLabel}>{t('result.foodNameLabel')}</Text>
@@ -365,140 +377,87 @@ export default function ResultScreen({ navigation, route }: Props) {
             </View>
           ) : (
             <>
-              <Text style={styles.foodName}>{result.foodName}</Text>
-
-              <View style={styles.calorieContainer}>
-                <Text style={styles.calorieValue}>{result.estimatedCalories}</Text>
-                <Text style={styles.calorieUnit}>kcal</Text>
+              <View style={styles.cardHeaderRow}>
+                <Text style={styles.foodName}>{result.foodName}</Text>
+                <TouchableOpacity onPress={startEdit}>
+                  <Text style={styles.editResultLink}>{t('result.editEstimate')}</Text>
+                </TouchableOpacity>
               </View>
 
-              <View style={styles.rangeBadge}>
-                <Text style={styles.rangeText}>
-                  {t('result.range', { min: result.calorieRange.min, max: result.calorieRange.max })}
-                </Text>
+              <View style={styles.calorieDisplay}>
+                <Text style={styles.calorieNumber}>{result.estimatedCalories}</Text>
+                <Text style={styles.calorieLabel}>kcal</Text>
               </View>
 
-              <View style={styles.divider} />
-
-              <View style={styles.metaGrid}>
-                <View style={styles.metaBox}>
-                  <MaterialCommunityIcons name="scale-balance" size={20} color={Colors.textLight} />
-                  <Text style={styles.metaLabel}>{t('result.portionSize')}</Text>
-                  <Text style={styles.metaValue}>{result.portionSize}</Text>
+              <View style={styles.badgeContainer}>
+                <View style={styles.badge}>
+                  <MaterialCommunityIcons name="scale-balance" size={14} color={Colors.primary} style={styles.badgeIcon} />
+                  <Text style={styles.badgeText}>
+                    {t('result.range', { min: result.calorieRange.min, max: result.calorieRange.max })}
+                  </Text>
                 </View>
-                <View style={[styles.metaBox, styles.metaBoxBorder]}>
-                  <MaterialCommunityIcons name="robot" size={20} color={Colors.textLight} />
-                  <Text style={styles.metaLabel}>{t('result.confidence')}</Text>
-                  <Text style={styles.metaValue}>
-                    {isManualEntry ? t('result.manualLabel') : `${result.confidence}%`}
+                <View style={styles.badge}>
+                  <MaterialCommunityIcons name="food-apple" size={14} color={Colors.primary} style={styles.badgeIcon} />
+                  <Text style={styles.badgeText}>{result.portionSize}</Text>
+                </View>
+                <View style={styles.badge}>
+                  <MaterialCommunityIcons name="auto-fix" size={14} color={Colors.primary} style={styles.badgeIcon} />
+                  <Text style={styles.badgeText}>
+                    {isManualEntry ? t('result.manualLabel') : `AI Confidence: ${result.confidence}%`}
                   </Text>
                 </View>
               </View>
-
-              <View style={styles.actionRow}>
-                <TouchableOpacity style={styles.textEditButton} onPress={startEdit}>
-                  <MaterialCommunityIcons name="pencil-outline" size={16} color={Colors.primary} />
-                  <Text style={styles.textEditButtonText}>{t('result.editEstimate')}</Text>
-                </TouchableOpacity>
-
-                {!isManualEntry && (
-                  <TouchableOpacity
-                    style={[styles.premiumUpgradeIcon, !isPremium && styles.lockedIcon]}
-                    onPress={handleIdentifyProduct}
-                    disabled={isIdentifyingProduct}
-                  >
-                    {isIdentifyingProduct ? (
-                      <ActivityIndicator size="small" color={Colors.primary} />
-                    ) : (
-                      <>
-                        <MaterialCommunityIcons
-                          name={isPremium ? 'star' : 'trophy'}
-                          size={18}
-                          color={isPremium ? Colors.primary : Colors.textExtraLight}
-                        />
-                        <Text style={[styles.premiumText, !isPremium && styles.lockedText]}>
-                          {isPremium ? t('result.identifyProduct') : 'Detailed'}
-                        </Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                )}
-              </View>
             </>
-          )}
-
-          {!isManualEntry && !isEditing && result.confidence < 50 && (
-            <View style={styles.warningBanner}>
-              <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#856404" />
-              <Text style={styles.warningBannerText}>
-                {t('result.lowConfidenceWarning')}
-              </Text>
-            </View>
           )}
         </View>
 
-        {/* 意思決定セクション */}
-        <View style={styles.choiceSection}>
-          <Text style={styles.sectionTitle}>{t('result.choiceTitle')}</Text>
+        {/* アクションセクション */}
+        <View style={styles.choiceContainer}>
+          <Text style={styles.choiceHeading}>DECIDE YOUR FATE</Text>
 
+          {/* Skip It ボタン */}
           <TouchableOpacity
-            style={[styles.mainChoiceButton, styles.eatChoice, isSubmittingChoice && styles.choiceLoading]}
+            style={[styles.actionButton, styles.skipButton]}
+            disabled={isSubmittingChoice}
+            onPress={() => handleChoice('skipped')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.skipIcon}>🌟</Text>
+            <View style={styles.buttonTextContent}>
+              <Text style={styles.skipTitle}>Skip it</Text>
+              <Text style={styles.skipSubtext}>Save {result.estimatedCalories} kcal for later</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Eat It ボタン */}
+          <TouchableOpacity
+            style={[styles.actionButton, styles.eatButtonContainer]}
             disabled={isSubmittingChoice}
             onPress={() => handleChoice('ate')}
             activeOpacity={0.9}
           >
             <SafeLinearGradient
-              colors={[Colors.accent, '#FF9A8B']}
+              colors={['#f425af', '#ff8c42']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={styles.choiceGradient}
+              style={styles.eatButtonGradient}
             >
-              <View style={styles.choiceIconContainer}>
-                <MaterialCommunityIcons name="silverware-fork-knife" size={32} color={Colors.surface} />
+              <MaterialCommunityIcons name="silverware-fork-knife" size={24} color={Colors.surface} style={styles.eatIcon} />
+              <View style={styles.buttonTextContent}>
+                <Text style={styles.eatTitle}>EAT IT!</Text>
+                <Text style={styles.eatSubtext}>Show exercise menu to burn this</Text>
               </View>
-              <View style={styles.choiceTextContainer}>
-                <Text style={styles.choiceHeading}>{t('result.eatIt')}</Text>
-                <Text style={styles.choiceDescription}>{t('result.eatSubtext')}</Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.surface} />
-            </SafeLinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.mainChoiceButton, styles.skipChoice, isSubmittingChoice && styles.choiceLoading]}
-            disabled={isSubmittingChoice}
-            onPress={() => handleChoice('skipped')}
-            activeOpacity={0.9}
-          >
-            <SafeLinearGradient
-              colors={['#4facfe', '#00f2fe']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.choiceGradient}
-            >
-              <View style={styles.choiceIconContainer}>
-                <MaterialCommunityIcons name="star-face" size={32} color={Colors.surface} />
-              </View>
-              <View style={styles.choiceTextContainer}>
-                <Text style={styles.choiceHeading}>{t('result.skipIt')}</Text>
-                <Text style={styles.choiceDescription}>
-                  {t('result.skipSubtext', { calories: result.estimatedCalories })}
-                </Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.surface} />
             </SafeLinearGradient>
           </TouchableOpacity>
         </View>
 
-        {/* セカンダリアクション */}
+        {/* 撮り直しアクション */}
         <TouchableOpacity
-          style={styles.retakeAction}
+          style={styles.retakeContainer}
           onPress={() => navigation.navigate('Camera')}
         >
-          <MaterialCommunityIcons name="camera-retake-outline" size={20} color={Colors.textLight} />
-          <Text style={styles.retakeActionText}>
-            {isManualEntry ? t('result.backToCamera') : t('result.takeAnotherPhoto')}
-          </Text>
+          <MaterialCommunityIcons name="refresh" size={20} color={Colors.textLight} />
+          <Text style={styles.retakeText}>Retake photo</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -508,12 +467,7 @@ export default function ResultScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
-  },
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.xl,
+    backgroundColor: '#F7F8FA',
   },
   scrollView: {
     flex: 1,
@@ -521,181 +475,196 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: Spacing['4xl'],
   },
-  headerContainer: {
+  // ヘッダー画像
+  headerImageContainer: {
     width: '100%',
-    height: 300,
-    backgroundColor: Colors.surface,
+    height: 400,
     position: 'relative',
   },
-  photoPreview: {
+  headerImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
-  manualHeader: {
+  manualHeaderGradient: {
     width: '100%',
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerOverlay: {
+  headerNav: {
     position: 'absolute',
-    bottom: 0,
+    top: 0,
     left: 0,
     right: 0,
-    padding: Spacing.xl,
-    paddingTop: Spacing.xl * 2,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  headerTitle: {
-    ...Typography.h3,
-    color: Colors.surface,
-    marginBottom: Spacing.xs,
-  },
-  celebrationBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(121, 82, 179, 0.8)',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.full,
-  },
-  celebrationText: {
-    ...Typography.caption,
-    color: Colors.surface,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  resultCard: {
-    backgroundColor: Colors.surface,
-    marginHorizontal: Spacing.lg,
-    marginTop: -Spacing.xl,
-    padding: Spacing.xl,
-    borderRadius: BorderRadius['2xl'],
-    ...Shadows.lg,
-  },
-  resultCardEditing: {
-    marginTop: Spacing.lg,
-  },
-  foodName: {
-    ...Typography.h4,
-    color: Colors.text,
-    textAlign: 'center',
-    marginBottom: Spacing.sm,
-  },
-  calorieContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'baseline',
-    marginVertical: Spacing.sm,
-  },
-  calorieValue: {
-    ...Typography.h1,
-    color: Colors.primary,
-    fontSize: 72,
-    lineHeight: 80,
-  },
-  calorieUnit: {
-    ...Typography.h4,
-    color: Colors.primary,
-    marginLeft: Spacing.xs,
-    opacity: 0.8,
-  },
-  rangeBadge: {
-    alignSelf: 'center',
-    backgroundColor: Colors.background,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-    marginBottom: Spacing.lg,
-  },
-  rangeText: {
-    ...Typography.caption,
-    color: Colors.textLight,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.divider,
-    width: '80%',
-    alignSelf: 'center',
-    marginBottom: Spacing.lg,
-  },
-  metaGrid: {
-    flexDirection: 'row',
-    marginBottom: Spacing.lg,
-  },
-  metaBox: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-  },
-  metaBoxBorder: {
-    borderLeftWidth: 1,
-    borderLeftColor: Colors.divider,
-  },
-  metaLabel: {
-    ...Typography.caption,
-    color: Colors.textLight,
-    marginTop: Spacing.xs,
-    marginBottom: 2,
-  },
-  metaValue: {
-    ...Typography.bodySmall,
-    color: Colors.text,
-    fontWeight: '700',
-  },
-  actionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
   },
-  textEditButton: {
-    flexDirection: 'row',
+  navButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.sm,
   },
-  textEditButtonText: {
+  headerTitle: {
+    ...Typography.h4,
+    color: Colors.surface,
+    fontWeight: '700',
+  },
+  // フフローティングカード
+  floatingCard: {
+    backgroundColor: Colors.surface,
+    marginHorizontal: Spacing.xl,
+    marginTop: -80, // 画像に重ねる
+    padding: Spacing.xl,
+    borderRadius: 40, // 大きめの角丸
+    ...Shadows.lg,
+  },
+  floatingCardEditing: {
+    marginTop: Spacing.lg,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  foodName: {
+    ...Typography.h3,
+    color: Colors.text,
+    fontWeight: '800',
+    flex: 1,
+  },
+  editResultLink: {
     ...Typography.bodySmall,
     color: Colors.primary,
     fontWeight: '600',
-    marginLeft: 4,
   },
-  premiumUpgradeIcon: {
+  calorieDisplay: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: Spacing.lg,
+  },
+  calorieNumber: {
+    fontSize: 64,
+    fontWeight: '900',
+    color: Colors.primary,
+    lineHeight: 70,
+  },
+  calorieLabel: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.primary,
+    marginLeft: 8,
+  },
+  badgeContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.background,
-    paddingHorizontal: Spacing.md,
+    backgroundColor: '#FFF0F9',
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: BorderRadius.lg,
+    borderRadius: 20,
   },
-  lockedIcon: {
-    opacity: 0.6,
+  badgeIcon: {
+    marginRight: 4,
   },
-  premiumText: {
+  badgeText: {
     ...Typography.caption,
     color: Colors.primary,
+    fontWeight: '600',
+  },
+  // アクションセクション
+  choiceContainer: {
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xl,
+    alignItems: 'center',
+  },
+  choiceHeading: {
+    ...Typography.caption,
+    color: Colors.textLight,
+    letterSpacing: 1.5,
     fontWeight: '700',
-    marginLeft: 4,
+    marginBottom: Spacing.xl,
   },
-  lockedText: {
-    color: Colors.textExtraLight,
-  },
-  warningBanner: {
+  actionButton: {
+    width: '100%',
+    height: 90,
+    borderRadius: 30,
+    marginBottom: Spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFBE6',
-    borderWidth: 1,
-    borderColor: '#FFE58F',
-    padding: Spacing.sm,
-    borderRadius: BorderRadius.lg,
-    marginTop: Spacing.lg,
+    overflow: 'hidden',
   },
-  warningBannerText: {
+  skipButton: {
+    backgroundColor: '#E8EDF2',
+    paddingHorizontal: Spacing.xl,
+  },
+  skipIcon: {
+    fontSize: 32,
+    marginRight: Spacing.lg,
+  },
+  skipTitle: {
+    ...Typography.h4,
+    color: Colors.text,
+    fontWeight: '800',
+  },
+  skipSubtext: {
     ...Typography.caption,
-    color: '#856404',
-    marginLeft: Spacing.sm,
+    color: Colors.textLight,
+  },
+  eatButtonContainer: {
+    ...Shadows.md,
+    shadowColor: Colors.primary,
+  },
+  eatButtonGradient: {
+    flex: 1,
+    height: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+  eatIcon: {
+    marginRight: Spacing.lg,
+  },
+  eatTitle: {
+    ...Typography.h4,
+    color: Colors.surface,
+    fontWeight: '900',
+    fontStyle: 'italic',
+  },
+  eatSubtext: {
+    ...Typography.caption,
+    color: Colors.surface,
+    opacity: 0.9,
+  },
+  buttonTextContent: {
     flex: 1,
   },
+  // 撮り直し
+  retakeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.md,
+  },
+  retakeText: {
+    ...Typography.bodySmall,
+    color: Colors.textLight,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  // 編集フォーム (既存スタイル流用)
   editForm: {
     gap: Spacing.sm,
   },
@@ -734,7 +703,6 @@ const styles = StyleSheet.create({
     color: Colors.textLight,
   },
   editSaveButton: {
-    // Gradient handled by SafeLinearGradient child
   },
   gradientFill: {
     flex: 1,
@@ -745,68 +713,10 @@ const styles = StyleSheet.create({
     ...Typography.button,
     color: Colors.surface,
   },
-  choiceSection: {
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: Spacing.xl,
-  },
-  sectionTitle: {
-    ...Typography.h4,
-    color: Colors.text,
-    textAlign: 'center',
-    marginBottom: Spacing.xl,
-  },
-  mainChoiceButton: {
-    borderRadius: BorderRadius['2xl'],
-    overflow: 'hidden',
-    marginBottom: Spacing.lg,
-    ...Shadows.md,
-  },
-  eatChoice: {
-    shadowColor: Colors.accent,
-  },
-  skipChoice: {
-    shadowColor: '#4facfe',
-  },
-  choiceGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.lg,
-  },
-  choiceIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: BorderRadius.xl,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.md,
-  },
-  choiceTextContainer: {
-    flex: 1,
-  },
-  choiceHeading: {
-    ...Typography.h4,
-    color: Colors.surface,
-    marginBottom: 2,
-  },
-  choiceDescription: {
-    ...Typography.caption,
-    color: Colors.surface,
-    opacity: 0.9,
-  },
-  choiceLoading: {
-    opacity: 0.6,
-  },
-  retakeAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.md,
-  },
-  retakeActionText: {
-    ...Typography.bodySmall,
-    color: Colors.textLight,
-    marginLeft: Spacing.sm,
-    textDecorationLine: 'underline',
   },
   loadingText: {
     ...Typography.h4,
@@ -816,7 +726,7 @@ const styles = StyleSheet.create({
   loadingSubtext: {
     ...Typography.body,
     color: Colors.textLight,
-    marginTop: Spacing.xs,
+    marginTop: Spacing.sm,
   },
   errorContainer: {
     flex: 1,

@@ -17,6 +17,58 @@ EXPO_PUBLIC_TERMS_URL=...
 `EXPO_PUBLIC_SENTRY_TEST_EVENT` は開発時のみ `true` にし、本番ビルド前は `false` にしてください。
 `EXPO_PUBLIC_SUPABASE_LEGACY_ANON_JWT` は Edge Function が `Invalid JWT` を返す環境向けの暫定回避値です（未使用なら空で可）。
 
+## 開発起動
+
+### 前提
+
+1. Node.js / npm をインストール
+2. Android Studio をインストールし、Android Emulator を作成
+3. `.env` を作成して上記 Environment Variables を設定
+4. 依存関係をインストール
+
+```powershell
+npm install
+```
+
+### Android エミュレータで起動する
+
+このアプリは `expo-dev-client` とネイティブモジュール（例: `react-native-purchases`）を使っているため、**Development Build 前提**です。
+
+1. Android Studio でエミュレータを起動
+2. 初回は開発用ネイティブアプリをビルドしてインストール
+
+```powershell
+npm run android
+```
+
+3. Metro Bundler を起動
+
+```powershell
+npx expo start --dev-client
+```
+
+4. エミュレータ上で CheerChoice を開く
+
+補足:
+- 2回目以降、すでに開発用アプリがエミュレータに入っていれば `npx expo start --dev-client` だけで再起動できることがあります。
+- `npm run android` は `expo run:android` を実行します。
+
+### Expo Go で起動する場合
+
+このリポジトリは **Expo Go 非対応** と考えてください。
+
+理由:
+- `expo-dev-client` を利用している
+- `react-native-purchases` など、Expo Go に含まれないネイティブモジュールを使用している
+- カメラ / WebView 周りも Development Build のほうが安定する
+
+そのため、実機確認をする場合も Expo Go ではなく Development Build を使ってください。Android 実機で確認する場合は、端末をPCに接続した状態で以下を実行します。
+
+```powershell
+npm run android
+npx expo start --dev-client
+```
+
 ## Phase 13 (Edge Function)
 
 AI推定は `supabase/functions/calorie-estimation` を経由します。  

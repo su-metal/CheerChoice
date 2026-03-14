@@ -11,6 +11,7 @@ import { canUseAI, getRemainingAIUses } from '../services/usageService';
 import { PREMIUM_PRICE_USD } from '../config/appConfig';
 import { trackEvent } from '../services/analyticsService';
 import { refreshPremiumStatus } from '../services/subscriptionService';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ErrorCard from '../components/ErrorCard';
 
 type CameraScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Camera'>;
@@ -26,6 +27,7 @@ export default function CameraScreen({ navigation }: Props) {
   const [remaining, setRemaining] = useState(0);
   const [isUsingPhoto, setIsUsingPhoto] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
+  const [flash, setFlash] = useState<'off' | 'on'>('off');
   const cameraRef = useRef<CameraView>(null);
   const isFocused = useIsFocused();
 
@@ -183,6 +185,11 @@ export default function CameraScreen({ navigation }: Props) {
     );
   }
 
+  // フラッシュ切り替え
+  function toggleFlash() {
+    setFlash((current) => (current === 'off' ? 'on' : 'off'));
+  }
+
   // カメラフリップ機能
   function toggleCameraFacing() {
     setFacing((current) => (current === 'back' ? 'front' : 'back'));
@@ -212,66 +219,91 @@ export default function CameraScreen({ navigation }: Props) {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.cameraFrame}>
         {isFocused ? (
-          <CameraView style={styles.camera} facing={facing} ref={cameraRef} />
+          <CameraView style={styles.camera} facing={facing} flash={flash} ref={cameraRef} />
         ) : (
           <View style={styles.camera} />
         )}
         
-        {/* Meal Frame Overlay */}
-        <View style={styles.frameOverlay} pointerEvents="none">
-          <View style={styles.cornerTopLeft} />
-          <View style={styles.cornerTopRight} />
-          <View style={styles.cornerBottomLeft} />
-          <View style={styles.cornerBottomRight} />
-        </View>
+        {/* Center Area with Frame and Badges will be here via Overlay */}
 
         <View style={styles.cameraOverlay} pointerEvents="box-none">
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity style={styles.iconButton} onPress={() => navigation.goBack()}>
-              <Text style={styles.iconText}>✕</Text>
+              <MaterialCommunityIcons name="close" size={24} color={Colors.surface} />
             </TouchableOpacity>
-            <View style={styles.aiBadge}>
-              <View style={styles.aiPulse} />
-              <Text style={styles.aiBadgeText}>{t('camera.aiAnalysisActive')}</Text>
-            </View>
+            
             <View style={styles.topActions}>
-              <TouchableOpacity style={styles.iconButton} onPress={() => {}}>
-                <Text style={styles.iconText}>⚡</Text>
-              </TouchableOpacity>
               <TouchableOpacity style={styles.iconButton} onPress={toggleCameraFacing}>
-                <Text style={styles.iconText}>🔄</Text>
+                <MaterialCommunityIcons name="camera-flip" size={24} color={Colors.surface} />
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Bottom controls */}
-          <View style={styles.bottomControls}>
-            <Text style={styles.scanGuide}>{t('camera.scanGuide')}</Text>
-            
-            <View style={styles.mainControls}>
+          {/* Center Area with Frame and Badges */}
+          <View style={styles.centerArea} pointerEvents="box-none">
+            {/* Meal Frame Overlay */}
+            <View style={styles.frameContainer}>
+              <View style={styles.aiBadgeOnFrame}>
+                <View style={styles.aiPulse} />
+                <Text style={styles.aiBadgeText}>{t('camera.aiAnalysisActive')}</Text>
+              </View>
+              <View style={styles.frameCorners} pointerEvents="none">
+                <View style={styles.cornerTopLeft} />
+                <View style={styles.cornerTopRight} />
+                <View style={styles.cornerBottomLeft} />
+                <View style={styles.cornerBottomRight} />
+              </View>
+            </View>
+
+            {/* Info Badges (Remaining & Manual Entry) */}
+            <View style={styles.infoRow}>
+              <View style={styles.glassBadge}>
+                <View style={styles.pulseDot} />
+                <Text style={styles.glassBadgeText}>{t('camera.remaining', { count: remaining })}</Text>
+              </View>
               <TouchableOpacity 
-                style={styles.sideButton} 
+                style={styles.glassBadge}
                 onPress={() => navigation.navigate('ManualEntry')}
               >
-                <View style={[styles.glassIcon, { backgroundColor: 'rgba(255,140,66,0.15)' }]}>
-                  <Text style={styles.sideIcon}>⌨️</Text>
+                <Text style={[styles.glassBadgeText, { color: Colors.primary }]}>
+                  {t('camera.manualEntry')} <MaterialCommunityIcons name="keyboard-outline" size={16} color={Colors.primary} />
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.scanGuide}>{t('camera.scanGuide')}</Text>
+          </View>
+
+          {/* Bottom controls */}
+          <View style={styles.bottomSection}>
+            <View style={styles.mainControls}>
+              {/* Gallery Preview Placeholder */}
+              <TouchableOpacity style={styles.galleryButton}>
+                <View style={styles.galleryBox}>
+                  <Image source={{ uri: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100' }} style={styles.galleryImage} />
                 </View>
-                <Text style={styles.sideLabel}>{t('camera.manualEntry')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.shutterContainer} onPress={takePicture}>
                 <View style={styles.shutterOuter}>
-                  <View style={styles.shutterInner} />
+                  <View style={styles.shutterInner}>
+                    <MaterialCommunityIcons name="camera" size={36} color={Colors.primary} />
+                  </View>
                 </View>
               </TouchableOpacity>
 
-              <View style={styles.sideButton}>
-                <View style={styles.glassIcon}>
-                  <Text style={styles.sideIcon}>💎</Text>
-                </View>
-                <Text style={styles.sideLabel}>{t('camera.remaining', { count: remaining })}</Text>
-              </View>
+              <TouchableOpacity 
+                style={styles.controlButton} 
+                onPress={toggleFlash}
+              >
+                <MaterialCommunityIcons 
+                  name={flash === 'on' ? 'flash' : 'flash-off'} 
+                  size={24} 
+                  color={Colors.surface} 
+                  style={{ opacity: flash === 'on' ? 1 : 0.5 }}
+                />
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -287,81 +319,43 @@ const styles = StyleSheet.create({
   },
   cameraFrame: {
     flex: 1,
-    margin: Spacing.sm,
-    borderRadius: BorderRadius['2xl'],
     overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: 'rgba(244, 37, 175, 0.3)',
   },
   camera: {
     flex: 1,
   },
-  frameOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    padding: Spacing.xl,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cornerTopLeft: {
-    position: 'absolute',
-    top: 40,
-    left: 40,
-    width: 40,
-    height: 40,
-    borderTopWidth: 4,
-    borderLeftWidth: 4,
-    borderColor: Colors.primary,
-    borderTopLeftRadius: BorderRadius.lg,
-  },
-  cornerTopRight: {
-    position: 'absolute',
-    top: 40,
-    right: 40,
-    width: 40,
-    height: 40,
-    borderTopWidth: 4,
-    borderRightWidth: 4,
-    borderColor: Colors.primary,
-    borderTopRightRadius: BorderRadius.lg,
-  },
-  cornerBottomLeft: {
-    position: 'absolute',
-    bottom: 40,
-    left: 40,
-    width: 40,
-    height: 40,
-    borderBottomWidth: 4,
-    borderLeftWidth: 4,
-    borderColor: Colors.primary,
-    borderBottomLeftRadius: BorderRadius.lg,
-  },
-  cornerBottomRight: {
-    position: 'absolute',
-    bottom: 40,
-    right: 40,
-    width: 40,
-    height: 40,
-    borderBottomWidth: 4,
-    borderRightWidth: 4,
-    borderColor: Colors.primary,
-    borderBottomRightRadius: BorderRadius.lg,
-  },
   cameraOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'space-between',
-    padding: Spacing.lg,
+    paddingBottom: Spacing.xl,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
   },
-  aiBadge: {
+  centerArea: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  frameContainer: {
+    width: '85%',
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  aiBadgeOnFrame: {
+    position: 'absolute',
+    top: -12,
+    zIndex: 10,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
     ...Shadows.md,
@@ -378,10 +372,150 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.surface,
     letterSpacing: 1,
+    fontSize: 10,
   },
-  topActions: {
+  frameCorners: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  cornerTopLeft: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 40,
+    height: 40,
+    borderTopWidth: 4,
+    borderLeftWidth: 4,
+    borderColor: Colors.primary,
+    borderTopLeftRadius: BorderRadius.xl,
+  },
+  cornerTopRight: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 40,
+    height: 40,
+    borderTopWidth: 4,
+    borderRightWidth: 4,
+    borderColor: Colors.primary,
+    borderTopRightRadius: BorderRadius.xl,
+  },
+  cornerBottomLeft: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    width: 40,
+    height: 40,
+    borderBottomWidth: 4,
+    borderLeftWidth: 4,
+    borderColor: Colors.primary,
+    borderBottomLeftRadius: BorderRadius.xl,
+  },
+  cornerBottomRight: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 40,
+    height: 40,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
+    borderColor: Colors.primary,
+    borderBottomRightRadius: BorderRadius.xl,
+  },
+  infoRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
+    gap: Spacing.md,
+    marginTop: Spacing.xl,
+  },
+  glassBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  pulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.primary,
+    marginRight: Spacing.xs,
+  },
+  glassBadgeText: {
+    ...Typography.caption,
+    color: Colors.surface,
+    fontWeight: '600',
+  },
+  scanGuide: {
+    ...Typography.bodySmall,
+    color: Colors.surface,
+    marginTop: Spacing.lg,
+    opacity: 0.8,
+  },
+  bottomSection: {
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.md,
+  },
+  mainControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  galleryButton: {
+    width: 56,
+    height: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  galleryBox: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: Colors.surface,
+  },
+  galleryImage: {
+    width: '100%',
+    height: '100%',
+  },
+  shutterContainer: {
+    padding: 6,
+    borderRadius: 50,
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  shutterOuter: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: Colors.surface,
+    padding: 4,
+  },
+  shutterInner: {
+    flex: 1,
+    borderRadius: 38,
+    backgroundColor: Colors.surface,
+    borderWidth: 2,
+    borderColor: 'rgba(0,0,0,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shutterIcon: {
+    fontSize: 32,
+    color: Colors.primary,
+  },
+  controlButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   iconButton: {
     width: 44,
@@ -390,77 +524,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
   },
   iconText: {
     fontSize: 20,
-  },
-  bottomControls: {
-    paddingBottom: Spacing.xl,
-    alignItems: 'center',
-  },
-  scanGuide: {
-    ...Typography.bodySmall,
     color: Colors.surface,
-    textAlign: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.full,
-    marginBottom: Spacing.xl,
   },
-  mainControls: {
+  topActions: {
     flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    justifyContent: 'space-around',
-    paddingHorizontal: Spacing.md,
-  },
-  sideButton: {
-    alignItems: 'center',
-    width: 100,
-  },
-  glassIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    marginBottom: Spacing.xs,
-  },
-  sideIcon: {
-    fontSize: 20,
-  },
-  sideLabel: {
-    ...Typography.caption,
-    color: Colors.surface,
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  shutterContainer: {
-    padding: 4,
-    borderRadius: 50,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  shutterOuter: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.surface,
-    padding: 6,
-    ...Shadows.lg,
-  },
-  shutterInner: {
-    flex: 1,
-    borderRadius: 40,
-    borderWidth: 4,
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary,
+    gap: Spacing.sm,
   },
   loadingContainer: {
     flex: 1,
@@ -492,16 +563,12 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.md,
     backgroundColor: 'rgba(0,0,0,0.8)',
-    borderTopWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   previewButton: {
     flex: 1,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.xl,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
   },
   previewButtonDisabled: {
     opacity: 0.6,

@@ -273,8 +273,7 @@ export default function AppNavigator() {
           name="Exercise"
           component={ExerciseScreen}
           options={{
-            title: t('navigation.exercise'),
-            headerBackTitle: t('common.back'),
+            headerShown: false,
           }}
         />
         <Stack.Screen

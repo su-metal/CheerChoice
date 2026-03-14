@@ -31,6 +31,13 @@ export default function CameraScreen({ navigation }: Props) {
   const cameraRef = useRef<CameraView>(null);
   const isFocused = useIsFocused();
 
+  function handleCloseCamera() {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Main' }],
+    });
+  }
+
   function showUpgradePaywall() {
     trackEvent('free_limit_reached', {
       screen: 'camera',
@@ -173,7 +180,7 @@ export default function CameraScreen({ navigation }: Props) {
                   showUpgradePaywall();
                   return;
                 }
-                navigation.navigate('Result', { photoUri: photo ?? undefined });
+                navigation.replace('Result', { photoUri: photo ?? undefined });
                 setIsUsingPhoto(false);
               }}
             >
@@ -229,7 +236,7 @@ export default function CameraScreen({ navigation }: Props) {
         <View style={styles.cameraOverlay} pointerEvents="box-none">
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity style={styles.iconButton} onPress={() => navigation.goBack()}>
+            <TouchableOpacity style={styles.iconButton} onPress={handleCloseCamera}>
               <MaterialCommunityIcons name="close" size={24} color={Colors.surface} />
             </TouchableOpacity>
             

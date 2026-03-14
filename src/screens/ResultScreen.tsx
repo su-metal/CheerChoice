@@ -51,6 +51,20 @@ export default function ResultScreen({ navigation, route }: Props) {
   const [isPremium, setIsPremium] = useState(false);
   const isManualEntry = Boolean(manualInput);
 
+  function handleBackToHome() {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Main' }],
+    });
+  }
+
+  function handleRetakePhoto() {
+    navigation.reset({
+      index: 1,
+      routes: [{ name: 'Main' }, { name: 'Camera' }],
+    });
+  }
+
   // コンポーネントマウント時にカロリー推定を実行
   useEffect(() => {
     if (manualInput) {
@@ -204,7 +218,7 @@ export default function ResultScreen({ navigation, route }: Props) {
             primaryLabel={t('common.tryAgain')}
             onPrimaryPress={analyzePhoto}
             secondaryLabel={t('result.takeAnotherPhoto')}
-            onSecondaryPress={() => navigation.navigate('Camera')}
+            onSecondaryPress={handleRetakePhoto}
           />
         </View>
       </SafeAreaView>
@@ -324,15 +338,15 @@ export default function ResultScreen({ navigation, route }: Props) {
           <SafeAreaView edges={['top']} style={styles.headerNav}>
             <TouchableOpacity 
               style={styles.navButton} 
-              onPress={() => navigation.navigate('Camera')}
+              onPress={handleBackToHome}
             >
               <MaterialCommunityIcons name="chevron-left" size={28} color={Colors.surface} />
             </TouchableOpacity>
             
             <Text style={styles.headerTitle}>{t('result.analysisTitle')}</Text>
             
-            <TouchableOpacity style={styles.navButton}>
-              <MaterialCommunityIcons name="dots-horizontal" size={28} color={Colors.surface} />
+            <TouchableOpacity style={styles.navButton} onPress={handleBackToHome}>
+              <MaterialCommunityIcons name="home-outline" size={24} color={Colors.surface} />
             </TouchableOpacity>
           </SafeAreaView>
         </View>
@@ -454,7 +468,7 @@ export default function ResultScreen({ navigation, route }: Props) {
         {/* 撮り直しアクション */}
         <TouchableOpacity
           style={styles.retakeContainer}
-          onPress={() => navigation.navigate('Camera')}
+          onPress={handleRetakePhoto}
         >
           <MaterialCommunityIcons name="refresh" size={20} color={Colors.textLight} />
           <Text style={styles.retakeText}>Retake photo</Text>

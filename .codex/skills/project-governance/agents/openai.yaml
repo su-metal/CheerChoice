@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Governance"
+  short_description: "Set up or realign project governance"
+  default_prompt: "Set up or realign this repository with AGENTS.md, requirements_definition.md, and steering conventions."

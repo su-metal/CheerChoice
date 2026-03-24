@@ -993,8 +993,8 @@ interface Statistics {
 
 ### ✅ Phase 9: 設定・UX改善（完了）
 - SettingsScreen: 設定画面
-- 日別カロリー目標設定
 - 音声フィードバックON/OFF
+- 言語切替と音声フィードバックON/OFF
 - データエクスポート / クリア
 - 今週リカバリー表示（週次リセット文言を含む）
 - 詳細: `.steering/20260209-phase9-settings-ux/`
@@ -1051,6 +1051,12 @@ interface Statistics {
 - SNSシェア機能（Instagram Stories、TikTok）
 - 友達チャレンジ機能（競争・協力）
 - 栄養素分析（カロリー以外: タンパク質、脂質等）
+- USDA FoodData Central を使ったブランド食品検索補助
+  - 手動入力時に米国ブランド食品を商品名で検索し、候補から kcal を反映する
+  - Nutritionix は有料前提のため、将来実装時の第一候補は USDA FoodData Central とする
+- 推定節約額の可視化
+  - `skip` 記録に対してユーザー手入力の想定金額を持たせ、週次・月次で積み上げ表示する
+  - 厳密な実支出ではなく `Estimated Savings` として扱う
 - レシピ提案（節制カロリーでできる健康レシピ）
 - パーソナルトレーナーAI（個別アドバイス）
 - Apple Health / Google Fit連携

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Project Governance Bootstrap"
-  short_description: "Set up AGENTS, spec, and steering workflow"
-  default_prompt: "Bootstrap this repository with AGENTS.md, requirements_definition.md, and steering conventions."

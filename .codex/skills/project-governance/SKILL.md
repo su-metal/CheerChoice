@@ -1,9 +1,8 @@
----
-name: project-governance-bootstrap
-description: Bootstrap project documentation governance for a new or imported repository. Use when a project needs AGENTS.md north-star setup, docs/requirements_definition.md as the canonical spec, docs/requirements.md redirect handling, `.steering` conventions, and optional installation of a local `steering-files` skill so future tasks follow the same workflow automatically.
+name: project-governance
+description: Establish or realign project documentation governance for a new or existing repository. Use when a project needs AGENTS.md north-star setup, docs/requirements_definition.md as the canonical spec, docs/requirements.md redirect handling, `.steering` conventions, or installation of a local `steering-files` skill so future tasks follow the same workflow automatically.
 ---
 
-# Project Governance Bootstrap
+# Project Governance
 
 ## Overview
 
@@ -15,7 +14,7 @@ Initialize a repository so project guidance is managed with this split:
 - `.steering/YYYYMMDD-task-name/`: task-specific delta requirements and design
 - `.codex/skills/steering-files/`: optional project-local steering skill for future task setup
 
-Use this skill for new projects or when importing an existing project that lacks a clean documentation operating model.
+Use this skill for both new projects and existing repositories that need their documentation operating model introduced, repaired, or standardized.
 
 ## Workflow
 

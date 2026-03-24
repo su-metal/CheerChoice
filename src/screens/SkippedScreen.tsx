@@ -21,7 +21,6 @@ import {
   SkippedStats,
 } from '../services/storageService';
 import { t } from '../i18n';
-import { getSettings } from '../services/settingsService';
 
 type SkippedScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Skipped'>;
 type SkippedScreenRouteProp = RouteProp<RootStackParamList, 'Skipped'>;
@@ -36,7 +35,6 @@ export default function SkippedScreen({ navigation, route }: Props) {
   const [message, setMessage] = useState('');
   const [stats, setStats] = useState<SkippedStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dailyGoal, setDailyGoal] = useState(300);
 
   useEffect(() => {
     // ランダムメッセージを設定
@@ -45,12 +43,8 @@ export default function SkippedScreen({ navigation, route }: Props) {
     // 統計データを更新
     async function updateStats() {
       try {
-        const [updatedStats, settings] = await Promise.all([
-          updateSkippedStats(calories),
-          getSettings(),
-        ]);
+        const updatedStats = await updateSkippedStats(calories);
         setStats(updatedStats);
-        setDailyGoal(settings.dailyCalorieGoal);
       } catch (error) {
         console.error('Error updating stats:', error);
         // エラー時はデフォルト値を表示
@@ -60,7 +54,6 @@ export default function SkippedScreen({ navigation, route }: Props) {
           thisMonth: calories,
           lastUpdated: new Date().toISOString(),
         });
-        setDailyGoal(300);
       } finally {
         setLoading(false);
       }
@@ -80,7 +73,7 @@ export default function SkippedScreen({ navigation, route }: Props) {
   }
 
   const savedToday = stats?.today ?? calories;
-  const goalProgress = Math.min(100, Math.round((savedToday / Math.max(1, dailyGoal)) * 100));
+  const buildupProgress = Math.min(100, Math.round((1 - Math.exp(-savedToday / 250)) * 100));
 
   const handleShare = async () => {
     try {
@@ -129,10 +122,10 @@ export default function SkippedScreen({ navigation, route }: Props) {
 
         <View style={styles.progressCard}>
           <Text style={styles.progressText}>
-            {t('skipped.goalProgressMessage', { percent: goalProgress })}
+            {t('skipped.progressMessage', { count: savedToday })}
           </Text>
           <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${goalProgress}%` }]} />
+            <View style={[styles.progressFill, { width: `${buildupProgress}%` }]} />
           </View>
         </View>
 

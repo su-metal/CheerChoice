@@ -1,8 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import {
-  FlatList,
-  Image,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -24,7 +21,6 @@ import {
 } from '../services/recordService';
 import { MealRecord } from '../types';
 import { getTodayOpenObligations, runRecoveryMaintenance } from '../services/recoveryService';
-import { getSettings } from '../services/settingsService';
 import { t } from '../i18n';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Main'>;
@@ -61,10 +57,8 @@ export default function HomeScreen({ navigation }: Props) {
     lastUpdated: new Date().toISOString(),
   });
   const [recentRecords, setRecentRecords] = useState<MealRecord[]>([]);
-  const [dailyGoal, setDailyGoal] = useState(300);
   const [weeklySavedCalories, setWeeklySavedCalories] = useState(0);
   const [todayMoveOptions, setTodayMoveOptions] = useState<MoveOption[]>([]);
-  const [showMovePicker, setShowMovePicker] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -76,7 +70,6 @@ export default function HomeScreen({ navigation }: Props) {
           const todaySummary = await getTodayRecordSummary();
           const latestRecords = await getRecentMealRecords(2);
           const allMeals = await getMealRecords();
-          const settings = await getSettings();
           const todayOpenObligations = await getTodayOpenObligations();
 
           const moveOptions = todayOpenObligations.map((item) => {
@@ -103,7 +96,6 @@ export default function HomeScreen({ navigation }: Props) {
 
           setSummary(todaySummary);
           setRecentRecords(latestRecords);
-          setDailyGoal(settings.dailyCalorieGoal);
           setWeeklySavedCalories(weeklySaved);
           setTodayMoveOptions(moveOptions);
         } catch (error) {
@@ -119,8 +111,7 @@ export default function HomeScreen({ navigation }: Props) {
     }, [])
   );
 
-  const weeklyGoal = dailyGoal * 7;
-  const goalProgress = Math.min(100, Math.round((weeklySavedCalories / Math.max(1, weeklyGoal)) * 100));
+  const buildupProgress = Math.min(100, Math.round((1 - Math.exp(-weeklySavedCalories / 400)) * 100));
   const hasPendingMove = todayMoveOptions.length > 0;
   const hasAnyActivity = recentRecords.length > 0;
 
@@ -243,7 +234,7 @@ export default function HomeScreen({ navigation }: Props) {
             <View>
               <Text style={styles.goalEyebrow}>{t('home.goalEyebrow')}</Text>
               <Text style={styles.goalValue}>{t('home.goalValueSaved', { count: weeklySavedCalories })}</Text>
-              <Text style={styles.goalSubtext}>{t('home.goalSubtext', { count: weeklyGoal })}</Text>
+              <Text style={styles.goalSubtext}>{t('home.goalSubtext')}</Text>
             </View>
             <MaterialCommunityIcons name="trophy-outline" size={32} color={Colors.secondary} />
           </View>
@@ -253,13 +244,13 @@ export default function HomeScreen({ navigation }: Props) {
               colors={Colors.gradientAccent as [string, string]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={[styles.progressFill, { width: `${goalProgress}%` }]}
+              style={[styles.progressFill, { width: `${buildupProgress}%` }]}
             />
           </View>
 
           <View style={styles.statsDivider} />
 
-          <Text style={styles.goalResetHint}>{t('home.weeklyReset')}</Text>
+          <Text style={styles.goalResetHint}>{t('home.goalFootnote')}</Text>
 
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
@@ -282,79 +273,21 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         </TouchableOpacity>
 
-        <View style={styles.recoveryCard}>
-          <Text style={styles.recoverySparkle}>✨</Text>
-          <View style={styles.recoveryBody}>
-            <Text style={styles.recoveryTitle}>{t('home.recoveryTitle')}</Text>
-            <Text style={styles.recoveryText}>{t('home.recoveryText')}</Text>
-          </View>
-        </View>
-
-        <View style={styles.sectionHeader}>
-          <View style={styles.sectionHeading}>
-            <Text style={styles.sectionTitle}>{t('home.yourMove')}</Text>
-          </View>
-          <TouchableOpacity activeOpacity={0.8} onPress={() => setShowMovePicker(true)}>
-            <Text style={styles.viewAll}>{t('home.viewAllCaps')}</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.taskList}>
-          {todayMoveOptions.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>{t('home.allCaughtUp')}</Text>
+        {!hasPendingMove && (
+          <>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionHeading}>
+                <Text style={styles.sectionTitle}>{t('home.yourMove')}</Text>
+              </View>
             </View>
-          ) : (
-            todayMoveOptions.slice(0, 2).map((move, index) => {
-              const secondary = index === 1;
-              return (
-                <TouchableOpacity
-                  key={move.obligationId}
-                  activeOpacity={0.9}
-                  onPress={() => navigateToMove(move)}
-                  style={[
-                    styles.taskCard,
-                    secondary ? styles.taskCardSecondary : styles.taskCardPrimary,
-                  ]}
-                >
-                  <View style={styles.taskLeft}>
-                    <View style={styles.taskImageShell}>
-                      {move.photoUri ? (
-                        <Image source={{ uri: move.photoUri }} style={styles.taskImage} />
-                      ) : (
-                        <MaterialCommunityIcons name="food" size={20} color="#7b8794" />
-                      )}
-                    </View>
-                    <View>
-                      <Text style={styles.taskTitle}>{move.foodName}</Text>
-                      <Text
-                        style={[
-                          styles.taskMeta,
-                          secondary ? styles.taskMetaSecondary : styles.taskMetaPrimary,
-                        ]}
-                      >
-                        {getMoveCtaLabel(move)}
-                      </Text>
-                    </View>
-                  </View>
 
-                  <SafeLinearGradient
-                    colors={
-                      secondary
-                        ? ([Colors.secondaryLight, Colors.secondary] as [string, string])
-                        : (Colors.gradientAccent as [string, string])
-                    }
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.playButton}
-                  >
-                    <MaterialCommunityIcons name="play" size={22} color="#fff" />
-                  </SafeLinearGradient>
-                </TouchableOpacity>
-              );
-            })
-          )}
-        </View>
+            <View style={styles.taskList}>
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyText}>{t('home.allCaughtUp')}</Text>
+              </View>
+            </View>
+          </>
+        )}
 
         <View style={styles.recentSection}>
           <Text style={styles.sectionTitle}>{t('home.recentActivity')}</Text>
@@ -384,41 +317,6 @@ export default function HomeScreen({ navigation }: Props) {
         </View>
       </ScrollView>
 
-      <Modal
-        transparent
-        animationType="fade"
-        visible={showMovePicker}
-        onRequestClose={() => setShowMovePicker(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t('home.moveModalTitle')}</Text>
-            <FlatList
-              data={todayMoveOptions}
-              keyExtractor={(item) => item.obligationId}
-              contentContainerStyle={styles.modalList}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.modalOption}
-                  onPress={() => {
-                    setShowMovePicker(false);
-                    navigateToMove(item);
-                  }}
-                >
-                  <Text style={styles.modalOptionTitle}>{item.foodName}</Text>
-                  <Text style={styles.modalOptionMeta}>{getMoveCtaLabel(item)}</Text>
-                </TouchableOpacity>
-              )}
-            />
-            <TouchableOpacity
-              onPress={() => setShowMovePicker(false)}
-              style={styles.modalClose}
-            >
-              <Text style={styles.modalCloseText}>{t('home.moveModalClose')}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -582,33 +480,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginLeft: 2,
   },
-  recoveryCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    backgroundColor: '#fffbe8',
-    borderWidth: 1.5,
-    borderColor: '#fef3c7',
-    borderRadius: BorderRadius['3xl'],
-    paddingVertical: 20,
-    paddingHorizontal: 22,
-  },
-  recoverySparkle: {
-    fontSize: 32,
-  },
-  recoveryBody: {
-    flex: 1,
-  },
-  recoveryTitle: {
-    ...Typography.h5,
-    color: '#92400e',
-    marginBottom: 4,
-  },
-  recoveryText: {
-    ...Typography.bodySmall,
-    color: '#b45309',
-    opacity: 0.8,
-  },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -624,72 +495,8 @@ const styles = StyleSheet.create({
     ...Typography.h3,
     color: Colors.text,
   },
-  viewAll: {
-    ...Typography.button,
-    color: Colors.primary,
-    fontSize: 13,
-  },
   taskList: {
     gap: 16,
-  },
-  taskCard: {
-    borderRadius: BorderRadius['3xl'],
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1.5,
-  },
-  taskCardPrimary: {
-    backgroundColor: 'rgba(244, 37, 175, 0.04)',
-    borderColor: 'rgba(244, 37, 175, 0.1)',
-  },
-  taskCardSecondary: {
-    backgroundColor: 'rgba(255, 140, 66, 0.05)',
-    borderColor: 'rgba(255, 140, 66, 0.1)',
-  },
-  taskLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    flex: 1,
-  },
-  taskImageShell: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    overflow: 'hidden',
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.sm,
-  },
-  taskImage: {
-    width: '100%',
-    height: '100%',
-  },
-  taskTitle: {
-    ...Typography.h5,
-    color: Colors.text,
-  },
-  taskMeta: {
-    marginTop: 4,
-    ...Typography.bodySmall,
-  },
-  taskMetaPrimary: {
-    color: Colors.primary,
-  },
-  taskMetaSecondary: {
-    color: Colors.secondary,
-  },
-  playButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.md,
   },
   recentSection: {
     gap: 16,
@@ -746,55 +553,5 @@ const styles = StyleSheet.create({
     ...Typography.bodySmall,
     color: Colors.textExtraLight,
     textAlign: 'center',
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: Colors.overlay,
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-  },
-  modalCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius['4xl'],
-    padding: 24,
-    maxHeight: '80%',
-    ...Shadows.xl,
-  },
-  modalTitle: {
-    ...Typography.h3,
-    color: Colors.text,
-    marginBottom: 20,
-  },
-  modalList: {
-    gap: 12,
-  },
-  modalOption: {
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.xl,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(244, 37, 175, 0.05)',
-  },
-  modalOptionTitle: {
-    ...Typography.h5,
-    color: Colors.text,
-  },
-  modalOptionMeta: {
-    ...Typography.bodySmall,
-    color: Colors.textLight,
-    marginTop: 4,
-  },
-  modalClose: {
-    marginTop: 24,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    ...Shadows.md,
-  },
-  modalCloseText: {
-    ...Typography.button,
-    color: Colors.white,
   },
 });

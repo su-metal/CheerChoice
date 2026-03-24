@@ -47,7 +47,6 @@ function isPurchaseCancelledError(error: unknown): boolean {
 
 export default function SettingsScreen({ navigation }: Props) {
   useAppLocale();
-  const [dailyGoal, setDailyGoal] = useState(300);
   const [voiceFeedbackEnabled, setVoiceFeedbackEnabled] = useState(true);
   const [language, setLanguage] = useState<'auto' | 'en' | 'ja'>('auto');
   const [usageData, setUsageData] = useState<UsageData | null>(null);
@@ -64,7 +63,6 @@ export default function SettingsScreen({ navigation }: Props) {
           return;
         }
         setAppLocale(settings.language);
-        setDailyGoal(settings.dailyCalorieGoal);
         setVoiceFeedbackEnabled(settings.voiceFeedbackEnabled);
         setLanguage(settings.language);
         setUsageData(usage);
@@ -79,15 +77,6 @@ export default function SettingsScreen({ navigation }: Props) {
       isMounted = false;
     };
   }, []);
-
-  useEffect(() => {
-    if (!initializedRef.current) {
-      return;
-    }
-    updateSettings({ dailyCalorieGoal: dailyGoal }).catch((error) => {
-      console.error('Error saving daily goal:', error);
-    });
-  }, [dailyGoal]);
 
   useEffect(() => {
     if (!initializedRef.current) {
@@ -267,37 +256,6 @@ export default function SettingsScreen({ navigation }: Props) {
             </View>
           </SafeLinearGradient>
         </TouchableOpacity>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.sectionGoals')}</Text>
-          <View style={styles.card}>
-            <View style={styles.settingRow}>
-              <View style={styles.settingIcon}>
-                <MaterialCommunityIcons name="target" size={22} color={Colors.secondary} />
-              </View>
-              <View style={styles.settingBody}>
-                <Text style={styles.settingLabel}>{t('settings.dailyGoal')}</Text>
-                <Text style={styles.settingValue}>
-                  {dailyGoal} {t('common.kcal')}
-                </Text>
-              </View>
-              <View style={styles.goalActions}>
-                <TouchableOpacity
-                  style={styles.goalButton}
-                  onPress={() => setDailyGoal((prev) => Math.max(100, prev - 50))}
-                >
-                  <Text style={styles.goalButtonText}>-</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.goalButton}
-                  onPress={() => setDailyGoal((prev) => Math.min(1000, prev + 50))}
-                >
-                  <Text style={styles.goalButtonText}>+</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('settings.sectionPreference')}</Text>
@@ -575,23 +533,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#f8fafc',
     marginHorizontal: 8,
-  },
-  goalActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  goalButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  goalButtonText: {
-    ...Typography.h4,
-    color: Colors.primary,
   },
   languageActions: {
     flexDirection: 'row',

@@ -15,7 +15,6 @@ import SafeLinearGradient from '../components/SafeLinearGradient';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '../constants';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getTodayRecordSummary } from '../services/recordService';
-import { getSettings } from '../services/settingsService';
 import { t } from '../i18n';
 
 type ExerciseCompleteScreenNavigationProp = NativeStackNavigationProp<
@@ -31,23 +30,19 @@ type Props = {
 
 export default function ExerciseCompleteScreen({ navigation, route }: Props) {
   const { caloriesBurned, count, targetReps, foodName } = route.params;
-  const [goalProgress, setGoalProgress] = useState(100);
+  const [todaySavedCalories, setTodaySavedCalories] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
 
-    async function loadGoalProgress() {
+    async function loadTodayProgress() {
       try {
-        const [summary, settings] = await Promise.all([getTodayRecordSummary(), getSettings()]);
+        const summary = await getTodayRecordSummary();
         if (!active) {
           return;
         }
-        const progress = Math.min(
-          100,
-          Math.round((summary.savedCalories / Math.max(1, settings.dailyCalorieGoal)) * 100)
-        );
-        setGoalProgress(progress);
+        setTodaySavedCalories(summary.savedCalories);
       } catch (error) {
         console.error('Error loading exercise completion progress:', error);
       } finally {
@@ -57,7 +52,7 @@ export default function ExerciseCompleteScreen({ navigation, route }: Props) {
       }
     }
 
-    loadGoalProgress();
+    loadTodayProgress();
 
     return () => {
       active = false;
@@ -148,7 +143,10 @@ export default function ExerciseCompleteScreen({ navigation, route }: Props) {
               {isLoading ? (
                 <ActivityIndicator size="small" color={Colors.primary} />
               ) : (
-                <Text style={styles.progressRingText}>{goalProgress}%</Text>
+                <View style={styles.progressRingValue}>
+                  <Text style={styles.progressRingText}>{todaySavedCalories}</Text>
+                  <Text style={styles.progressRingUnit}>{t('common.kcal')}</Text>
+                </View>
               )}
             </View>
           </View>
@@ -157,7 +155,7 @@ export default function ExerciseCompleteScreen({ navigation, route }: Props) {
             <Text style={styles.progressTitle}>
               {isLoading
                 ? t('exerciseComplete.loadingProgress')
-                : t('exerciseComplete.goalProgress', { percent: goalProgress })}
+                : t('exerciseComplete.todaySavedTitle', { count: todaySavedCalories })}
             </Text>
             <Text style={styles.progressSubtitle}>
               {completionPercent >= 100
@@ -337,10 +335,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  progressRingValue: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   progressRingText: {
     ...Typography.bodySmall,
     color: Colors.text,
     fontWeight: '800',
+  },
+  progressRingUnit: {
+    ...Typography.caption,
+    color: Colors.textLight,
+    marginTop: -2,
   },
   progressTextWrap: {
     flex: 1,

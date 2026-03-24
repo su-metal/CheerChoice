@@ -60,28 +60,6 @@ function getCurrentRange(period: StatsPeriod) {
   return { start: startOfDay(start), end: endOfDay(today) };
 }
 
-function getPreviousRange(period: StatsPeriod) {
-  const current = getCurrentRange(period);
-
-  if (period === 'week') {
-    const end = new Date(current.start);
-    end.setDate(end.getDate() - 1);
-    const start = new Date(end);
-    start.setDate(end.getDate() - 6);
-    return { start: startOfDay(start), end: endOfDay(end) };
-  }
-
-  const currentStart = current.start;
-  const previousMonthEnd = new Date(currentStart);
-  previousMonthEnd.setDate(0);
-  const previousMonthStart = new Date(
-    previousMonthEnd.getFullYear(),
-    previousMonthEnd.getMonth(),
-    1
-  );
-  return { start: startOfDay(previousMonthStart), end: endOfDay(previousMonthEnd) };
-}
-
 function isInRange(timestamp: string, start: Date, end: Date) {
   const value = new Date(timestamp).getTime();
   return value >= start.getTime() && value <= end.getTime();
@@ -91,19 +69,6 @@ function calculateSavedCaloriesForRange(meals: MealRecord[], start: Date, end: D
   return meals
     .filter((meal) => meal.choice === 'skipped' && isInRange(meal.timestamp, start, end))
     .reduce((sum, meal) => sum + meal.estimatedCalories, 0);
-}
-
-function calculatePeriodChange(meals: MealRecord[], period: StatsPeriod) {
-  const currentRange = getCurrentRange(period);
-  const previousRange = getPreviousRange(period);
-  const currentValue = calculateSavedCaloriesForRange(meals, currentRange.start, currentRange.end);
-  const previousValue = calculateSavedCaloriesForRange(meals, previousRange.start, previousRange.end);
-
-  if (previousValue <= 0) {
-    return currentValue > 0 ? 100 : 0;
-  }
-
-  return Math.round(((currentValue - previousValue) / previousValue) * 100);
 }
 
 function sampleTrendData(data: DailyCalories[], maxPoints = 7) {
@@ -249,7 +214,6 @@ export default function StatsScreen({ navigation }: Props) {
   const [period, setPeriod] = useState<StatsPeriod>('week');
   const [stats, setStats] = useState<StatsData>(defaultStats);
   const [isLoading, setIsLoading] = useState(true);
-  const [comparisonPercent, setComparisonPercent] = useState(0);
   const [weeklyRecovery, setWeeklyRecovery] = useState({
     generatedCount: 0,
     resolvedCount: 0,
@@ -266,7 +230,6 @@ export default function StatsScreen({ navigation }: Props) {
       ]);
 
       setStats(calculateStats(meals, exercises, period));
-      setComparisonPercent(calculatePeriodChange(meals, period));
       setWeeklyRecovery({
         generatedCount: recovery.generatedCount,
         resolvedCount: recovery.resolvedCount,
@@ -275,7 +238,6 @@ export default function StatsScreen({ navigation }: Props) {
     } catch (error) {
       console.error('Error loading stats:', error);
       setStats(defaultStats);
-      setComparisonPercent(0);
       setWeeklyRecovery({
         generatedCount: 0,
         resolvedCount: 0,
@@ -303,11 +265,10 @@ export default function StatsScreen({ navigation }: Props) {
     return t('statsExtended.pendingRemaining', { count: weeklyRecovery.remainingCount });
   }, [weeklyRecovery.remainingCount]);
 
-  const periodLabel = period === 'week' ? t('statsExtended.periodWordWeek') : t('statsExtended.periodWordMonth');
-  const comparisonText =
-    comparisonPercent >= 0
-      ? t('statsExtended.comparisonUp', { percent: comparisonPercent, period: periodLabel })
-      : t('statsExtended.comparisonDown', { percent: Math.abs(comparisonPercent), period: periodLabel });
+  const heroSubtext = period === 'week'
+    ? t('statsExtended.heroSubtextWeek')
+    : t('statsExtended.heroSubtextMonth');
+  const hasPendingMove = weeklyRecovery.remainingCount > 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -357,18 +318,9 @@ export default function StatsScreen({ navigation }: Props) {
               </View>
               <Text style={styles.heroValue}>{formatNumber(stats.totalSavedCalories)}</Text>
               <View style={styles.heroTrendRow}>
-                <MaterialCommunityIcons
-                  name={comparisonPercent >= 0 ? 'trending-up' : 'trending-down'}
-                  size={16}
-                  color={comparisonPercent >= 0 ? Colors.success : Colors.secondary}
-                />
-                <Text
-                  style={[
-                    styles.heroTrendText,
-                    { color: comparisonPercent >= 0 ? Colors.success : Colors.secondary },
-                  ]}
-                >
-                  {comparisonText}
+                <MaterialCommunityIcons name="calendar-heart" size={16} color={Colors.success} />
+                <Text style={[styles.heroTrendText, { color: Colors.success }]}>
+                  {heroSubtext}
                 </Text>
               </View>
             </View>
@@ -444,9 +396,15 @@ export default function StatsScreen({ navigation }: Props) {
 
               <TouchableOpacity
                 style={styles.pendingButton}
-                onPress={() => navigation.navigate('Home')}
+                onPress={() =>
+                  navigation.navigate(hasPendingMove ? 'Home' : 'Camera')
+                }
               >
-                <Text style={styles.pendingButtonText}>{t('statsExtended.pendingButton')}</Text>
+                <Text style={styles.pendingButtonText}>
+                  {hasPendingMove
+                    ? t('statsExtended.pendingButton')
+                    : t('statsExtended.pendingButtonReady')}
+                </Text>
               </TouchableOpacity>
             </View>
           </>

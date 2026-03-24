@@ -1,0 +1,4 @@
+interface:
+  display_name: "Steering Files"
+  short_description: "Create scoped steering docs"
+  default_prompt: "Create or update steering files for this task using the project's AGENTS.md and requirements_definition.md conventions."

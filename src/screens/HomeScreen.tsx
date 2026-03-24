@@ -28,6 +28,7 @@ import { getSettings } from '../services/settingsService';
 import { t } from '../i18n';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Main'>;
+type MaterialIconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 type Props = {
   navigation: HomeScreenNavigationProp;
@@ -43,6 +44,15 @@ type MoveOption = {
   photoUri?: string;
 };
 
+function getLocalWeekStart(date = new Date()): Date {
+  const weekStart = new Date(date);
+  const day = weekStart.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  weekStart.setDate(weekStart.getDate() + diff);
+  weekStart.setHours(0, 0, 0, 0);
+  return weekStart;
+}
+
 export default function HomeScreen({ navigation }: Props) {
   const [summary, setSummary] = useState<TodayRecordSummary>({
     skippedCount: 0,
@@ -52,6 +62,7 @@ export default function HomeScreen({ navigation }: Props) {
   });
   const [recentRecords, setRecentRecords] = useState<MealRecord[]>([]);
   const [dailyGoal, setDailyGoal] = useState(300);
+  const [weeklySavedCalories, setWeeklySavedCalories] = useState(0);
   const [todayMoveOptions, setTodayMoveOptions] = useState<MoveOption[]>([]);
   const [showMovePicker, setShowMovePicker] = useState(false);
 
@@ -80,6 +91,11 @@ export default function HomeScreen({ navigation }: Props) {
               photoUri: linkedMeal?.photoUri,
             };
           });
+          const weekStart = getLocalWeekStart();
+          const weeklySaved = allMeals
+            .filter((meal) => meal.choice === 'skipped')
+            .filter((meal) => new Date(meal.timestamp).getTime() >= weekStart.getTime())
+            .reduce((sum, meal) => sum + meal.estimatedCalories, 0);
 
           if (!isMounted) {
             return;
@@ -88,6 +104,7 @@ export default function HomeScreen({ navigation }: Props) {
           setSummary(todaySummary);
           setRecentRecords(latestRecords);
           setDailyGoal(settings.dailyCalorieGoal);
+          setWeeklySavedCalories(weeklySaved);
           setTodayMoveOptions(moveOptions);
         } catch (error) {
           console.error('Error loading home summary:', error);
@@ -102,8 +119,10 @@ export default function HomeScreen({ navigation }: Props) {
     }, [])
   );
 
-  const remainingGoal = Math.max(0, dailyGoal - summary.savedCalories);
-  const goalProgress = Math.min(100, Math.round((summary.savedCalories / Math.max(1, dailyGoal)) * 100));
+  const weeklyGoal = dailyGoal * 7;
+  const goalProgress = Math.min(100, Math.round((weeklySavedCalories / Math.max(1, weeklyGoal)) * 100));
+  const hasPendingMove = todayMoveOptions.length > 0;
+  const hasAnyActivity = recentRecords.length > 0;
 
   const navigateToMove = (move: MoveOption) => {
     navigation.navigate('Exercise', {
@@ -126,6 +145,45 @@ export default function HomeScreen({ navigation }: Props) {
     const mealLabel = record.choice === 'ate' ? t('home.ate') : t('home.skippedChoice');
     return t('home.recentLabel', { choice: mealLabel, time: timeLabel });
   };
+
+  const getMoveCtaLabel = (move: MoveOption) => {
+    if (move.exerciseType === 'situp') {
+      return t('home.taskContinueMinutes', { count: move.remainingCount });
+    }
+
+    if (move.exerciseType === 'squat') {
+      return t('home.taskContinueSquats', { count: move.remainingCount });
+    }
+
+    return t('home.taskContinueReps', { count: move.remainingCount });
+  };
+
+  const heroConfig = hasPendingMove
+    ? {
+        icon: 'play' as MaterialIconName,
+        emoji: '🔥',
+        eyebrow: t('home.heroEyebrowResume'),
+        title: t('home.heroTitleResume'),
+        subtitle: t('home.heroSubtitleResume'),
+        onPress: () => navigateToMove(todayMoveOptions[0]),
+      }
+    : !hasAnyActivity
+      ? {
+          icon: 'camera' as MaterialIconName,
+          emoji: '📸',
+          eyebrow: t('home.heroEyebrowStart'),
+          title: t('home.heroTitleStart'),
+          subtitle: t('home.heroSubtitleStart'),
+          onPress: () => navigation.navigate('Camera'),
+        }
+      : {
+          icon: 'chart-box' as MaterialIconName,
+          emoji: '📈',
+          eyebrow: t('home.heroEyebrowProgress'),
+          title: t('home.heroTitleProgress'),
+          subtitle: t('home.heroSubtitleProgress'),
+          onPress: () => navigation.navigate('Stats'),
+        };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -157,7 +215,7 @@ export default function HomeScreen({ navigation }: Props) {
 
         <TouchableOpacity
           activeOpacity={0.94}
-          onPress={() => navigation.navigate('Camera')}
+          onPress={heroConfig.onPress}
         >
           <SafeLinearGradient
             colors={Colors.gradientAccent as [string, string]}
@@ -166,9 +224,13 @@ export default function HomeScreen({ navigation }: Props) {
             style={styles.heroCard}
           >
             <View style={styles.heroIconShell}>
-              <MaterialCommunityIcons name="camera" size={34} color="#fff" />
+              <MaterialCommunityIcons name={heroConfig.icon} size={34} color="#fff" />
             </View>
-            <Text style={styles.heroTitle}>📸 {t('home.heroTitle')}</Text>
+            <Text style={styles.heroEyebrow}>{heroConfig.eyebrow}</Text>
+            <Text style={styles.heroTitle}>
+              {heroConfig.emoji} {heroConfig.title}
+            </Text>
+            <Text style={styles.heroSubtitle}>{heroConfig.subtitle}</Text>
           </SafeLinearGradient>
         </TouchableOpacity>
 
@@ -180,7 +242,8 @@ export default function HomeScreen({ navigation }: Props) {
           <View style={styles.goalHeader}>
             <View>
               <Text style={styles.goalEyebrow}>{t('home.goalEyebrow')}</Text>
-              <Text style={styles.goalValue}>{t('home.goalValueLeft', { count: remainingGoal })}</Text>
+              <Text style={styles.goalValue}>{t('home.goalValueSaved', { count: weeklySavedCalories })}</Text>
+              <Text style={styles.goalSubtext}>{t('home.goalSubtext', { count: weeklyGoal })}</Text>
             </View>
             <MaterialCommunityIcons name="trophy-outline" size={32} color={Colors.secondary} />
           </View>
@@ -195,6 +258,8 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.statsDivider} />
+
+          <Text style={styles.goalResetHint}>{t('home.weeklyReset')}</Text>
 
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
@@ -227,8 +292,7 @@ export default function HomeScreen({ navigation }: Props) {
 
         <View style={styles.sectionHeader}>
           <View style={styles.sectionHeading}>
-            <Text style={styles.sectionTitle}>{t('home.pendingTasks')}</Text>
-            <MaterialCommunityIcons name="alert" size={20} color={Colors.secondary} />
+            <Text style={styles.sectionTitle}>{t('home.yourMove')}</Text>
           </View>
           <TouchableOpacity activeOpacity={0.8} onPress={() => setShowMovePicker(true)}>
             <Text style={styles.viewAll}>{t('home.viewAllCaps')}</Text>
@@ -269,11 +333,7 @@ export default function HomeScreen({ navigation }: Props) {
                           secondary ? styles.taskMetaSecondary : styles.taskMetaPrimary,
                         ]}
                       >
-                        {move.exerciseType === 'situp'
-                          ? t('home.taskMinutesLeft', { count: move.remainingCount })
-                          : move.exerciseType === 'squat'
-                            ? t('home.taskSquatsLeft', { count: move.remainingCount })
-                            : t('home.taskRepsLeft', { count: move.remainingCount })}
+                        {getMoveCtaLabel(move)}
                       </Text>
                     </View>
                   </View>
@@ -346,9 +406,7 @@ export default function HomeScreen({ navigation }: Props) {
                   }}
                 >
                   <Text style={styles.modalOptionTitle}>{item.foodName}</Text>
-                  <Text style={styles.modalOptionMeta}>
-                    {item.remainingCount} {item.exerciseType}
-                  </Text>
+                  <Text style={styles.modalOptionMeta}>{getMoveCtaLabel(item)}</Text>
                 </TouchableOpacity>
               )}
             />
@@ -412,24 +470,36 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     borderRadius: BorderRadius['5xl'],
-    paddingVertical: 50,
-    paddingHorizontal: 32,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
     alignItems: 'center',
-    gap: 16,
+    gap: 10,
     ...Shadows.xl,
   },
   heroIconShell: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.whiteTransparent,
   },
   heroTitle: {
-    ...Typography.h2,
+    ...Typography.h4,
     color: Colors.white,
     textAlign: 'center',
+  },
+  heroEyebrow: {
+    ...Typography.eyebrow,
+    color: Colors.white,
+    opacity: 0.9,
+    textAlign: 'center',
+  },
+  heroSubtitle: {
+    ...Typography.bodySmall,
+    color: Colors.white,
+    textAlign: 'center',
+    opacity: 0.92,
   },
   goalCard: {
     backgroundColor: Colors.surface,
@@ -451,6 +521,16 @@ const styles = StyleSheet.create({
   goalValue: {
     ...Typography.h2,
     color: Colors.text,
+  },
+  goalSubtext: {
+    ...Typography.bodySmall,
+    color: Colors.textLight,
+    marginTop: 6,
+  },
+  goalResetHint: {
+    ...Typography.caption,
+    color: Colors.textExtraLight,
+    marginBottom: 16,
   },
   goalValueMuted: {
     ...Typography.h4,

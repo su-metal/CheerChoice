@@ -100,5 +100,5 @@ Home Screen
 ---
 
 ## 関連ドキュメント
-- [要件定義書](../../docs/requirements.md) - Phase 4セクション
+- [要件定義書](../../docs/requirements_definition.md) - Phase 4セクション
 - [CLAUDE.md](../../CLAUDE.md) - 技術スタック、デザインシステム

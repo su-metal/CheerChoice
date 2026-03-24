@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
   ActivityIndicator,
+  Share,
   ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -20,6 +21,7 @@ import {
   SkippedStats,
 } from '../services/storageService';
 import { t } from '../i18n';
+import { getSettings } from '../services/settingsService';
 
 type SkippedScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Skipped'>;
 type SkippedScreenRouteProp = RouteProp<RootStackParamList, 'Skipped'>;
@@ -34,6 +36,7 @@ export default function SkippedScreen({ navigation, route }: Props) {
   const [message, setMessage] = useState('');
   const [stats, setStats] = useState<SkippedStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dailyGoal, setDailyGoal] = useState(300);
 
   useEffect(() => {
     // ランダムメッセージを設定
@@ -42,8 +45,12 @@ export default function SkippedScreen({ navigation, route }: Props) {
     // 統計データを更新
     async function updateStats() {
       try {
-        const updatedStats = await updateSkippedStats(calories);
+        const [updatedStats, settings] = await Promise.all([
+          updateSkippedStats(calories),
+          getSettings(),
+        ]);
         setStats(updatedStats);
+        setDailyGoal(settings.dailyCalorieGoal);
       } catch (error) {
         console.error('Error updating stats:', error);
         // エラー時はデフォルト値を表示
@@ -53,6 +60,7 @@ export default function SkippedScreen({ navigation, route }: Props) {
           thisMonth: calories,
           lastUpdated: new Date().toISOString(),
         });
+        setDailyGoal(300);
       } finally {
         setLoading(false);
       }
@@ -71,104 +79,96 @@ export default function SkippedScreen({ navigation, route }: Props) {
     );
   }
 
+  const savedToday = stats?.today ?? calories;
+  const goalProgress = Math.min(100, Math.round((savedToday / Math.max(1, dailyGoal)) * 100));
+
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: t('skipped.shareMessage', { foodName, calories }),
+      });
+    } catch (error) {
+      console.error('Error sharing skipped achievement:', error);
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <SafeLinearGradient
-        colors={[Colors.secondary, '#00c6ff']}
-        style={styles.fullBackground}
+    <SafeAreaView style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        bounces
       >
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <SafeAreaView style={styles.safeArea}>
-            {/* 大きなアイコン・装飾 */}
-            <View style={styles.celebrationHeader}>
-              <View style={styles.iconCircle}>
-                <MaterialCommunityIcons name="star-face" size={80} color={Colors.surface} />
-              </View>
-              <Text style={styles.celebrationTitle}>{t('skipped.celebrationTitle')}</Text>
-            </View>
+        <View style={styles.heroArea}>
+          <View style={styles.backgroundGlow} />
+          <View style={[styles.confetti, styles.confettiGoldSquare]} />
+          <View style={[styles.confetti, styles.confettiOrangeDot]} />
+          <View style={[styles.confetti, styles.confettiPinkDiamond]} />
+          <View style={[styles.confetti, styles.confettiPinkGlow]} />
+          <View style={[styles.confetti, styles.confettiGoldDiamond]} />
 
-            {/* ポジティブメッセージ */}
+          <View style={styles.heroSection}>
+            <View style={styles.iconWrap}>
+              <View style={styles.iconHalo} />
+              <MaterialCommunityIcons name="star-four-points" size={164} color={Colors.primary} />
+              <View style={styles.banner}>
+                <Text style={styles.bannerText}>{t('skipped.banner')}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.achievementBlock}>
+            <Text style={styles.headline}>{t('skipped.headline')}</Text>
+            <Text style={styles.valueText}>{calories} {t('common.kcal')}</Text>
+            <Text style={styles.valueLabel}>{t('skipped.savedLabel')}</Text>
             <Text style={styles.message}>{message}</Text>
+            <Text style={styles.foodText}>{t('skipped.foodNameProgress', { foodName })}</Text>
+          </View>
+        </View>
 
-            {/* 今回の節制カロリーカード */}
-            <View style={styles.mainCard}>
-              <Text style={styles.cardLabel}>{t('skipped.currentLabel')}</Text>
-              <View style={styles.calorieContainer}>
-                <Text style={styles.calorieValue}>{calories}</Text>
-                <Text style={styles.calorieUnit}>kcal</Text>
-              </View>
-              <View style={styles.foodBadge}>
-                <MaterialCommunityIcons name="leaf" size={14} color={Colors.secondary} />
-                <Text style={styles.foodBadgeText}>
-                  {t('skipped.foodNameProgress', { foodName })}
-                </Text>
-              </View>
-            </View>
+        <View style={styles.progressCard}>
+          <Text style={styles.progressText}>
+            {t('skipped.goalProgressMessage', { percent: goalProgress })}
+          </Text>
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${goalProgress}%` }]} />
+          </View>
+        </View>
 
-            {/* 累計統計 */}
-            {stats && (
-              <View style={styles.statsContainer}>
-                <Text style={styles.statsHeader}>{t('skipped.progressTitle')}</Text>
+        <View style={styles.bottomArea}>
+          <TouchableOpacity
+            activeOpacity={0.92}
+            onPress={() =>
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Main' }],
+              })
+            }
+          >
+            <SafeLinearGradient
+              colors={[Colors.primary, '#f97316']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.primaryButton}
+            >
+              <Text style={styles.primaryButtonText}>{t('skipped.continueHome')}</Text>
+            </SafeLinearGradient>
+          </TouchableOpacity>
 
-                <View style={styles.statsGrid}>
-                  <View style={styles.statBox}>
-                    <Text style={styles.statLabel}>{t('common.today')}</Text>
-                    <Text style={styles.statNumber}>{stats.today.toLocaleString()}</Text>
-                    <Text style={styles.statUnit}>{t('skipped.statUnitSaved')}</Text>
-                  </View>
-
-                  <View style={styles.statBox}>
-                    <Text style={styles.statLabel}>{t('common.thisWeek')}</Text>
-                    <Text style={styles.statNumber}>{stats.thisWeek.toLocaleString()}</Text>
-                    <Text style={styles.statUnit}>{t('skipped.statUnitSaved')}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.monthlyStat}>
-                  <Text style={styles.statLabel}>{t('common.thisMonth')}</Text>
-                  <View style={styles.monthlyRow}>
-                    <Text style={[styles.statNumber, styles.largeNumber]}>
-                      {stats.thisMonth.toLocaleString()}
-                    </Text>
-                    <Text style={[styles.statUnit, styles.largeUnit]}>{t('skipped.statUnitTotal')}</Text>
-                  </View>
-                  <View style={styles.progressBar}>
-                    <View style={[styles.progressFill, { width: '65%' }]} />
-                  </View>
-                </View>
-              </View>
-            )}
-
-            {/* 下部アクション */}
-            <View style={styles.actions}>
-              <TouchableOpacity
-                style={styles.homeButton}
-                onPress={() =>
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'Main' }],
-                  })
-                }
-                activeOpacity={0.8}
-              >
-                <Text style={styles.homeButtonText}>{t('skipped.backHome')}</Text>
-                <MaterialCommunityIcons name="arrow-right" size={20} color={Colors.secondary} />
-              </TouchableOpacity>
-            </View>
-          </SafeAreaView>
-        </ScrollView>
-      </SafeLinearGradient>
-    </View>
+          <TouchableOpacity style={styles.shareButton} activeOpacity={0.8} onPress={handleShare}>
+            <Text style={styles.shareButtonText}>{t('skipped.shareAchievement')}</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f8f5f7',
   },
   centerContent: {
     flex: 1,
@@ -176,189 +176,243 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.background,
   },
-  fullBackground: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: Spacing['4xl'],
-  },
-  safeArea: {
-    paddingHorizontal: Spacing.xl,
-  },
   loadingText: {
     ...Typography.body,
     color: Colors.textLight,
     marginTop: Spacing.md,
   },
-  celebrationHeader: {
-    alignItems: 'center',
-    marginTop: Spacing['2xl'],
-    marginBottom: Spacing.xl,
+  backgroundGlow: {
+    position: 'absolute',
+    top: 66,
+    left: 6,
+    right: 6,
+    height: 720,
+    borderRadius: 360,
+    backgroundColor: 'rgba(244, 37, 175, 0.12)',
   },
-  iconCircle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+  confetti: {
+    position: 'absolute',
   },
-  celebrationTitle: {
-    ...Typography.h1,
-    color: Colors.surface,
-    fontSize: 28,
-    marginTop: Spacing.lg,
-    fontWeight: '900',
-    letterSpacing: 2,
+  confettiGoldSquare: {
+    top: 148,
+    left: 56,
+    width: 16,
+    height: 16,
+    borderRadius: 5,
+    backgroundColor: '#fbbf24',
+    transform: [{ rotate: '14deg' }],
   },
-  message: {
-    ...Typography.h2,
-    color: Colors.surface,
-    textAlign: 'center',
-    marginBottom: Spacing['2xl'],
-    lineHeight: 44,
+  confettiOrangeDot: {
+    top: 250,
+    right: 58,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#f97316',
   },
-  mainCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius['3xl'],
-    padding: Spacing.xl,
-    alignItems: 'center',
-    ...Shadows.xl,
-    marginBottom: Spacing['2xl'],
+  confettiPinkDiamond: {
+    top: 508,
+    left: 96,
+    width: 12,
+    height: 12,
+    borderRadius: 4,
+    backgroundColor: 'rgba(244, 37, 175, 0.6)',
+    transform: [{ rotate: '-45deg' }],
   },
-  cardLabel: {
-    ...Typography.caption,
-    color: Colors.textLight,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: Spacing.xs,
+  confettiPinkGlow: {
+    top: 130,
+    right: 156,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(244, 37, 175, 0.18)',
   },
-  calorieContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: Spacing.md,
+  confettiGoldDiamond: {
+    top: 560,
+    right: 56,
+    width: 16,
+    height: 16,
+    borderRadius: 5,
+    backgroundColor: '#fbbf24',
+    transform: [{ rotate: '45deg' }],
   },
-  calorieValue: {
-    ...Typography.h1,
-    color: Colors.secondary,
-    fontSize: 80,
-    lineHeight: 88,
+  content: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingTop: 4,
+    paddingBottom: 28,
+    minHeight: '100%',
   },
-  calorieUnit: {
-    ...Typography.h3,
-    color: Colors.secondary,
-    marginLeft: Spacing.xs,
-    opacity: 0.8,
-  },
-  foodBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 198, 255, 0.1)',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
-    borderRadius: BorderRadius.full,
-  },
-  foodBadgeText: {
-    ...Typography.bodySmall,
-    color: Colors.secondary,
-    fontWeight: '700',
-    marginLeft: 4,
-  },
-  statsContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: BorderRadius['2xl'],
-    padding: Spacing.lg,
-    marginBottom: Spacing['2xl'],
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  statsHeader: {
-    ...Typography.bodySmall,
-    color: Colors.surface,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
-    opacity: 0.9,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  statBox: {
+  scrollView: {
     flex: 1,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.md,
+  },
+  heroArea: {
+    position: 'relative',
+    paddingTop: 8,
+    paddingBottom: 18,
+  },
+  heroSection: {
     alignItems: 'center',
-  },
-  statLabel: {
-    ...Typography.caption,
-    color: Colors.textLight,
+    marginTop: 0,
     marginBottom: 4,
+    zIndex: 2,
+    elevation: 2,
   },
-  statNumber: {
-    ...Typography.h4,
+  iconWrap: {
+    width: 220,
+    height: 236,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    zIndex: 3,
+  },
+  iconHalo: {
+    position: 'absolute',
+    inset: 22,
+    borderRadius: 99,
+    backgroundColor: 'rgba(244, 37, 175, 0.10)',
+    shadowColor: Colors.primary,
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 8 },
+  },
+  banner: {
+    position: 'absolute',
+    bottom: 22,
+    backgroundColor: '#f97316',
+    paddingHorizontal: 24,
+    paddingVertical: 9,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: Colors.surface,
+    transform: [{ rotate: '-2deg' }],
+    ...Shadows.md,
+    zIndex: 4,
+  },
+  bannerText: {
+    color: Colors.surface,
+    fontSize: 18,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+  },
+  achievementBlock: {
+    alignItems: 'center',
+    marginBottom: 26,
+    zIndex: 1,
+  },
+  headline: {
+    ...Typography.h3,
     color: Colors.text,
-    fontWeight: '800',
+    fontWeight: '900',
+    textAlign: 'center',
+    marginBottom: 14,
   },
-  statUnit: {
-    ...Typography.caption,
-    fontSize: 10,
-    color: Colors.textLight,
-    marginTop: 2,
+  valueText: {
+    fontSize: 58,
+    lineHeight: 64,
+    fontWeight: '900',
+    color: Colors.primary,
+    textShadowColor: 'rgba(244,37,175,0.25)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 12,
   },
-  monthlyStat: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-  },
-  monthlyRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+  valueLabel: {
+    fontSize: 28,
+    lineHeight: 32,
+    fontWeight: '900',
+    color: '#9ca3af',
+    textTransform: 'uppercase',
     marginTop: 4,
   },
-  largeNumber: {
-    fontSize: 32,
-    color: Colors.secondary,
+  message: {
+    ...Typography.bodyLarge,
+    color: Colors.text,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginTop: 22,
+    paddingHorizontal: 18,
   },
-  largeUnit: {
-    marginLeft: 6,
-    fontSize: 14,
+  foodText: {
+    ...Typography.bodySmall,
+    color: Colors.textLight,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  progressCard: {
+    backgroundColor: 'rgba(244, 37, 175, 0.08)',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(244, 37, 175, 0.16)',
+    paddingHorizontal: 22,
+    paddingVertical: 24,
+    marginHorizontal: 8,
+    marginBottom: 24,
+  },
+  progressText: {
+    ...Typography.body,
+    color: Colors.text,
+    textAlign: 'center',
+    fontWeight: '700',
+    lineHeight: 24,
   },
   progressBar: {
-    height: 6,
-    backgroundColor: Colors.background,
-    borderRadius: 3,
-    marginTop: Spacing.md,
+    height: 12,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderRadius: 999,
+    marginTop: 18,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: Colors.secondary,
+    backgroundColor: Colors.primary,
+    borderRadius: 999,
+    shadowColor: Colors.primary,
+    shadowOpacity: 0.28,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
   },
-  actions: {
-    marginTop: Spacing.lg,
+  progressTrack: {
+    height: 12,
+    backgroundColor: 'rgba(255,255,255,0.65)',
+    borderRadius: 999,
+    marginTop: 18,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.45)',
   },
-  homeButton: {
-    backgroundColor: Colors.surface,
-    flexDirection: 'row',
-    height: 64,
-    borderRadius: BorderRadius['2xl'],
-    justifyContent: 'center',
+  bottomArea: {
+    marginTop: 8,
+    paddingHorizontal: 8,
+    paddingBottom: 18,
+  },
+  primaryButton: {
+    width: '100%',
+    borderRadius: 24,
+    paddingVertical: 20,
     alignItems: 'center',
-    ...Shadows.md,
+    justifyContent: 'center',
+    ...Shadows.xl,
   },
-  homeButtonText: {
-    ...Typography.button,
-    color: Colors.secondary,
+  primaryButtonText: {
+    color: Colors.surface,
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  shareButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    marginTop: 12,
+  },
+  shareButtonText: {
+    color: '#9ca3af',
+    fontSize: 13,
     fontWeight: '800',
-    marginRight: Spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 1.3,
   },
 });
 
